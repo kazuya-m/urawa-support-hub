@@ -34,10 +34,10 @@ SELECT cron.schedule(
 );
 
 -- パフォーマンス最適化用の追加インデックス
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tickets_composite ON tickets(away_team, match_date) 
+CREATE INDEX IF NOT EXISTS idx_tickets_composite ON tickets(away_team, match_date) 
 WHERE away_team = '浦和レッズ';
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notification_pending ON notification_history(scheduled_at) 
+CREATE INDEX IF NOT EXISTS idx_notification_pending ON notification_history(scheduled_at) 
 WHERE status = 'pending';
 
 -- 統計情報の定期更新関数
