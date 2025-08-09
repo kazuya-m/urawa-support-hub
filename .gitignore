@@ -1,0 +1,29 @@
+# Supabase
+.env
+.env.*
+!.env.example
+.vscode/
+supabase/.branches
+supabase/.temp
+
+# Deno
+.deno/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Node.js (if needed for tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
