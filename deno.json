@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true
+  },
+  "importMap": "./import_map.json",
+  "tasks": {
+    "start": "supabase start",
+    "dev": "supabase functions serve --debug",
+    "test": "deno test --allow-all --coverage=coverage",
+    "deploy": "supabase functions deploy",
+    "db:reset": "supabase db reset",
+    "db:push": "supabase db push",
+    "lint": "deno lint",
+    "fmt": "deno fmt"
+  },
+  "lint": {
+    "files": {
+      "include": ["src/", "supabase/functions/"],
+      "exclude": ["supabase/functions/_shared/"]
+    }
+  },
+  "fmt": {
+    "options": {
+      "useTabs": false,
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "singleQuote": true
+    }
+  }
+}
