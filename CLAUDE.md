@@ -1,64 +1,67 @@
-# urawa-support-hub Claude Code 開発メモ
+# urawa-support-hub Claude Code Development Guide
 
-# Role (Claudeの役割)
+## Role (Claude's Role)
 
-- ソフトウェアエンジニアのエキスパートとして振る舞います
-- 肯定を目的とせず、批判的かつ建設的な視点で分析します
-- 理解度が100%に達していない場合、そのまま実装を進めるのではなく、質問を返して理解を深めること
-- 理解度が100%に達していない場合、その時点での理解度を示した上で実装の内容を説明すること
+- Act as a software engineering expert
+- Analyze with critical and constructive perspective, not seeking affirmation
+- If understanding is not 100%, ask questions to deepen understanding rather than proceeding with
+  implementation
+- When understanding is not 100%, explain implementation content along with current understanding
+  level
 
-## プロジェクト概要
+## Project Overview
 
-浦和レッズサポーター向けアウェイ戦チケット販売情報自動通知システム
+Automated notification system for Urawa Red Diamonds away match ticket sales information targeting
+supporters
 
-## 開発ワークフロー
+## Development Workflow
 
-### ブランチ戦略
+### Branch Strategy
 
-- `main`: 本番環境用の安定ブランチ
-- `feature/*`: 機能開発用ブランチ（例: `feature/implement-ticket-repository`）
-- `fix/*`: バグ修正用ブランチ
+- `main`: Stable branch for production environment
+- `feature/*`: Feature development branch (e.g., `feature/implement-ticket-repository`)
+- `fix/*`: Bug fix branch
 
-### コミット粒度とブランチ運用
+### Commit Granularity and Branch Management
 
-**重要**: 機能単位で適切にブランチを切り、小さな単位でコミットすること
+**Important**: Create branches appropriately per feature and commit in small units
 
-#### 推奨パターン:
+#### Recommended Patterns:
 
-1. **機能実装時**: 各機能ごとに新しいブランチを作成
+1. **Feature Implementation**: Create new branch for each feature
    ```bash
    git checkout -b feature/implement-basic-types
-   # 型定義実装
+   # Implement type definitions
    git add . && git commit -m "add basic types for Ticket and NotificationHistory"
 
    git checkout -b feature/implement-ticket-repository
-   # リポジトリ実装
+   # Implement repository
    git add . && git commit -m "implement TicketRepository interface and Supabase implementation"
    ```
 
-2. **コミット単位**: 1つの論理的変更につき1コミット
+2. **Commit Units**: One commit per logical change
    - ✅ Good: "add Ticket type definition"
    - ✅ Good: "implement SupabaseTicketRepository save method"
    - ❌ Bad: "implement everything for ticket management"
 
-3. **プルリクエスト**: 機能完成後にmainまたはdevelopにマージ
+3. **Pull Requests**: Merge to main or develop after feature completion
 
-### 現在の実装フェーズ
+### Current Implementation Phase
 
-Phase 1: 基盤構築とコア機能実装
+Phase 1: Foundation building and core feature implementation
 
-### 次のステップ
+### Next Steps
 
-1. 基盤構築 (プロジェクト構造、Deno設定)
-2. Supabase初期化 (DB スキーマ)
-3. 型定義作成
-4. リポジトリ層実装
-5. 通知サービス実装
-6. スクレイピング機能実装
-7. Edge Functions実装
-8. テスト実装
+1. Foundation setup (project structure, Deno configuration)
+2. Supabase initialization (DB schema)
+3. Type definition creation
+4. Repository layer implementation
+5. Notification service implementation
+6. Scraping functionality implementation
+7. Edge Functions implementation
+8. Test implementation
 
-### 技術スタック
+### Technology Stack
 
 - Runtime: Deno + TypeScript
 - Database: Supabase PostgreSQL
@@ -67,156 +70,160 @@ Phase 1: 基盤構築とコア機能実装
 - Notifications: LINE Messaging API + Discord Webhook
 - Scheduler: pg_cron
 
-### 環境設定状況
+### Environment Setup Status
 
-- LINE Messaging API: ✅ 設定完了
-- Discord Webhook: 未設定
-- Supabase: 未初期化
+- LINE Messaging API: ✅ Setup complete
+- Discord Webhook: Not configured
+- Supabase: Not initialized
 
-### 重要な制約事項
+### Important Constraints
 
-- メモリ制限: 512MB (Edge Functions)
-- 実行時間制限: 60秒
-- 無料枠内での運用必須
+- Memory limit: 512MB (Edge Functions)
+- Execution time limit: 60 seconds
+- Must operate within free tier
 
-## 開発時の注意点
+## Development Notes
 
-- 実装前に必ずJリーグチケットサイトの構造を調査
-- エラーハンドリングを各機能に必ず実装
-- ログ出力でデバッグ情報を適切に記録
-- テスト駆動開発を心がける
+- Always investigate J-League ticket site structure before implementation
+- Implement error handling for each feature
+- Record appropriate debug information in log output
+- Practice test-driven development
 
-## 必須開発プロセス
+## Required Development Process
 
-### 🚨 実装後は必ず動作確認とテスト実行を行うこと
+### 🚨 Always perform operation verification and test execution after implementation
 
-#### 1. 動作確認の手順
+#### 1. Operation Verification Steps
 
-- **TypeScript型チェック**: `deno check` でコンパイルエラーがないことを確認
-- **Lintチェック**: `deno lint` でコード品質を確認
-- **ローカル環境での実行テスト**: 実装した機能が期待通り動作することを確認
-- **データベース連携確認**: Supabaseとの接続、CRUD操作の動作確認
-- **制約・バリデーション確認**: データベース制約、型チェックの動作確認
-- **エラーハンドリング確認**: 異常系のケースでエラーが適切に処理されることを確認
+- **TypeScript type check**: Confirm no compilation errors with `deno check`
+- **Lint check**: Confirm code quality with `deno lint`
+- **Local environment execution test**: Confirm implemented features work as expected
+- **Database integration verification**: Confirm Supabase connection and CRUD operations
+- **Constraint/validation verification**: Confirm database constraints and type checking work
+  properly
+- **Error handling verification**: Confirm errors are handled appropriately in exceptional cases
 
-#### 2. テスト実装の義務
+#### 2. Test Implementation Requirements
 
-##### ユニットテストファイル配置ルール
+##### Unit Test File Placement Rules
 
-- **配置場所**: 対象ファイルと同階層に`__tests__`ディレクトリを作成し、その中にテストファイルを配置
-- **ファイル命名**: `対象ファイル名.test.ts`形式で命名
-- **例**: `src/features/repositories/TicketRepository.ts` →
+- **Placement**: Create `__tests__` directory at the same level as target file and place test files
+  inside
+- **File naming**: Name in format `targetFileName.test.ts`
+- **Example**: `src/features/repositories/TicketRepository.ts` →
   `src/features/repositories/__tests__/TicketRepository.test.ts`
 
-##### テスト実装要件
+##### Test Implementation Requirements
 
-- **ユニットテスト作成**: 各関数・メソッドの単体動作を確認するテスト
-  (対象ファイルと同階層の`__tests__/`ディレクトリ)
-- **統合テストスクリプト作成**: 主要機能の動作を確認する実行可能なテスト (`tests/integration/`)
-- **実際のデータでのテスト**: ダミーデータではなく実際の制約に合うテストデータ使用
-- **境界値テスト**: 正常系・異常系・境界値での動作確認
-- **モックテスト**: 外部依存関係をモック化した単体テスト
-- **クリーンアップ処理**: テスト後のデータ削除を含む完全なテスト
-- **テスト結果の検証**: 全てのテストケースが成功することを確認
+- **Unit test creation**: Tests to verify individual function/method behavior (in `__tests__/`
+  directory at same level as target file)
+- **Integration test script creation**: Executable tests to verify key functionality
+  (`tests/integration/`)
+- **Testing with actual data**: Use test data that matches actual constraints rather than dummy data
+- **Boundary value testing**: Verify behavior in normal, exceptional, and boundary value cases
+- **Mock testing**: Unit tests with mocked external dependencies
+- **Cleanup processing**: Complete tests including data deletion after testing
+- **Test result verification**: Confirm all test cases succeed
 
-#### 3. コミット前チェックリスト
+#### 3. Pre-commit Checklist
 
-- [ ] `deno check` 型チェック成功確認済み
-- [ ] `deno lint` Lintチェック成功確認済み
-- [ ] **ユニットテスト作成済み** (対象ファイルと同階層の`__tests__/`ディレクトリ)
-- [ ] **統合テスト作成済み** (tests/integration/)
-- [ ] `deno test --allow-env` 全テスト成功確認済み
-- [ ] 動作確認テスト実行済み
-- [ ] エラーケース・境界値テスト実行済み
-- [ ] テストデータのクリーンアップ確認済み
+- [ ] `deno check` type check success confirmed
+- [ ] `deno lint` lint check success confirmed
+- [ ] **Unit tests created** (in `__tests__/` directory at same level as target file)
+- [ ] **Integration tests created** (tests/integration/)
+- [ ] `deno test --allow-env` all tests success confirmed
+- [ ] Operation verification test executed
+- [ ] Error cases and boundary value tests executed
+- [ ] Test data cleanup confirmed
 
-**重要**: 動作確認なしでのコミット・PRは禁止。必ずテストを通してから次の工程に進むこと。
+**Important**: Commits/PRs without operation verification are prohibited. Always proceed to next
+step after passing tests.
 
-## 設計原則とベストプラクティス
+## Design Principles and Best Practices
 
-### 🎯 必須遵守事項
+### 🎯 Mandatory Compliance Items
 
-#### 1. 命名規則
+#### 1. Naming Conventions
 
 ```typescript
-// ✅ Good: 技術非依存
+// ✅ Good: Technology independent
 export class TicketRepositoryImpl implements TicketRepository
 
-// ❌ Bad: 外部サービス依存
+// ❌ Bad: External service dependent
 export class SupabaseTicketRepository implements TicketRepository
 ```
 
-#### 2. エラーハンドリング統一
+#### 2. Unified Error Handling
 
 ```typescript
-// ✅ 共通ユーティリティを使用
+// ✅ Use common utilities
 if (error) handleSupabaseError('save ticket', error);
 
-// ❌ 重複コード
+// ❌ Duplicate code
 if (error) throw new Error(`Failed to save ticket: ${error.message}`);
 ```
 
-#### 3. テスト設計
+#### 3. Test Design
 
-- **分割**: 個別テストケース作成（巨大統合テスト禁止）
-- **共通化**: `createTestSupabaseClient()`, `cleanupTestData()` 活用
-- **権限**: `--allow-env --allow-net=127.0.0.1` （`--allow-all` 禁止）
+- **Separation**: Create individual test cases (prohibit giant integration tests)
+- **Common utilities**: Utilize `createTestSupabaseClient()`, `cleanupTestData()`
+- **Permissions**: `--allow-env --allow-net=127.0.0.1` (prohibit `--allow-all`)
 
-#### 4. ディレクトリ構造
+#### 4. Directory Structure
 
 ```
 src/features/
-├── shared/repositories/  # インターフェース
-├── shared/utils/        # 共通処理
+├── shared/repositories/  # Interfaces
+├── shared/utils/        # Common processing
 └── {feature}/repositories/{Entity}RepositoryImpl.ts
 ```
 
-### 🚨 禁止事項
+### 🚨 Prohibited Items
 
-- 外部サービス名をクラス名に含める
-- エラーハンドリングの重複
-- `--allow-all` 権限使用
-- 巨大な統合テスト
+- Including external service names in class names
+- Duplicate error handling
+- Using `--allow-all` permissions
+- Giant integration tests
 
-### 🎯 次回セッション時チェック項目
+### 🎯 Next Session Check Items
 
-- [ ] `{Entity}RepositoryImpl` 命名使用
-- [ ] 共通エラーハンドラー活用
-- [ ] 最小権限設定
-- [ ] 既存パターンとの一貫性確認
+- [ ] Use `{Entity}RepositoryImpl` naming
+- [ ] Utilize common error handlers
+- [ ] Set minimum permissions
+- [ ] Confirm consistency with existing patterns
 
-## 設定駆動設計パターン
+## Configuration-Driven Design Pattern
 
-### 🎯 NotificationConfig 設定外部化
+### 🎯 NotificationConfig Externalization
 
-運用中の値変更に対応するため、通知タイミング設定を完全外部化
+Complete externalization of notification timing settings to handle value changes during operation
 
 ```typescript
-// ✅ 設定駆動: NotificationConfig.ts
+// ✅ Configuration-driven: NotificationConfig.ts
 export const NOTIFICATION_TIMING_CONFIG = {
   day_before: {
-    displayName: '販売開始前日',
+    displayName: 'Day before sale start',
     calculateScheduledTime: (saleStartDate: Date): Date => {
-      // 前日20:00設定 (変更時はここだけ修正)
+      // Set to 20:00 previous day (modify only here when changing)
     },
     toleranceMs: 5 * 60 * 1000
   }
 }
 
-// ✅ エンティティでは設定を参照
+// ✅ Entities reference configuration
 shouldSendNotification(type: NotificationType, currentTime: Date): boolean {
   return shouldSendNotificationAtTime(type, this.saleStartDate, currentTime);
 }
 ```
 
-#### メリット
+#### Benefits
 
-- **保守性**: 通知タイミング変更時は1箇所だけ修正
-- **拡張性**: 新しい通知タイプを簡単追加可能
-- **型安全性**: TypeScriptの型チェックで整合性担保
+- **Maintainability**: Only modify one place when changing notification timing
+- **Extensibility**: Easily add new notification types
+- **Type safety**: Ensure consistency with TypeScript type checking
 
-#### 適用済み箇所
+#### Applied Locations
 
-- `src/domain/entities/NotificationConfig.ts`: 設定定義
-- `src/domain/entities/Ticket.ts`: ハードコード削除、設定利用
-- `src/domain/entities/NotificationHistory.ts`: 表示名・バリデーション統一
+- `src/domain/entities/NotificationConfig.ts`: Configuration definition
+- `src/domain/entities/Ticket.ts`: Removed hard coding, use configuration
+- `src/domain/entities/NotificationHistory.ts`: Unified display names and validation
