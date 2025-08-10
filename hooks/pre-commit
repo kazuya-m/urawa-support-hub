@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Deno native pre-commit hook
+# Runs type check and lint before committing
+
+echo "🚀 Running pre-commit checks..."
+
+# Run deno pre-commit task
+deno task pre-commit
+
+# Check exit status
+if [ $? -ne 0 ]; then
+    echo "❌ Pre-commit checks failed. Commit aborted."
+    exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"

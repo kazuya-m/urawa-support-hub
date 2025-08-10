@@ -17,7 +17,8 @@
     "db:reset": "supabase db reset",
     "db:push": "supabase db push",
     "lint": "deno lint",
-    "fmt": "deno fmt"
+    "fmt": "deno fmt",
+    "pre-commit": "deno check src/ && deno lint"
   },
   "lint": {
     "files": {

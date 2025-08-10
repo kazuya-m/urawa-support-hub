@@ -137,7 +137,24 @@ deno fmt
 
 # Display test coverage
 deno coverage coverage
+
+# Pre-commit checks (type + lint)
+deno task pre-commit
 ```
+
+### 5. Pre-commit Hook Setup (Optional)
+
+To automatically run type and lint checks before commits:
+
+```bash
+# Copy the pre-commit hook
+cp hooks/pre-commit .git/hooks/
+
+# Make it executable
+chmod +x .git/hooks/pre-commit
+```
+
+This will automatically run `deno check` and `deno lint` before each commit, preventing commits with type errors or lint violations.
 
 ## CI/CD
 
