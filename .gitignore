@@ -8,6 +8,8 @@ supabase/.temp
 
 # Deno
 .deno/
+coverage/
+*.lcov
 
 # Logs
 *.log
