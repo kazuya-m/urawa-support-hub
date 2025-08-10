@@ -1,6 +1,16 @@
 {
   "permissions": {
     "allow": [
+      "Bash(deno check:*)",
+      "Bash(mv:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(true)",
+      "Bash(touch:*)",
+      "Bash(deno test:*)",
+      "Bash(deno lint:*)",
+      "Bash(find:*)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [
       "Bash(sudo:*)",

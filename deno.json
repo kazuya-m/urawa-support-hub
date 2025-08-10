@@ -10,7 +10,9 @@
   "tasks": {
     "start": "supabase start",
     "dev": "supabase functions serve --debug",
-    "test": "deno test --allow-all --coverage=coverage",
+    "test": "deno test --allow-env --allow-net=127.0.0.1 --coverage=coverage",
+    "test:unit": "deno test src/ --coverage=coverage",
+    "test:integration": "deno test tests/integration/ --allow-env --allow-net=127.0.0.1 --coverage=coverage",
     "deploy": "supabase functions deploy",
     "db:reset": "supabase db reset",
     "db:push": "supabase db push",

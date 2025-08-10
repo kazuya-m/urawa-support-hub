@@ -2,67 +2,51 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Deno
-      uses: denoland/setup-deno@v1
-      with:
-        deno-version: v1.x
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
-    - name: Verify formatting
-      run: deno fmt --check
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
 
-    - name: Run linter
-      run: deno lint
+      - name: Start Supabase
+        run: supabase start
 
-    - name: Run tests
-      run: deno test --allow-all --coverage=coverage
+      - name: Verify formatting
+        run: deno fmt --check
 
-    - name: Generate coverage report
-      run: deno coverage coverage --lcov --output=coverage.lcov
+      - name: Run linter
+        run: deno lint
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: coverage.lcov
-        fail_ci_if_error: false
+      - name: Type check
+        run: deno check **/*.ts
 
-  type-check:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Run tests
+        run: deno test --allow-env --allow-net=127.0.0.1 --coverage=coverage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-    - name: Setup Deno
-      uses: denoland/setup-deno@v1
-      with:
-        deno-version: v1.x
+      - name: Generate coverage report
+        run: deno coverage coverage --lcov --output=coverage.lcov
 
-    - name: Type check
-      run: deno check **/*.ts
-
-  security-scan:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Deno
-      uses: denoland/setup-deno@v1
-      with:
-        deno-version: v1.x
-
-    - name: Security audit
-      run: |
-        # Denoのセキュリティ監査（将来的にdeno auditが利用可能になったら使用）
-        echo "Security audit placeholder - implement when deno audit is available"
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.lcov
+          fail_ci_if_error: false
