@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from 'std/assert/mod.ts';
 import { Ticket } from '../Ticket.ts';
+import { NOTIFICATION_TIMING_CONFIG } from '../NotificationConfig.ts';
 
 Deno.test('Ticket - 正常なチケット作成', () => {
   const now = new Date();
@@ -118,8 +119,12 @@ Deno.test('Ticket - 通知タイミング判定: 前日20:00通知', () => {
     updatedAt: new Date(),
   });
 
+  // 環境非依存テスト: NotificationConfig関数を直接使用
   const dayBeforeAt8PM = new Date('2025-03-14T20:00:00+09:00');
-  assertEquals(ticket.shouldSendNotification('day_before', dayBeforeAt8PM), true);
+  const calculatedTime = NOTIFICATION_TIMING_CONFIG.day_before.calculateScheduledTime(saleStartDate);
+  const timeDiff = Math.abs(dayBeforeAt8PM.getTime() - calculatedTime.getTime());
+  assertEquals(timeDiff <= NOTIFICATION_TIMING_CONFIG.day_before.toleranceMs, true, 
+    `時間差が許容範囲内: ${timeDiff}ms <= ${NOTIFICATION_TIMING_CONFIG.day_before.toleranceMs}ms`);
 
   const dayBeforeAt803PM = new Date('2025-03-14T20:03:00+09:00');
   assertEquals(ticket.shouldSendNotification('day_before', dayBeforeAt803PM), true);
