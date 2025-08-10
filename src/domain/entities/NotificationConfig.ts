@@ -24,7 +24,7 @@ export const NOTIFICATION_TIMING_CONFIG = {
     calculateScheduledTime: (saleStartDate: Date): Date => {
       const target = new Date(saleStartDate.getTime());
       target.setDate(target.getDate() - 1);
-      
+
       const year = target.getFullYear();
       const month = target.getMonth();
       const date = target.getDate();
