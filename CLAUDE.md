@@ -220,6 +220,31 @@ src/features/
 - [ ] Set minimum permissions
 - [ ] Confirm consistency with existing patterns
 
+## GitHub Issue and Pull Request Management
+
+### 🎯 Pull Request Creation Requirements
+
+**Language Requirements**:
+- **PR Title**: Use Japanese (`pre-commitフック実装（Denoネイティブ）#6`)
+- **PR Description**: Write in Japanese for better team understanding
+- **Include issue number**: Add `#<issue-number>` in title for GitHub integration
+
+**Auto-close Requirements**:
+- **Always include**: `Closes #<issue-number>` in PR description
+- **Effect**: GitHub automatically closes linked issue when PR is merged
+- **Alternative keywords**: `Fixes #<issue-number>`, `Resolves #<issue-number>`
+
+**Example PR Format**:
+```markdown
+## 概要
+- 実装内容の概要
+
+## 実装内容
+- 詳細な変更内容
+
+Closes #6
+```
+
 ## Configuration-Driven Design Pattern
 
 ### 🎯 NotificationConfig Externalization
