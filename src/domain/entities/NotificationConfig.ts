@@ -22,7 +22,7 @@ export const NOTIFICATION_TIMING_CONFIG = {
   day_before: {
     displayName: '販売開始前日',
     calculateScheduledTime: (saleStartDate: Date): Date => {
-      const target = new Date(saleStartDate);
+      const target = new Date(saleStartDate.getTime());
       target.setDate(target.getDate() - 1);
       target.setHours(20, 0, 0, 0); // ← ここだけ変更すれば全体に反映
       return target;
