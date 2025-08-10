@@ -4,12 +4,15 @@
 
 - Act as a software engineering expert
 - Analyze with critical and constructive perspective, not seeking affirmation
-- If understanding is not 100%, ask questions to deepen understanding rather than proceeding with implementation
-- When understanding is not 100%, explain implementation content along with current understanding level
+- If understanding is not 100%, ask questions to deepen understanding rather than proceeding with
+  implementation
+- When understanding is not 100%, explain implementation content along with current understanding
+  level
 
 ## Project Overview
 
-Automated notification system for Urawa Red Diamonds away match ticket sales information targeting supporters
+Automated notification system for Urawa Red Diamonds away match ticket sales information targeting
+supporters
 
 ## Development Workflow
 
@@ -96,23 +99,26 @@ Phase 1: Foundation building and core feature implementation
 - **Lint check**: Confirm code quality with `deno lint`
 - **Local environment execution test**: Confirm implemented features work as expected
 - **Database integration verification**: Confirm Supabase connection and CRUD operations
-- **Constraint/validation verification**: Confirm database constraints and type checking work properly
+- **Constraint/validation verification**: Confirm database constraints and type checking work
+  properly
 - **Error handling verification**: Confirm errors are handled appropriately in exceptional cases
 
 #### 2. Test Implementation Requirements
 
 ##### Unit Test File Placement Rules
 
-- **Placement**: Create `__tests__` directory at the same level as target file and place test files inside
+- **Placement**: Create `__tests__` directory at the same level as target file and place test files
+  inside
 - **File naming**: Name in format `targetFileName.test.ts`
 - **Example**: `src/features/repositories/TicketRepository.ts` →
   `src/features/repositories/__tests__/TicketRepository.test.ts`
 
 ##### Test Implementation Requirements
 
-- **Unit test creation**: Tests to verify individual function/method behavior
-  (in `__tests__/` directory at same level as target file)
-- **Integration test script creation**: Executable tests to verify key functionality (`tests/integration/`)
+- **Unit test creation**: Tests to verify individual function/method behavior (in `__tests__/`
+  directory at same level as target file)
+- **Integration test script creation**: Executable tests to verify key functionality
+  (`tests/integration/`)
 - **Testing with actual data**: Use test data that matches actual constraints rather than dummy data
 - **Boundary value testing**: Verify behavior in normal, exceptional, and boundary value cases
 - **Mock testing**: Unit tests with mocked external dependencies
@@ -130,7 +136,8 @@ Phase 1: Foundation building and core feature implementation
 - [ ] Error cases and boundary value tests executed
 - [ ] Test data cleanup confirmed
 
-**Important**: Commits/PRs without operation verification are prohibited. Always proceed to next step after passing tests.
+**Important**: Commits/PRs without operation verification are prohibited. Always proceed to next
+step after passing tests.
 
 ## Design Principles and Best Practices
 

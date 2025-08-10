@@ -8,7 +8,7 @@
    ```bash
    # Install Deno
    curl -fsSL https://deno.land/install.sh | sh
-   
+
    # Verify installation
    deno --version
    ```
@@ -17,7 +17,7 @@
    ```bash
    # Install via npm
    npm install -g supabase
-   
+
    # Verify installation
    supabase --version
    ```
@@ -54,6 +54,7 @@ supabase status
 ```
 
 **Expected Output:**
+
 ```
 supabase local development setup is running.
 
@@ -167,12 +168,14 @@ deno test --watch src/
 ### Test Permissions
 
 **Required minimal permissions:**
+
 ```bash
 --allow-env          # Environment variables access
 --allow-net=127.0.0.1 # Local Supabase connection
 ```
 
 **Prohibited permissions:**
+
 ```bash
 --allow-all          # Too permissive, security risk
 --allow-net          # Too broad, should be specific
@@ -191,7 +194,7 @@ deno test --watch src/
    ```bash
    # Link to remote project
    supabase link --project-ref your-project-id
-   
+
    # Push local migrations
    supabase db push
    ```
@@ -200,7 +203,7 @@ deno test --watch src/
    ```bash
    # Deploy all functions
    supabase functions deploy
-   
+
    # Deploy specific function
    supabase functions deploy daily-check
    ```
@@ -208,6 +211,7 @@ deno test --watch src/
 ### Environment Variables (Production)
 
 **GitHub Secrets Configuration:**
+
 ```
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-production-anon-key
@@ -236,6 +240,7 @@ SELECT cron.schedule(
 ### Common Issues
 
 #### Supabase Connection Issues
+
 ```bash
 # Check if services are running
 supabase status
@@ -249,6 +254,7 @@ supabase logs
 ```
 
 #### Permission Errors
+
 ```bash
 # Ensure minimum required permissions
 deno test --allow-env --allow-net=127.0.0.1
@@ -258,6 +264,7 @@ ls -la deno.json
 ```
 
 #### Database Schema Issues
+
 ```bash
 # Reset to clean state
 supabase db reset
@@ -272,6 +279,7 @@ supabase migration up
 ### Performance Optimization
 
 #### Deno Performance
+
 ```bash
 # Check TypeScript compilation
 deno check --quiet src/**/*.ts
@@ -284,6 +292,7 @@ deno cache src/deps.ts
 ```
 
 #### Database Performance
+
 ```bash
 # Analyze query performance
 EXPLAIN ANALYZE SELECT * FROM tickets WHERE match_date > NOW();
@@ -298,11 +307,13 @@ FROM pg_stats WHERE tablename = 'tickets';
 ### VS Code Configuration
 
 **Recommended Extensions:**
+
 - Deno (official)
 - Supabase
 - TypeScript and JavaScript Language Features
 
 **Settings (.vscode/settings.json):**
+
 ```json
 {
   "deno.enable": true,
@@ -315,6 +326,7 @@ FROM pg_stats WHERE tablename = 'tickets';
 ### Debugging Setup
 
 **Launch configuration (.vscode/launch.json):**
+
 ```json
 {
   "version": "0.2.0",

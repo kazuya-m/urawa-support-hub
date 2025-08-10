@@ -2,7 +2,8 @@
 
 ## System Overview
 
-The urawa-support-hub implements a Clean Architecture pattern with clear separation of concerns, enabling maintainability, testability, and independence from external frameworks.
+The urawa-support-hub implements a Clean Architecture pattern with clear separation of concerns,
+enabling maintainability, testability, and independence from external frameworks.
 
 ## Architecture Layers
 
@@ -19,6 +20,7 @@ supabase/functions/
 ```
 
 **Key Features**:
+
 - HTTP endpoint handling
 - Authentication and authorization
 - Request/response transformation
@@ -36,6 +38,7 @@ src/application/services/
 ```
 
 **Key Features**:
+
 - Business workflow orchestration
 - Cross-cutting concerns (logging, monitoring)
 - External service integration
@@ -58,6 +61,7 @@ src/domain/
 ```
 
 **Key Principles**:
+
 - **Technology Independence**: No external framework dependencies
 - **Business Logic Encapsulation**: Rich domain entities with behavior
 - **Interface Segregation**: Focused repository contracts
@@ -161,18 +165,20 @@ export const FEATURE_FLAGS = {
   ENABLE_DISCORD_NOTIFICATIONS: true,
   ENABLE_LINE_NOTIFICATIONS: true,
   ENABLE_RETRY_MECHANISM: true,
-  MAX_RETRY_ATTEMPTS: 3
-} as const
+  MAX_RETRY_ATTEMPTS: 3,
+} as const;
 ```
 
 ## Security Architecture
 
 ### Authentication & Authorization
+
 - **Supabase RLS**: Row-level security policies
 - **API Key Management**: Secure environment variable storage
 - **Rate Limiting**: Edge function request throttling
 
 ### Data Protection
+
 - **Input Validation**: Type-safe data processing
 - **SQL Injection Prevention**: Parameterized queries
 - **Sensitive Data Handling**: No PII storage
@@ -183,12 +189,12 @@ export const FEATURE_FLAGS = {
 
 ```typescript
 interface LogEntry {
-  timestamp: string
-  level: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL'
-  service: string
-  operation: string
-  data?: Record<string, any>
-  error?: Error
+  timestamp: string;
+  level: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL';
+  service: string;
+  operation: string;
+  data?: Record<string, any>;
+  error?: Error;
 }
 ```
 
@@ -196,17 +202,18 @@ interface LogEntry {
 
 ```typescript
 interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'down'
+  status: 'healthy' | 'degraded' | 'down';
   services: {
-    database: ServiceHealth
-    scraping: ServiceHealth
-    notifications: ServiceHealth
-  }
-  timestamp: string
+    database: ServiceHealth;
+    scraping: ServiceHealth;
+    notifications: ServiceHealth;
+  };
+  timestamp: string;
 }
 ```
 
 ### Error Tracking
+
 - **Structured Logging**: JSON format for query-ability
 - **Error Aggregation**: Pattern recognition
 - **Alert Thresholds**: Automatic escalation
@@ -214,12 +221,14 @@ interface HealthStatus {
 ## Performance Considerations
 
 ### Optimization Strategies
+
 - **Database Indexing**: Query optimization
 - **Connection Pooling**: Resource efficiency
 - **Caching Strategy**: Reduce external API calls
 - **Batch Operations**: Minimize database round-trips
 
 ### Constraints Management
+
 - **Memory Limit**: 512MB (Edge Functions)
 - **Execution Time**: 60 seconds maximum
 - **Rate Limiting**: Respectful scraping intervals
@@ -228,11 +237,13 @@ interface HealthStatus {
 ## Scalability Architecture
 
 ### Horizontal Scaling
+
 - **Stateless Functions**: Easy replication
 - **Database Partitioning**: Time-based ticket archiving
 - **Load Distribution**: Multiple scraping endpoints
 
 ### Vertical Scaling
+
 - **Resource Optimization**: Memory and CPU efficiency
 - **Query Optimization**: Index usage and query planning
 - **Caching Layers**: Redis for frequently accessed data
@@ -240,11 +251,13 @@ interface HealthStatus {
 ## Disaster Recovery
 
 ### Backup Strategy
+
 - **Database Backups**: Daily automated snapshots
 - **Configuration Backup**: Version-controlled settings
 - **Code Backup**: Git repository with multiple remotes
 
 ### Failover Mechanisms
+
 - **Fallback URLs**: Alternative scraping endpoints
 - **Notification Redundancy**: Multiple channel support
 - **Health Check Recovery**: Automatic service restart

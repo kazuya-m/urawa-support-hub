@@ -6,7 +6,8 @@ Automated notification system for Urawa Red Diamonds away match ticket sales inf
 
 ## Overview
 
-A system that automatically retrieves Urawa Red Diamonds away match ticket information from the J-League ticket site and sends LINE notifications before sales start.
+A system that automatically retrieves Urawa Red Diamonds away match ticket information from the
+J-League ticket site and sends LINE notifications before sales start.
 
 ### Implemented Features
 
@@ -184,6 +185,7 @@ deno test --allow-all
 
 - DB usage: Less than 10MB
 - Functions execution: Approximately 8,760 calls/month
-- Notification sending: Approximately 20 messages/month (LINE) + 50 messages/month (Discord monitoring)
+- Notification sending: Approximately 20 messages/month (LINE) + 50 messages/month (Discord
+  monitoring)
 
 **Total cost: $0.00/month (All within free tier)**

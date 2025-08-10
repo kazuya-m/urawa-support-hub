@@ -2,7 +2,9 @@
 
 ## 1. System Overview
 
-As the first phase of the comprehensive support tool "urawa-support-hub" for Urawa Red Diamonds supporters, build a system that automatically monitors away match ticket sales information and sends reminder notifications to LINE group chats before sales start.
+As the first phase of the comprehensive support tool "urawa-support-hub" for Urawa Red Diamonds
+supporters, build a system that automatically monitors away match ticket sales information and sends
+reminder notifications to LINE group chats before sales start.
 
 ## 2. Functional Requirements
 
@@ -100,13 +102,16 @@ As the first phase of the comprehensive support tool "urawa-support-hub" for Ura
 ## 4. Future Feature Extensions
 
 ### 4.1 User Management
+
 - Multi-LINE group support
 - Individual user preference settings
 
 ### 4.2 Enhanced Monitoring
+
 - Home match monitoring
 - Pre-sale information monitoring
 
 ### 4.3 Advanced Notifications
+
 - Email notification support
 - Mobile app push notifications
