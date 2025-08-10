@@ -56,7 +56,7 @@ src/
 ## 技術スタック
 
 - **Runtime**: Deno + TypeScript
-- **Database**: Supabase PostgreSQL  
+- **Database**: Supabase PostgreSQL
 - **Functions**: Supabase Edge Functions
 - **Scraping**: Playwright
 - **Notifications**: LINE Messaging API + Discord Webhook
