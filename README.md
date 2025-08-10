@@ -154,7 +154,8 @@ cp hooks/pre-commit .git/hooks/
 chmod +x .git/hooks/pre-commit
 ```
 
-This will automatically run `deno check` and `deno lint` before each commit, preventing commits with type errors or lint violations.
+This will automatically run `deno check` and `deno lint` before each commit, preventing commits with
+type errors or lint violations.
 
 ## CI/CD
 
