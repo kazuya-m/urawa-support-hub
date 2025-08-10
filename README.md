@@ -1,25 +1,25 @@
 # urawa-support-hub
 
-浦和レッズサポーター向けアウェイ戦チケット販売情報自動通知システム
+Automated notification system for Urawa Red Diamonds away match ticket sales information
 
-> ✅ **Clean Architecture実装完了** | 45テスト成功 | CI/CD最適化済み
+> ✅ **Clean Architecture Implementation Complete** | 45 Tests Passing | CI/CD Optimized
 
-## 概要
+## Overview
 
-Jリーグチケットサイトから浦和レッズアウェイ戦チケット情報を自動取得し、販売開始をLINE通知するシステムです。
+A system that automatically retrieves Urawa Red Diamonds away match ticket information from the J-League ticket site and sends LINE notifications before sales start.
 
-### 実装済み機能
+### Implemented Features
 
-- ✅ **Domain Layer**: Ticket, NotificationHistory エンティティ（ビジネスロジック含有）
-- ✅ **Infrastructure Layer**: Repository パターン実装
-- ✅ **設定駆動設計**: NOTIFICATION_TIMING_CONFIG による運用時変更対応
-- ✅ **統合テスト**: 45テストケース（エンティティ/リポジトリ/統合）
-- ✅ **CI/CD最適化**: GitHub Actions ワークフロー効率化
-- ✅ **エラーハンドリング**: 統一エラー処理インフラ
+- ✅ **Domain Layer**: Ticket, NotificationHistory entities (with business logic)
+- ✅ **Infrastructure Layer**: Repository pattern implementation
+- ✅ **Configuration-driven Design**: NOTIFICATION_TIMING_CONFIG for operational changes
+- ✅ **Integration Testing**: 45 test cases (entities/repositories/integration)
+- ✅ **CI/CD Optimization**: GitHub Actions workflow efficiency improvements
+- ✅ **Error Handling**: Unified error processing infrastructure
 
-## アーキテクチャ
+## Architecture
 
-### Clean Architecture 構成
+### Clean Architecture Structure
 
 ```
 ┌─────────────────────────────────────┐
@@ -34,26 +34,26 @@ Jリーグチケットサイトから浦和レッズアウェイ戦チケット�
 └─────────────────────────────────────┘
 ```
 
-### ディレクトリ構造
+### Directory Structure
 
 ```
 src/
-├── domain/                    # ドメイン層
-│   ├── entities/             # ビジネスエンティティ（Class）
-│   │   ├── Ticket.ts         # チケットエンティティ + ビジネスロジック
+├── domain/                    # Domain layer
+│   ├── entities/             # Business entities (Classes)
+│   │   ├── Ticket.ts         # Ticket entity + business logic
 │   │   ├── NotificationHistory.ts
-│   │   └── __tests__/        # エンティティ単体テスト
-│   └── interfaces/           # リポジトリインターフェース
-├── infrastructure/           # インフラ層  
-│   ├── repositories/         # リポジトリ実装
+│   │   └── __tests__/        # Entity unit tests
+│   └── interfaces/           # Repository interfaces
+├── infrastructure/           # Infrastructure layer  
+│   ├── repositories/         # Repository implementations
 │   │   ├── TicketRepositoryImpl.ts
-│   │   ├── converters/       # DB↔Domain変換
-│   │   └── __tests__/        # リポジトリ単体テスト
-│   └── utils/                # インフラ共通処理
-└── tests/integration/        # 統合テスト
+│   │   ├── converters/       # DB↔Domain conversion
+│   │   └── __tests__/        # Repository unit tests
+│   └── utils/                # Infrastructure common processing
+└── tests/integration/        # Integration tests
 ```
 
-## 技術スタック
+## Technology Stack
 
 - **Runtime**: Deno + TypeScript
 - **Database**: Supabase PostgreSQL
@@ -61,92 +61,92 @@ src/
 - **Scraping**: Playwright
 - **Notifications**: LINE Messaging API + Discord Webhook
 - **Scheduler**: pg_cron
-- **CI/CD**: GitHub Actions（最適化済み）
+- **CI/CD**: GitHub Actions (optimized)
 
-## ドキュメント
+## Documentation
 
-設計・要件などの詳細ドキュメントは `/docs` ディレクトリに整備されています。
+Detailed design and requirements documents are organized in the `/docs` directory.
 
-- [要件定義書](docs/要件定義書.md)
-- [技術選定書](docs/技術選定書.md) - 実装状況更新済み
-- [基本設計書](docs/基本設計書.md) - Clean Architecture反映済み
-- [詳細設計書](docs/詳細設計書.md) - 実装エンティティ反映済み
-- [アーキテクチャ設計書](docs/アーキテクチャ設計書.md) - 実装構成反映済み
-- [環境設定書](docs/環境設定書.md) - 現在の環境に更新済み
+- [Requirements](docs/requirements.md)
+- [Technology Selection](docs/tech-selection.md) - Updated with implementation status
+- [Basic Design](docs/basic-design.md) - Reflects Clean Architecture
+- [Detailed Design](docs/detailed-design.md) - Reflects implemented entities
+- [Architecture Design](docs/architecture.md) - Reflects implementation structure
+- [Environment Setup](docs/environment-setup.md) - Updated to current environment
 
-## 開発環境セットアップ
+## Development Environment Setup
 
-### 1. 前提条件
+### 1. Prerequisites
 
 - **Deno** v2.x
 - **Supabase CLI**
 
 ```bash
-# Deno インストール
+# Install Deno
 curl -fsSL https://deno.land/install.sh | sh
 
-# Supabase CLI インストール
+# Install Supabase CLI
 npm install -g supabase
 ```
 
-### 2. プロジェクトセットアップ
+### 2. Project Setup
 
 ```bash
-# リポジトリクローン
+# Clone repository
 git clone https://github.com/kazuya-m/urawa-support-hub.git
 cd urawa-support-hub
 
-# Supabaseローカル環境起動
+# Start Supabase local environment
 supabase start
 
-# 依存関係確認
+# Check dependencies
 deno check **/*.ts
 ```
 
-### 3. テスト実行
+### 3. Test Execution
 
 ```bash
-# 全テスト実行（45ケース）
+# Run all tests (45 cases)
 deno test --allow-env --allow-net=127.0.0.1 --coverage=coverage
 
-# 単体テストのみ
+# Unit tests only
 deno test src/ --coverage=coverage
 
-# 統合テストのみ  
+# Integration tests only  
 deno test tests/integration/ --allow-env --allow-net=127.0.0.1
 
-# 型チェック
+# Type check
 deno check src/
 
-# Lintチェック
+# Lint check
 deno lint src/
 ```
 
-### 4. 開発コマンド
+### 4. Development Commands
 
 ```bash
-# ローカル開発サーバー起動
+# Start local development server
 supabase functions serve
 
-# データベースリセット
+# Reset database
 supabase db reset
 
-# フォーマット
+# Format
 deno fmt
 
-# テストカバレッジ表示
+# Display test coverage
 deno coverage coverage
 ```
 
 ## CI/CD
 
-### GitHub Actions 最適化済み
+### GitHub Actions Optimized
 
-- **1ジョブ構成**: lint → test → coverage を効率的に実行
-- **GitHub Secrets**: 環境変数をSecure管理
-- **最小権限**: `--allow-env --allow-net=127.0.0.1` でセキュリティ強化
+- **Single job structure**: Efficiently executes lint → test → coverage
+- **GitHub Secrets**: Secure management of environment variables
+- **Minimum privileges**: Security enhancement with `--allow-env --allow-net=127.0.0.1`
 
-### 必要なGitHub Secrets
+### Required GitHub Secrets
 
 ```
 SUPABASE_URL: https://your-project.supabase.co
@@ -154,36 +154,36 @@ SUPABASE_ANON_KEY: your-anon-key
 SUPABASE_SERVICE_ROLE_KEY: your-service-role-key
 ```
 
-## テスト
+## Testing
 
-### テスト構成（45ケース）
+### Test Structure (45 Cases)
 
-- **エンティティテスト**: 19ケース（Ticket: 8, NotificationHistory: 11）
-- **リポジトリテスト**: 17ケース（TicketRepo: 9, NotificationRepo: 8）
-- **統合テスト**: 9ケース（Repository操作全般）
+- **Entity tests**: 19 cases (Ticket: 8, NotificationHistory: 11)
+- **Repository tests**: 17 cases (TicketRepo: 9, NotificationRepo: 8)
+- **Integration tests**: 9 cases (General repository operations)
 
-### テスト実行権限
+### Test Execution Permissions
 
 ```bash
-# ✅ 推奨: 最小権限
+# ✅ Recommended: Minimum privileges
 deno test --allow-env --allow-net=127.0.0.1
 
-# ❌ 非推奨: 全権限
+# ❌ Not recommended: All privileges
 deno test --allow-all
 ```
 
-## 運用
+## Operations
 
-### 無料枠内運用
+### Free Tier Operations
 
-- **Supabase**: DB 500MB + Functions 500,000回/月
-- **LINE Messaging API**: 1,000通/月
-- **Discord Webhook**: 無制限
+- **Supabase**: DB 500MB + Functions 500,000 calls/month
+- **LINE Messaging API**: 1,000 messages/month
+- **Discord Webhook**: Unlimited
 
-### 推定使用量
+### Estimated Usage
 
-- DB使用量: 10MB未満
-- Functions実行: 約8,760回/月
-- 通知送信: 約20通/月（LINE）+ 50通/月（Discord監視）
+- DB usage: Less than 10MB
+- Functions execution: Approximately 8,760 calls/month
+- Notification sending: Approximately 20 messages/month (LINE) + 50 messages/month (Discord monitoring)
 
-**総コスト: $0.00/月（全て無料枠内）**
+**Total cost: $0.00/month (All within free tier)**
