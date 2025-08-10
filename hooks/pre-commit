@@ -3,15 +3,15 @@
 # Deno native pre-commit hook
 # Runs type check and lint before committing
 
-echo "🚀 Running pre-commit checks..."
-
-# Run deno pre-commit task
-deno task pre-commit
+# Run deno pre-commit task (shows its own progress)
+NO_COLOR=1 deno task pre-commit
 
 # Check exit status
 if [ $? -ne 0 ]; then
-    echo "❌ Pre-commit checks failed. Commit aborted."
+    echo ""
+    echo "❌ Code quality check failed. Fix errors above and try again."
     exit 1
 fi
 
-echo "✅ All pre-commit checks passed!"
+echo ""
+echo "✅ All code quality checks passed!"

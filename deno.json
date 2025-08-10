@@ -18,7 +18,7 @@
     "db:push": "supabase db push",
     "lint": "deno lint",
     "fmt": "deno fmt",
-    "pre-commit": "deno check src/ && deno lint"
+    "pre-commit": "deno check src/ && deno lint && deno fmt --check"
   },
   "lint": {
     "files": {
