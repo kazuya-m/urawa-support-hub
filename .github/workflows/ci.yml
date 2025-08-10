@@ -17,6 +17,17 @@ jobs:
       with:
         deno-version: v1.x
 
+    - name: Setup Supabase CLI
+      uses: supabase/setup-cli@v1
+      with:
+        version: latest
+
+    - name: Start Supabase
+      run: supabase start
+
+    - name: Create .env file for CI
+      run: cp .env.example .env
+
     - name: Verify formatting
       run: deno fmt --check
 
@@ -24,7 +35,7 @@ jobs:
       run: deno lint
 
     - name: Run tests
-      run: deno test --allow-all --coverage=coverage
+      run: deno test --allow-env --allow-net=127.0.0.1 --coverage=coverage --env-file .env
 
     - name: Generate coverage report
       run: deno coverage coverage --lcov --output=coverage.lcov
