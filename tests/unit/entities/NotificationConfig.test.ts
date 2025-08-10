@@ -46,33 +46,21 @@ Deno.test('NotificationConfig - minutes_before設定値テスト', () => {
 });
 
 Deno.test('shouldSendNotificationAtTime - day_before正確なタイミング', () => {
-  const saleStart = new Date('2025-03-15T10:00:00+09:00');
-  // 環境非依存テスト: 相対時間差で判定
-  const currentTime = new Date('2025-03-14T20:00:00+09:00');
+  // モック時刻でのテスト（環境非依存）
+  const mockSaleStart = new Date('2025-03-15T01:00:00Z'); // UTC（JST 10:00相当）
+  const mockCurrentTime = new Date('2025-03-14T11:00:00Z'); // 前日UTC 11:00（JST 20:00相当）
 
-  const calculatedTime = NOTIFICATION_TIMING_CONFIG.day_before.calculateScheduledTime(saleStart);
-  const timeDiff = Math.abs(currentTime.getTime() - calculatedTime.getTime());
-  const result = timeDiff <= NOTIFICATION_TIMING_CONFIG.day_before.toleranceMs;
-  assertEquals(
-    result,
-    true,
-    `時間差が許容範囲内: ${timeDiff}ms <= ${NOTIFICATION_TIMING_CONFIG.day_before.toleranceMs}ms`,
-  );
+  const result = shouldSendNotificationAtTime('day_before', mockSaleStart, mockCurrentTime);
+  assertEquals(result, true);
 });
 
 Deno.test('shouldSendNotificationAtTime - day_before許容範囲内', () => {
-  const saleStart = new Date('2025-03-15T10:00:00+09:00');
-  // 環境非依存テスト: 許容範囲内の時間差
-  const currentTime = new Date('2025-03-14T20:04:00+09:00');
+  // モック時刻でのテスト（環境非依存）- 許容範囲内（4分後）
+  const mockSaleStart = new Date('2025-03-15T01:00:00Z'); // UTC（JST 10:00相当）
+  const mockCurrentTime = new Date('2025-03-14T11:04:00Z'); // 前日UTC 11:04（JST 20:04相当）
 
-  const calculatedTime = NOTIFICATION_TIMING_CONFIG.day_before.calculateScheduledTime(saleStart);
-  const timeDiff = Math.abs(currentTime.getTime() - calculatedTime.getTime());
-  const result = timeDiff <= NOTIFICATION_TIMING_CONFIG.day_before.toleranceMs;
-  assertEquals(
-    result,
-    true,
-    `時間差が許容範囲内: ${timeDiff}ms <= ${NOTIFICATION_TIMING_CONFIG.day_before.toleranceMs}ms`,
-  );
+  const result = shouldSendNotificationAtTime('day_before', mockSaleStart, mockCurrentTime);
+  assertEquals(result, true);
 });
 
 Deno.test('shouldSendNotificationAtTime - day_before許容範囲外', () => {

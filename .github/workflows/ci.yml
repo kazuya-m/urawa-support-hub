@@ -26,7 +26,6 @@ jobs:
       - name: Start Supabase
         run: supabase start
 
-
       - name: Verify formatting
         run: deno fmt --check
 

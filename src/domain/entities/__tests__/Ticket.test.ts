@@ -1,6 +1,5 @@
 import { assertEquals, assertThrows } from 'std/assert/mod.ts';
 import { Ticket } from '../Ticket.ts';
-import { NOTIFICATION_TIMING_CONFIG } from '../NotificationConfig.ts';
 
 Deno.test('Ticket - 正常なチケット作成', () => {
   const now = new Date();
@@ -104,14 +103,15 @@ Deno.test('Ticket - バリデーション: 不正なURL', () => {
 });
 
 Deno.test('Ticket - 通知タイミング判定: 前日20:00通知', () => {
-  const saleStartDate = new Date('2025-03-15T10:00:00+09:00');
-  const ticket = new Ticket({
+  // モック時刻でのテスト（環境非依存）
+  const mockSaleStart = new Date('2025-03-15T01:00:00Z'); // UTC（JST 10:00相当）
+  const mockTicket = new Ticket({
     id: 'test-id',
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate: new Date('2025-03-16T19:00:00+09:00'),
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
-    saleStartDate,
+    saleStartDate: mockSaleStart,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -119,23 +119,17 @@ Deno.test('Ticket - 通知タイミング判定: 前日20:00通知', () => {
     updatedAt: new Date(),
   });
 
-  // 環境非依存テスト: NotificationConfig関数を直接使用
-  const dayBeforeAt8PM = new Date('2025-03-14T20:00:00+09:00');
-  const calculatedTime = NOTIFICATION_TIMING_CONFIG.day_before.calculateScheduledTime(
-    saleStartDate,
-  );
-  const timeDiff = Math.abs(dayBeforeAt8PM.getTime() - calculatedTime.getTime());
-  assertEquals(
-    timeDiff <= NOTIFICATION_TIMING_CONFIG.day_before.toleranceMs,
-    true,
-    `時間差が許容範囲内: ${timeDiff}ms <= ${NOTIFICATION_TIMING_CONFIG.day_before.toleranceMs}ms`,
-  );
+  // 前日UTC 11:00（JST 20:00相当）- 正確なタイミング
+  const mockCurrentTime = new Date('2025-03-14T11:00:00Z');
+  assertEquals(mockTicket.shouldSendNotification('day_before', mockCurrentTime), true);
 
-  const dayBeforeAt803PM = new Date('2025-03-14T20:03:00+09:00');
-  assertEquals(ticket.shouldSendNotification('day_before', dayBeforeAt803PM), true);
+  // 前日UTC 11:03（JST 20:03相当）- 許容範囲内
+  const mockCurrentTime2 = new Date('2025-03-14T11:03:00Z');
+  assertEquals(mockTicket.shouldSendNotification('day_before', mockCurrentTime2), true);
 
-  const dayBeforeAt810PM = new Date('2025-03-14T20:10:00+09:00');
-  assertEquals(ticket.shouldSendNotification('day_before', dayBeforeAt810PM), false);
+  // 前日UTC 11:10（JST 20:10相当）- 許容範囲外
+  const mockCurrentTime3 = new Date('2025-03-14T11:10:00Z');
+  assertEquals(mockTicket.shouldSendNotification('day_before', mockCurrentTime3), false);
 });
 
 Deno.test('Ticket - 通知タイミング判定: 1時間前通知', () => {
