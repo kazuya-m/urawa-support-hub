@@ -1,11 +1,11 @@
-import { assertEquals, assertThrows } from "std/assert/mod.ts";
+import { assertEquals, assertThrows } from 'std/assert/mod.ts';
 import { Ticket } from '../Ticket.ts';
 
-Deno.test("Ticket - 正常なチケット作成", () => {
+Deno.test('Ticket - 正常なチケット作成', () => {
   const now = new Date();
   const futureMatchDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const futureSaleDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  
+
   const ticket = new Ticket({
     id: 'test-id',
     matchName: 'FC東京 vs 浦和レッズ',
@@ -18,7 +18,7 @@ Deno.test("Ticket - 正常なチケット作成", () => {
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   });
 
   assertEquals(ticket.id, 'test-id');
@@ -27,79 +27,82 @@ Deno.test("Ticket - 正常なチケット作成", () => {
   assertEquals(ticket.awayTeam, '浦和レッズ');
 });
 
-Deno.test("Ticket - バリデーション: 空のID", () => {
+Deno.test('Ticket - バリデーション: 空のID', () => {
   const now = new Date();
   const futureMatchDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const futureSaleDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  
+
   assertThrows(
-    () => new Ticket({
-      id: '',
-      matchName: 'FC東京 vs 浦和レッズ',
-      matchDate: futureMatchDate,
-      homeTeam: 'FC東京',
-      awayTeam: '浦和レッズ',
-      saleStartDate: futureSaleDate,
-      venue: '味の素スタジアム',
-      ticketTypes: ['ビジター席'],
-      ticketUrl: 'https://example.com/tickets',
-      createdAt: now,
-      updatedAt: now
-    }),
+    () =>
+      new Ticket({
+        id: '',
+        matchName: 'FC東京 vs 浦和レッズ',
+        matchDate: futureMatchDate,
+        homeTeam: 'FC東京',
+        awayTeam: '浦和レッズ',
+        saleStartDate: futureSaleDate,
+        venue: '味の素スタジアム',
+        ticketTypes: ['ビジター席'],
+        ticketUrl: 'https://example.com/tickets',
+        createdAt: now,
+        updatedAt: now,
+      }),
     Error,
-    'Ticket ID is required'
+    'Ticket ID is required',
   );
 });
 
-Deno.test("Ticket - バリデーション: 試合日が販売開始日より前", () => {
+Deno.test('Ticket - バリデーション: 試合日が販売開始日より前', () => {
   const now = new Date();
   const pastMatchDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const futureSaleDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  
+
   assertThrows(
-    () => new Ticket({
-      id: 'test-id',
-      matchName: 'FC東京 vs 浦和レッズ',
-      matchDate: pastMatchDate,
-      homeTeam: 'FC東京',
-      awayTeam: '浦和レッズ',
-      saleStartDate: futureSaleDate,
-      venue: '味の素スタジアム',
-      ticketTypes: ['ビジター席'],
-      ticketUrl: 'https://example.com/tickets',
-      createdAt: now,
-      updatedAt: now
-    }),
+    () =>
+      new Ticket({
+        id: 'test-id',
+        matchName: 'FC東京 vs 浦和レッズ',
+        matchDate: pastMatchDate,
+        homeTeam: 'FC東京',
+        awayTeam: '浦和レッズ',
+        saleStartDate: futureSaleDate,
+        venue: '味の素スタジアム',
+        ticketTypes: ['ビジター席'],
+        ticketUrl: 'https://example.com/tickets',
+        createdAt: now,
+        updatedAt: now,
+      }),
     Error,
-    'Match date must be after sale start date'
+    'Match date must be after sale start date',
   );
 });
 
-Deno.test("Ticket - バリデーション: 不正なURL", () => {
+Deno.test('Ticket - バリデーション: 不正なURL', () => {
   const now = new Date();
   const futureMatchDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const futureSaleDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  
+
   assertThrows(
-    () => new Ticket({
-      id: 'test-id',
-      matchName: 'FC東京 vs 浦和レッズ',
-      matchDate: futureMatchDate,
-      homeTeam: 'FC東京',
-      awayTeam: '浦和レッズ',
-      saleStartDate: futureSaleDate,
-      venue: '味の素スタジアム',
-      ticketTypes: ['ビジター席'],
-      ticketUrl: 'invalid-url',
-      createdAt: now,
-      updatedAt: now
-    }),
+    () =>
+      new Ticket({
+        id: 'test-id',
+        matchName: 'FC東京 vs 浦和レッズ',
+        matchDate: futureMatchDate,
+        homeTeam: 'FC東京',
+        awayTeam: '浦和レッズ',
+        saleStartDate: futureSaleDate,
+        venue: '味の素スタジアム',
+        ticketTypes: ['ビジター席'],
+        ticketUrl: 'invalid-url',
+        createdAt: now,
+        updatedAt: now,
+      }),
     Error,
-    'Valid ticket URL is required'
+    'Valid ticket URL is required',
   );
 });
 
-Deno.test("Ticket - 通知タイミング判定: 前日20:00通知", () => {
+Deno.test('Ticket - 通知タイミング判定: 前日20:00通知', () => {
   const saleStartDate = new Date('2025-03-15T10:00:00+09:00');
   const ticket = new Ticket({
     id: 'test-id',
@@ -112,7 +115,7 @@ Deno.test("Ticket - 通知タイミング判定: 前日20:00通知", () => {
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
 
   const dayBeforeAt8PM = new Date('2025-03-14T20:00:00+09:00');
@@ -125,7 +128,7 @@ Deno.test("Ticket - 通知タイミング判定: 前日20:00通知", () => {
   assertEquals(ticket.shouldSendNotification('day_before', dayBeforeAt810PM), false);
 });
 
-Deno.test("Ticket - 通知タイミング判定: 1時間前通知", () => {
+Deno.test('Ticket - 通知タイミング判定: 1時間前通知', () => {
   const saleStartDate = new Date('2025-03-15T10:00:00+09:00');
   const ticket = new Ticket({
     id: 'test-id',
@@ -138,7 +141,7 @@ Deno.test("Ticket - 通知タイミング判定: 1時間前通知", () => {
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
 
   const hourBefore = new Date('2025-03-15T09:00:00+09:00');
@@ -151,7 +154,7 @@ Deno.test("Ticket - 通知タイミング判定: 1時間前通知", () => {
   assertEquals(ticket.shouldSendNotification('hour_before', hourBeforePlus10), false);
 });
 
-Deno.test("Ticket - 販売状態判定", () => {
+Deno.test('Ticket - 販売状態判定', () => {
   const now = new Date();
   const saleStartDate = new Date(now.getTime() - 60 * 60 * 1000);
   const ticket = new Ticket({
@@ -165,16 +168,16 @@ Deno.test("Ticket - 販売状態判定", () => {
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   });
 
   assertEquals(ticket.isOnSale(now), true);
   assertEquals(ticket.isOnSale(new Date(saleStartDate.getTime() - 1000)), false);
 });
 
-Deno.test("Ticket - 通知対象判定", () => {
+Deno.test('Ticket - 通知対象判定', () => {
   const now = new Date();
-  
+
   const validTicket = new Ticket({
     id: 'test-id',
     matchName: 'FC東京 vs 浦和レッズ',
@@ -186,7 +189,7 @@ Deno.test("Ticket - 通知対象判定", () => {
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   });
 
   assertEquals(validTicket.isValidForNotification(), true);
@@ -202,7 +205,7 @@ Deno.test("Ticket - 通知対象判定", () => {
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   });
 
   assertEquals(pastMatchTicket.isValidForNotification(), false);

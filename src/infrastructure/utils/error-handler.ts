@@ -5,7 +5,7 @@ export class RepositoryError extends Error {
   constructor(
     message: string,
     public readonly operation: string,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message);
     this.name = 'RepositoryError';

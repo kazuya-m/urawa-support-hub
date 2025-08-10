@@ -4,8 +4,8 @@
  */
 export const NOTIFICATION_TYPES = {
   DAY_BEFORE: 'day_before',
-  HOUR_BEFORE: 'hour_before', 
-  MINUTES_BEFORE: 'minutes_before'
+  HOUR_BEFORE: 'hour_before',
+  MINUTES_BEFORE: 'minutes_before',
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];
@@ -23,22 +23,22 @@ export const NOTIFICATION_CONFIG = {
       dayBefore.setHours(20, 0, 0, 0);
       return dayBefore;
     },
-    toleranceMs: 5 * 60 * 1000 // 5分
+    toleranceMs: 5 * 60 * 1000, // 5分
   },
   [NOTIFICATION_TYPES.HOUR_BEFORE]: {
     displayName: '販売開始1時間前',
     getScheduledTime: (saleStartDate: Date): Date => {
       return new Date(saleStartDate.getTime() - 60 * 60 * 1000);
     },
-    toleranceMs: 5 * 60 * 1000 // 5分
+    toleranceMs: 5 * 60 * 1000, // 5分
   },
   [NOTIFICATION_TYPES.MINUTES_BEFORE]: {
     displayName: '販売開始15分前',
     getScheduledTime: (saleStartDate: Date): Date => {
       return new Date(saleStartDate.getTime() - 15 * 60 * 1000);
     },
-    toleranceMs: 2 * 60 * 1000 // 2分
-  }
+    toleranceMs: 2 * 60 * 1000, // 2分
+  },
 } as const;
 
 export const NOTIFICATION_TYPE_VALUES = Object.values(NOTIFICATION_TYPES);

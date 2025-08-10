@@ -52,7 +52,8 @@ env:
   SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 ```
 
-**注意**: 
+**注意**:
+
 - `SUPABASE_ANON_KEY`: クライアントサイド用（公開可能、RLS制限あり）
 - `SUPABASE_SERVICE_ROLE_KEY`: サーバーサイド用（秘匿必須、全権限）
 - 統合テストではSERVICE_ROLE_KEYを使用してRLS制限を回避

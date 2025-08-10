@@ -1,10 +1,10 @@
-import { assertEquals, assertRejects } from "std/assert/mod.ts";
+import { assertEquals, assertRejects } from 'std/assert/mod.ts';
 import { TicketRepositoryImpl } from '../TicketRepositoryImpl.ts';
 import { Ticket, TicketRow } from '@/domain/entities/index.ts';
 import { createMockSupabaseClient } from './test-utils/SupabaseMock.ts';
 import { RepositoryError } from '../../utils/error-handler.ts';
 
-Deno.test("SupabaseTicketRepository - findById with null handling", async () => {
+Deno.test('SupabaseTicketRepository - findById with null handling', async () => {
   const mockTicketRow: TicketRow = {
     id: 'test-id',
     match_name: 'テスト試合',
@@ -17,7 +17,7 @@ Deno.test("SupabaseTicketRepository - findById with null handling", async () => 
     ticket_types: ['ビジター席'],
     ticket_url: 'https://example.com/test',
     created_at: '2025-01-01T00:00:00Z',
-    updated_at: '2025-01-01T00:00:00Z'
+    updated_at: '2025-01-01T00:00:00Z',
   };
 
   const mockClient = createMockSupabaseClient([mockTicketRow]);
@@ -30,10 +30,10 @@ Deno.test("SupabaseTicketRepository - findById with null handling", async () => 
   assertEquals(result?.saleStartTime, undefined); // null → undefined変換確認
 });
 
-Deno.test("SupabaseTicketRepository - save error handling", async () => {
-  const mockClient = createMockSupabaseClient([], { 
-    shouldError: true, 
-    errorMessage: 'Database error' 
+Deno.test('SupabaseTicketRepository - save error handling', async () => {
+  const mockClient = createMockSupabaseClient([], {
+    shouldError: true,
+    errorMessage: 'Database error',
   });
   const repository = new TicketRepositoryImpl(mockClient);
 
@@ -48,12 +48,12 @@ Deno.test("SupabaseTicketRepository - save error handling", async () => {
     ticketTypes: ['test'],
     ticketUrl: 'https://example.com',
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
 
   await assertRejects(
     () => repository.save(testTicket),
     RepositoryError,
-    'Failed to save ticket: Database error'
+    'Failed to save ticket: Database error',
   );
 });

@@ -53,7 +53,11 @@ export class NotificationRepositoryImpl implements NotificationRepository {
     return data.map(NotificationConverter.toDomainEntity);
   }
 
-  async findByDateRange(column: string, startDate?: Date, endDate?: Date): Promise<NotificationHistory[]> {
+  async findByDateRange(
+    column: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<NotificationHistory[]> {
     let query = this.client
       .from('notification_history')
       .select('*');
@@ -97,5 +101,4 @@ export class NotificationRepositoryImpl implements NotificationRepository {
 
     if (error) handleSupabaseError('delete notification', error);
   }
-
 }

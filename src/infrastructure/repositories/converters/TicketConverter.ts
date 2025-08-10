@@ -1,4 +1,4 @@
-import { Ticket, TicketRow, TicketInsert } from '@/domain/entities/index.ts';
+import { Ticket, TicketInsert, TicketRow } from '@/domain/entities/index.ts';
 
 export class TicketConverter {
   static toDomainEntity(data: TicketRow): Ticket {
@@ -14,7 +14,7 @@ export class TicketConverter {
       ticketTypes: data.ticket_types,
       ticketUrl: data.ticket_url,
       createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at)
+      updatedAt: new Date(data.updated_at),
     });
   }
 
@@ -30,7 +30,7 @@ export class TicketConverter {
       sale_start_time: plainObject.saleStartTime,
       venue: plainObject.venue,
       ticket_types: plainObject.ticketTypes,
-      ticket_url: plainObject.ticketUrl
+      ticket_url: plainObject.ticketUrl,
     };
   }
 }

@@ -1,4 +1,8 @@
-import { NotificationHistory, NotificationRow, NotificationInsert } from '@/domain/entities/index.ts';
+import {
+  NotificationHistory,
+  NotificationInsert,
+  NotificationRow,
+} from '@/domain/entities/index.ts';
 
 export class NotificationConverter {
   static toDomainEntity(data: NotificationRow): NotificationHistory {
@@ -10,7 +14,7 @@ export class NotificationConverter {
       sentAt: data.sent_at ? new Date(data.sent_at) : undefined,
       status: data.status,
       errorMessage: data.error_message ?? undefined,
-      createdAt: new Date(data.created_at)
+      createdAt: new Date(data.created_at),
     });
   }
 
@@ -23,7 +27,7 @@ export class NotificationConverter {
       scheduled_at: plainObject.scheduledAt.toISOString(),
       sent_at: plainObject.sentAt?.toISOString(),
       status: plainObject.status,
-      error_message: plainObject.errorMessage
+      error_message: plainObject.errorMessage,
     };
   }
 }

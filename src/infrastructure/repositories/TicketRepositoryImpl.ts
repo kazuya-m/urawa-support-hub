@@ -72,9 +72,9 @@ export class TicketRepositoryImpl implements TicketRepository {
   async update(ticket: Ticket): Promise<void> {
     const { error } = await this.client
       .from('tickets')
-      .update({ 
-        ...TicketConverter.toDatabaseRow(ticket), 
-        updated_at: new Date().toISOString() 
+      .update({
+        ...TicketConverter.toDatabaseRow(ticket),
+        updated_at: new Date().toISOString(),
       })
       .eq('id', ticket.id);
 
@@ -98,5 +98,4 @@ export class TicketRepositoryImpl implements TicketRepository {
 
     if (error) handleSupabaseError('delete tickets by date', error);
   }
-
 }

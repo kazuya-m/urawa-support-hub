@@ -23,18 +23,42 @@ export class Ticket {
     this.props = { ...props };
   }
 
-  get id(): string { return this.props.id; }
-  get matchName(): string { return this.props.matchName; }
-  get matchDate(): Date { return this.props.matchDate; }
-  get homeTeam(): string { return this.props.homeTeam; }
-  get awayTeam(): string { return this.props.awayTeam; }
-  get saleStartDate(): Date { return this.props.saleStartDate; }
-  get saleStartTime(): string | undefined { return this.props.saleStartTime; }
-  get venue(): string { return this.props.venue; }
-  get ticketTypes(): string[] { return [...this.props.ticketTypes]; }
-  get ticketUrl(): string { return this.props.ticketUrl; }
-  get createdAt(): Date { return this.props.createdAt; }
-  get updatedAt(): Date { return this.props.updatedAt; }
+  get id(): string {
+    return this.props.id;
+  }
+  get matchName(): string {
+    return this.props.matchName;
+  }
+  get matchDate(): Date {
+    return this.props.matchDate;
+  }
+  get homeTeam(): string {
+    return this.props.homeTeam;
+  }
+  get awayTeam(): string {
+    return this.props.awayTeam;
+  }
+  get saleStartDate(): Date {
+    return this.props.saleStartDate;
+  }
+  get saleStartTime(): string | undefined {
+    return this.props.saleStartTime;
+  }
+  get venue(): string {
+    return this.props.venue;
+  }
+  get ticketTypes(): string[] {
+    return [...this.props.ticketTypes];
+  }
+  get ticketUrl(): string {
+    return this.props.ticketUrl;
+  }
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
+  get updatedAt(): Date {
+    return this.props.updatedAt;
+  }
 
   shouldSendNotification(type: NotificationType, currentTime: Date = new Date()): boolean {
     return shouldSendNotificationAtTime(type, this.props.saleStartDate, currentTime);
@@ -54,9 +78,9 @@ export class Ticket {
   }
 
   private isValidTicket(): boolean {
-    return this.props.ticketTypes.length > 0 && 
-           this.props.ticketUrl.length > 0 && 
-           this.props.venue.length > 0;
+    return this.props.ticketTypes.length > 0 &&
+      this.props.ticketUrl.length > 0 &&
+      this.props.venue.length > 0;
   }
 
   private validateTicketData(props: TicketProps): void {

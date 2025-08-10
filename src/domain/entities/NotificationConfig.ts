@@ -28,26 +28,26 @@ export const NOTIFICATION_TIMING_CONFIG = {
       return target;
     },
     toleranceMs: 5 * 60 * 1000, // ← ここだけ変更すれば全体に反映
-    description: '販売開始日の前日20:00に通知（±5分の幅で送信）'
+    description: '販売開始日の前日20:00に通知（±5分の幅で送信）',
   },
-  
+
   hour_before: {
     displayName: '販売開始1時間前',
     calculateScheduledTime: (saleStartDate: Date): Date => {
       return new Date(saleStartDate.getTime() - 60 * 60 * 1000); // ← 30分前に変更したい場合は 30 * 60 * 1000
     },
     toleranceMs: 5 * 60 * 1000, // ← 許容範囲も簡単に変更可能
-    description: '販売開始の1時間前に通知（±5分の幅で送信）'
+    description: '販売開始の1時間前に通知（±5分の幅で送信）',
   },
-  
+
   minutes_before: {
-    displayName: '販売開始15分前', 
+    displayName: '販売開始15分前',
     calculateScheduledTime: (saleStartDate: Date): Date => {
       return new Date(saleStartDate.getTime() - 15 * 60 * 1000); // ← 10分前に変更したい場合は 10 * 60 * 1000
     },
     toleranceMs: 2 * 60 * 1000, // ← 1分に縮めたい場合は 1 * 60 * 1000
-    description: '販売開始の15分前に通知（±2分の幅で送信）'
-  }
+    description: '販売開始の15分前に通知（±2分の幅で送信）',
+  },
 } as const satisfies Record<string, NotificationTimingConfig>;
 
 export type NotificationType = keyof typeof NOTIFICATION_TIMING_CONFIG;
@@ -58,11 +58,11 @@ export type NotificationType = keyof typeof NOTIFICATION_TIMING_CONFIG;
 export function shouldSendNotificationAtTime(
   type: NotificationType,
   saleStartDate: Date,
-  currentTime: Date
+  currentTime: Date,
 ): boolean {
   const config = NOTIFICATION_TIMING_CONFIG[type];
   if (!config) return false;
-  
+
   const scheduledTime = config.calculateScheduledTime(saleStartDate);
   const timeDiff = Math.abs(currentTime.getTime() - scheduledTime.getTime());
   return timeDiff <= config.toleranceMs;

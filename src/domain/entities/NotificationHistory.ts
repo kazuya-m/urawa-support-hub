@@ -1,4 +1,4 @@
-import { NotificationType, getDisplayName, isValidNotificationType } from './NotificationConfig.ts';
+import { getDisplayName, isValidNotificationType, NotificationType } from './NotificationConfig.ts';
 export type NotificationStatus = 'pending' | 'sent' | 'failed';
 
 interface NotificationHistoryProps {
@@ -20,19 +20,35 @@ export class NotificationHistory {
     this.props = { ...props };
   }
 
-  get id(): string { return this.props.id; }
-  get ticketId(): string { return this.props.ticketId; }
-  get notificationType(): NotificationType { return this.props.notificationType; }
-  get scheduledAt(): Date { return this.props.scheduledAt; }
-  get sentAt(): Date | undefined { return this.props.sentAt; }
-  get status(): NotificationStatus { return this.props.status; }
-  get errorMessage(): string | undefined { return this.props.errorMessage; }
-  get createdAt(): Date { return this.props.createdAt; }
+  get id(): string {
+    return this.props.id;
+  }
+  get ticketId(): string {
+    return this.props.ticketId;
+  }
+  get notificationType(): NotificationType {
+    return this.props.notificationType;
+  }
+  get scheduledAt(): Date {
+    return this.props.scheduledAt;
+  }
+  get sentAt(): Date | undefined {
+    return this.props.sentAt;
+  }
+  get status(): NotificationStatus {
+    return this.props.status;
+  }
+  get errorMessage(): string | undefined {
+    return this.props.errorMessage;
+  }
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
 
   canBeSent(currentTime: Date = new Date()): boolean {
     // pending状態でのみ送信可能
     if (this.props.status !== 'pending') return false;
-    
+
     const timeDiff = this.props.scheduledAt.getTime() - currentTime.getTime();
     return timeDiff <= 5 * 60 * 1000;
   }
@@ -45,7 +61,7 @@ export class NotificationHistory {
   canRetry(currentTime: Date = new Date()): boolean {
     if (this.props.status !== 'failed') return false;
     if (this.isExpired(currentTime)) return false;
-    
+
     const sentAt = this.props.sentAt || this.props.createdAt;
     const timeSinceFailure = currentTime.getTime() - sentAt.getTime();
     return timeSinceFailure >= 5 * 60 * 1000;
@@ -56,7 +72,7 @@ export class NotificationHistory {
       ...this.props,
       status: 'sent',
       sentAt: sentTime,
-      errorMessage: undefined
+      errorMessage: undefined,
     });
   }
 
@@ -65,7 +81,7 @@ export class NotificationHistory {
       ...this.props,
       status: 'failed',
       sentAt: failedTime,
-      errorMessage
+      errorMessage,
     });
   }
 
@@ -73,7 +89,7 @@ export class NotificationHistory {
     return new NotificationHistory({
       ...this.props,
       status: 'pending',
-      errorMessage: undefined
+      errorMessage: undefined,
     });
   }
 

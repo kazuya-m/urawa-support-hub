@@ -1,10 +1,10 @@
-import { assertEquals, assertRejects } from "std/assert/mod.ts";
+import { assertEquals, assertRejects } from 'std/assert/mod.ts';
 import { NotificationRepositoryImpl } from '../NotificationRepositoryImpl.ts';
 import { NotificationHistory, NotificationRow } from '@/domain/entities/index.ts';
 import { createMockSupabaseClient } from './test-utils/SupabaseMock.ts';
 import { RepositoryError } from '../../utils/error-handler.ts';
 
-Deno.test("SupabaseNotificationRepository - findById with error handling", async () => {
+Deno.test('SupabaseNotificationRepository - findById with error handling', async () => {
   const mockNotificationRow: NotificationRow = {
     id: 'test-notification-id',
     ticket_id: 'test-ticket-id',
@@ -13,7 +13,7 @@ Deno.test("SupabaseNotificationRepository - findById with error handling", async
     sent_at: null,
     status: 'pending',
     error_message: null,
-    created_at: '2025-01-01T00:00:00Z'
+    created_at: '2025-01-01T00:00:00Z',
   };
 
   const mockClient = createMockSupabaseClient([mockNotificationRow]);
@@ -27,10 +27,10 @@ Deno.test("SupabaseNotificationRepository - findById with error handling", async
   assertEquals(result?.status, 'pending');
 });
 
-Deno.test("SupabaseNotificationRepository - save error handling", async () => {
-  const mockClient = createMockSupabaseClient([], { 
-    shouldError: true, 
-    errorMessage: 'Database error' 
+Deno.test('SupabaseNotificationRepository - save error handling', async () => {
+  const mockClient = createMockSupabaseClient([], {
+    shouldError: true,
+    errorMessage: 'Database error',
   });
   const repository = new NotificationRepositoryImpl(mockClient);
 
@@ -40,12 +40,12 @@ Deno.test("SupabaseNotificationRepository - save error handling", async () => {
     notificationType: 'day_before',
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 明日
     status: 'pending',
-    createdAt: new Date()
+    createdAt: new Date(),
   });
 
   await assertRejects(
     () => repository.save(testNotification),
     RepositoryError,
-    'Failed to save notification: Database error'
+    'Failed to save notification: Database error',
   );
 });
