@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Deno native pre-commit hook
+# Runs type check and lint before committing
+
+# Run deno pre-commit task (shows its own progress)
+NO_COLOR=1 deno task pre-commit
+
+# Check exit status
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Code quality check failed. Fix errors above and try again."
+    exit 1
+fi
+
+echo ""
+echo "✅ All code quality checks passed!"

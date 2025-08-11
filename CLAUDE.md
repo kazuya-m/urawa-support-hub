@@ -24,6 +24,14 @@ supporters
 
 ### Commit Granularity and Branch Management
 
+**🚨 CRITICAL**: Always create a new branch before starting implementation
+
+**Branch Creation Requirements**:
+
+- **MANDATORY**: Create branch with issue number: `feature/#<issue-number>_<description>`
+- **Example**: `feature/#6_add-pre-commit-hooks`
+- **Never implement directly on `main` branch**
+
 **Important**: Create branches appropriately per feature and commit in small units
 
 #### Recommended Patterns:
@@ -143,7 +151,32 @@ step after passing tests.
 
 ### 🎯 Mandatory Compliance Items
 
-#### 1. Naming Conventions
+#### 1. Technology Selection and Consistency Principles
+
+**🎯 Project Technology Stack Priority**:
+
+- **Primary consideration**: Maintain consistency with project's technology choices (Deno +
+  TypeScript)
+- **External dependencies**: Minimize external dependencies; prioritize Deno ecosystem solutions
+- **Existing patterns**: Leverage existing project patterns (e.g., `deno task` usage in deno.json)
+
+**🎯 Problem-solving Approach**:
+
+- **Requirements-based**: Start with "what needs to be achieved" rather than "which tool to use"
+- **Project context**: Understand project philosophy and constraints before proposing solutions
+- **Avoid tool fixation**: Don't default to popular tools; find project-optimal solutions
+
+**Examples**:
+
+```typescript
+// ✅ Good: Deno-native approach
+"pre-commit": "deno check src/**/*.ts && deno lint"
+
+// ❌ Bad: External tool dependency (without justification)  
+"pre-commit": "pre-commit run --all-files"
+```
+
+#### 2. Naming Conventions
 
 ```typescript
 // ✅ Good: Technology independent
@@ -191,6 +224,36 @@ src/features/
 - [ ] Utilize common error handlers
 - [ ] Set minimum permissions
 - [ ] Confirm consistency with existing patterns
+
+## GitHub Issue and Pull Request Management
+
+### 🎯 Pull Request Creation Requirements
+
+**Language Requirements**:
+
+- **PR Title**: Use Japanese (`pre-commitフック実装（Denoネイティブ）#6`)
+- **PR Description**: Write in Japanese for better team understanding
+- **Include issue number**: Add `#<issue-number>` in title for GitHub integration
+
+**Auto-close Requirements**:
+
+- **Always include**: `Closes #<issue-number>` in PR description
+- **Effect**: GitHub automatically closes linked issue when PR is merged
+- **Alternative keywords**: `Fixes #<issue-number>`, `Resolves #<issue-number>`
+
+**Example PR Format**:
+
+```markdown
+## 概要
+
+- 実装内容の概要
+
+## 実装内容
+
+- 詳細な変更内容
+
+Closes #6
+```
 
 ## Configuration-Driven Design Pattern
 
