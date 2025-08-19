@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from 'std/assert/mod.ts';
+import { assertEquals, assertThrows } from 'jsr:@std/assert';
 import { Ticket } from '../Ticket.ts';
 
 Deno.test('Ticket - 正常なチケット作成', () => {

@@ -10,7 +10,9 @@
       "Bash(deno test:*)",
       "Bash(deno lint:*)",
       "Bash(find:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)"
     ],
     "deny": [
       "Bash(sudo:*)",

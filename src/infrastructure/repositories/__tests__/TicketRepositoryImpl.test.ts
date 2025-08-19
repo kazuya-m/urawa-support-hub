@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from 'std/assert/mod.ts';
+import { assertEquals, assertRejects } from 'jsr:@std/assert';
 import { TicketRepositoryImpl } from '../TicketRepositoryImpl.ts';
 import { Ticket, TicketRow } from '@/domain/entities/index.ts';
 import { createMockSupabaseClient } from './test-utils/SupabaseMock.ts';

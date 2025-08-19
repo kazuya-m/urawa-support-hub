@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from 'std/assert/mod.ts';
+import { assertEquals, assertThrows } from 'jsr:@std/assert';
 import { NotificationHistory } from '../NotificationHistory.ts';
 
 Deno.test('NotificationHistory - 正常な通知履歴作成', () => {
