@@ -1,15 +1,15 @@
 ---
-description: "CLAUDE.md規則に従ってGitHub Pull Requestを作成するカスタムコマンド。日本語タイトル、自動issue連携、テスト計画を含む適切なPR作成をサポート"
+description: "Custom command to create GitHub Pull Requests following CLAUDE.md rules. Supports Japanese titles, automatic issue linking, and proper PR creation with test plans"
 ---
 
-# GitHub Pull Request 作成コマンド
+# Create GitHub Pull Request Command
 
-GitHub pull
-requestを作成するカスタムスラッシュコマンドです。CLAUDE.mdの規則に従い、適切なPRを作成します。
+Custom slash command to create GitHub pull requests following CLAUDE.md conventions for proper PR
+creation.
 
-## 実行手順
+## Execution Steps
 
-### 1. 現在の状況確認
+### 1. Check Current Status
 
 ```bash
 git status
@@ -17,51 +17,51 @@ git diff
 git log --oneline -10
 ```
 
-### 2. ブランチとリモート状態確認
+### 2. Check Branch and Remote Status
 
 ```bash
 git branch -a
 git remote -v
 ```
 
-### 3. 変更内容の分析
+### 3. Analyze Changes
 
-現在のブランチと`main`ブランチとの差分を確認：
+Check differences between current branch and `main`:
 
 ```bash
 git diff main...HEAD
 ```
 
-### 4. リモートへのプッシュ（必要な場合）
+### 4. Push to Remote (if needed)
 
 ```bash
-# ブランチがリモートに存在しない場合
+# If branch doesn't exist on remote
 git push -u origin <current-branch-name>
 
-# 既存ブランチの場合
+# For existing branches
 git push origin <current-branch-name>
 ```
 
-### 5. Pull Request作成
+### 5. Create Pull Request
 
-以下のコマンドでPRを作成：
+Create PR with the following command:
 
 ```bash
 gh pr create --title "<Japanese-title> #<issue-number>" --body "$(cat <<'EOF'
 ## 概要
 
-- 実装内容の概要
+- Implementation overview
 
 ## 実装内容
 
-- 詳細な変更内容
-- 実装した機能や修正した問題
+- Detailed changes
+- Implemented features or fixed issues
 
 ## テスト計画
 
-- [ ] 実行確認済み
-- [ ] タイプチェック確認済み
-- [ ] Lintチェック確認済み
+- [ ] Execution verified
+- [ ] Type check verified
+- [ ] Lint check verified
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
@@ -70,86 +70,87 @@ EOF
 )"
 ```
 
-## PR作成要件
+## PR Creation Requirements
 
-### 🎯 必須要件（CLAUDE.md準拠）
+### 🎯 Mandatory Requirements (CLAUDE.md Compliance)
 
-#### タイトル要件
+#### Title Requirements
 
-- **言語**: 日本語を使用
-- **フォーマット**: `<実装内容> #<issue-number>`
-- **例**: `pre-commitフック実装（Denoネイティブ）#6`
+- **Language**: Use Japanese
+- **Format**: `<implementation-content> #<issue-number>`
+- **Example**: `pre-commitフック実装（Denoネイティブ）#6`
 
-#### 説明文要件
+#### Description Requirements
 
-- **言語**: 日本語で記述
-- **自動クローズ**: `Closes #<issue-number>`を必ず含める
-- **代替キーワード**: `Fixes #<issue-number>`, `Resolves #<issue-number>`も使用可能
+- **Language**: Write in Japanese
+- **Auto-close**: Must include `Closes #<issue-number>`
+- **Alternative keywords**: `Fixes #<issue-number>`, `Resolves #<issue-number>` also available
 
-#### 説明文構造
+#### Description Structure
 
 ```markdown
 ## 概要
 
-- 実装内容の概要
+- Implementation overview
 
 ## 実装内容
 
-- 詳細な変更内容
+- Detailed changes
 
 ## テスト計画
 
-- 確認済み項目のチェックリスト
+- Checklist of verified items
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
 Closes #<issue-number>
 ```
 
-### 🔍 事前確認事項
+### 🔍 Pre-check Items
 
-1. **作業ツリーの状態確認**
-   - コミット済みの変更があること
-   - 未コミットの変更がないこと
+1. **Working Tree Status Check**
+   - Committed changes exist
+   - No uncommitted changes
 
-2. **ブランチ命名規則確認**
+2. **Branch Naming Convention Check**
    - `feature/#<issue-number>_<description>`
    - `fix/#<issue-number>_<description>`
 
-3. **リモートブランチ状態確認**
-   - ブランチがリモートに存在するか
-   - 最新の変更がプッシュされているか
+3. **Remote Branch Status Check**
+   - Branch exists on remote
+   - Latest changes are pushed
 
-### 📝 PR作成後の確認
+### 📝 Post-PR Creation Check
 
-1. **GitHub上での確認**
-   - PR作成完了の確認
-   - issueとの自動リンク確認
-   - ラベルやレビュー担当者の設定
+1. **GitHub Verification**
+   - Confirm PR creation
+   - Verify automatic issue linking
+   - Set labels and reviewers
 
-2. **PR URL取得**
-   - 作成されたPRのURLを取得し、ユーザーに提示
+2. **Get PR URL**
+   - Retrieve created PR URL and present to user
 
-## 使用例
+## Usage Examples
 
-### 基本的な使用例
+### Basic Usage
 
 ```bash
-# 現在のブランチ: feature/#21_update-architecture-docs
-# 対象issue: #21
+# Current branch: feature/#21_update-architecture-docs
+# Target issue: #21
 
 gh pr create --title "アーキテクチャドキュメント更新とスラッシュコマンド追加 #21" --body "..."
 ```
 
-### エラーハンドリング
+### Error Handling
 
-- **未コミットの変更がある場合**: コミットを促すメッセージを表示
-- **リモートブランチが存在しない場合**: プッシュコマンドを提示
-- **GitHub認証エラー**: `gh auth login`を促す
+- **Uncommitted changes exist**: Display message prompting commit
+- **Remote branch doesn't exist**: Present push commands
+- **GitHub authentication error**: Prompt `gh auth login`
 
-## 注意事項
+## Notes
 
-- **コミット権限**: Claudeは直接コミットできないため、すべてのgitコマンドをユーザーがコピペして実行
-- **issue番号**: 適切なissue番号を指定すること
-- **CLAUDE.md準拠**: すべてのPR作成要件に従うこと
-- **日本語使用**: タイトルと説明文は日本語で記述
+- **Commit permissions**: Claude cannot commit directly, all git commands must be copy-pasted by
+  user
+- **Issue numbers**: Specify appropriate issue numbers
+- **CLAUDE.md compliance**: Follow all PR creation requirements
+- **Japanese usage**: Write titles and descriptions in Japanese

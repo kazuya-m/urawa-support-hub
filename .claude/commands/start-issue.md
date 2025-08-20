@@ -1,47 +1,48 @@
 ---
-description: "オープンなGitHub issue一覧を取得し、選択したissueに基づいてCLAUDE.md命名規則に従ったfeature/fixブランチを作成し、新しい開発タスクを開始する"
+description: "Retrieve open GitHub issues list, create feature/fix branches following CLAUDE.md naming conventions based on selected issue, and start new development tasks"
 ---
 
-# GitHub Issue から新しいタスクを開始
+# Start New Task from GitHub Issue
 
-GitHub issueから作業するタスクを選択し、適切な命名規則でブランチを作成します。
+Select a task to work on from GitHub issues and create branches with proper naming conventions.
 
-まず、現在オープンなGitHub issueの一覧を取得します：
+First, retrieve the list of currently open GitHub issues:
 
 ```bash
 gh issue list --state open --limit 15 --json number,title,labels --format json
 ```
 
-取得したissueを表示し、どのissueに取り組むかを決定してください。
+Display the retrieved issues and decide which issue to work on.
 
-選択後、以下の命名規則に従ってブランチを作成します：
+After selection, create branches following these naming conventions:
 
-**命名規則:**
+**Naming Conventions:**
 
 - Feature: `feature/#<issue-number>_<description>`
 - Bug fix: `fix/#<issue-number>_<description>`
 
-**例:** `feature/#21_update-architecture-docs-external-scraping`
+**Example:** `feature/#21_update-architecture-docs-external-scraping`
 
-issueを選択したら、番号を教えてください。適切なブランチ名を生成し、ブランチを作成してチェックアウトします。
+Once you select an issue, please provide the issue number. I will generate the appropriate branch
+name and create and checkout the branch.
 
-選択されたissue番号: **{入力待ち}**
+Selected issue number: **{awaiting input}**
 
 ---
 
-## 実行手順
+## Execution Steps
 
-1. 上記コマンドでissue一覧を確認
-2. 作業したいissueの番号を選択
-3. 以下のコマンドでブランチを作成:
+1. Check issue list with the above command
+2. Select the issue number you want to work on
+3. Create branch with the following command:
 
 ```bash
-# 選択されたissueに基づいてブランチ名を生成
-# 例: issue #22 の場合
+# Generate branch name based on selected issue
+# Example: for issue #22
 git checkout -b "feature/#22_implement-external-scraping-environment"
 ```
 
-4. ブランチ作成完了後、作業開始
+4. Start working after branch creation is complete
 
-**重要:** CLAUDE.mdの「🚨 CRITICAL: Always create a new branch before starting
-implementation」に従い、必ずmainブランチから新しいブランチを作成してください。
+**Important:** Following CLAUDE.md's "🚨 CRITICAL: Always create a new branch before starting
+implementation", always create a new branch from the main branch.

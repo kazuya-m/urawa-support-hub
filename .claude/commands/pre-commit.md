@@ -1,39 +1,39 @@
 ---
-description: "Denoタイプチェック、フォーマット、変更の適切な粒度での分割を行い、CLAUDE.md規則に従ったコミットコマンドを生成するpre-commitワークフロー"
+description: "Pre-commit workflow that performs Deno type checking, formatting, and appropriate change granularity splitting, generating commit commands following CLAUDE.md rules"
 ---
 
-# Pre-commit コマンド
+# Pre-commit Command
 
-このコマンドは以下の処理を順次実行し、コミット用のコマンドを生成します：
+This command executes the following processes sequentially and generates commit commands:
 
-1. `deno check` でタイプチェック
-2. タイプエラーがある場合は処理を停止し、エラーファイルを提示
-3. `deno fmt` でコードをフォーマット
-4. 変更されたファイルを適切な粒度で分割
-5. 各変更に対するコミットメッセージを生成
-6. ユーザーがコピペできる `git add` と `git commit` コマンドを出力
+1. Type check with `deno check`
+2. If type errors exist, stop processing and present error files
+3. Format code with `deno fmt`
+4. Split changed files into appropriate granularity
+5. Generate commit messages for each change
+6. Output `git add` and `git commit` commands that users can copy-paste
 
-## 実行手順
+## Execution Steps
 
-### 1. タイプチェック実行
+### 1. Execute Type Check
 
 ```bash
 deno check src/**/*.ts
 ```
 
-**⚠️ タイプエラーがある場合：**
+**⚠️ When type errors exist:**
 
-- エラーが発生したファイル一覧を表示
-- 処理を停止（以降の fmt やコミット処理は実行しない）
-- ユーザーにエラー修正を促す
+- Display list of files with errors
+- Stop processing (do not execute fmt or commit processes)
+- Prompt user to fix errors
 
-### 2. コードのフォーマット実行（タイプチェック成功時のみ）
+### 2. Execute Code Formatting (only when type check succeeds)
 
 ```bash
 deno fmt
 ```
 
-### 3. 現在の変更状況を確認
+### 3. Check Current Changes
 
 ```bash
 git status
@@ -41,39 +41,48 @@ git diff --cached
 git diff
 ```
 
-### 4. 変更を分析して適切な粒度で分割
+### 4. Analyze and Split Changes into Appropriate Granularity
 
-変更されたファイルを以下の基準で分割：
+Split changed files based on the following criteria:
 
-- 機能単位での分割
-- ファイルタイプ別の分割（設定ファイル、実装ファイル、テストファイルなど）
-- 関連性の高いファイル同士をグループ化
+- Split by functional units
+- Split by file types (config files, implementation files, test files, etc.)
+- Group files with high relevance together
 
-### 5. コミットメッセージ生成
+### 5. Generate Commit Messages
 
-CLAUDE.mdの規則に従い、以下の形式でメッセージを生成：
+Generate messages following CLAUDE.md rules in the following format:
 
 - **Good**: "add Ticket type definition"
 - **Good**: "implement SupabaseTicketRepository save method"
 - **Bad**: "implement everything for ticket management"
 
-### 6. ユーザー実行用コマンド出力
+### 6. Output Commands for User Execution
 
-各グループに対して以下の形式で出力：
+**⚠️ IMPORTANT: Single-line format for copy-paste compatibility**
+
+All `git add` commands MUST be formatted as single lines to prevent copy-paste errors in terminal:
 
 ```bash
-# 変更グループ 1: 型定義の追加
+# Change group 1: Add type definitions
 git add src/domain/entities/NewType.ts src/domain/entities/index.ts
 git commit -m "add NewType entity with validation rules"
 
-# 変更グループ 2: テストファイルの追加  
+# Change group 2: Add test files  
 git add src/domain/entities/__tests__/NewType.test.ts
 git commit -m "add unit tests for NewType entity"
 ```
 
-## 注意事項
+**Format Rules:**
 
-- タイプチェックエラーがある場合は即座に処理停止
-- Claude にはコミット権限がないため、すべてのコマンドをユーザーがコピペして実行
-- CLAUDE.md の commit granularity に従った適切な粒度での分割
-- 日本語でのコミットメッセージ生成（必要に応じて）
+- Keep all file paths on the same line separated by spaces
+- Never break `git add` commands across multiple lines
+- Use single line even for many files: `git add file1.ts file2.ts file3.ts file4.ts`
+
+## Notes
+
+- Stop processing immediately when type check errors exist
+- Claude has no commit permissions, so all commands must be copy-pasted by user
+- Split with appropriate granularity following CLAUDE.md commit granularity
+- Generate commit messages in Japanese (when needed)
+- **CRITICAL**: Format all `git add` commands as single lines to prevent terminal copy-paste errors
