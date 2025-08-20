@@ -1,23 +1,71 @@
-# Architecture Design Document
+# Architecture Design Document v2.0
 
 ## System Overview
 
-The urawa-support-hub implements a Clean Architecture pattern with clear separation of concerns,
-enabling maintainability, testability, and independence from external frameworks.
+The urawa-support-hub is an automated ticket monitoring and notification system for Urawa Red
+Diamonds supporters. The system scrapes ticket information from the J-League website, stores it in a
+database, and sends timely notifications to LINE groups before ticket sales begin.
 
-## Architecture Layers
+## Architecture Revision History
 
-### 1. Interface Layer (Edge Functions)
+### v2.0 Changes (2025-01)
+
+- **Added**: Google Cloud Run for web scraping execution environment
+- **Added**: Google Cloud Tasks for efficient notification scheduling
+- **Removed**: Supabase Edge Functions scraping (technical limitation)
+- **Improved**: Notification efficiency (from polling to event-driven)
+- **Maintained**: Clean Architecture pattern with clear separation of concerns
+
+## Technology Stack
+
+| Layer                       | Technology              | Purpose                               | Execution Frequency |
+| --------------------------- | ----------------------- | ------------------------------------- | ------------------- |
+| **Scraping Execution**      | Google Cloud Run        | Playwright execution, data extraction | Once daily          |
+| **Schedule Trigger**        | Google Cloud Scheduler  | Trigger daily scraping                | 12:00 JST daily     |
+| **Notification Scheduling** | Google Cloud Tasks      | Individual notification timing        | As scheduled        |
+| **Data Storage**            | Supabase PostgreSQL     | Ticket and notification history       | Real-time           |
+| **Data API**                | Supabase PostgREST      | CRUD operations                       | On-demand           |
+| **Notification Delivery**   | Supabase Edge Functions | LINE/Discord messaging                | When triggered      |
+
+## System Architecture
+
+### High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Google Cloud Platform                  │
+├─────────────────────────────────────────────────────────┤
+│  Cloud Scheduler → Cloud Run → Cloud Tasks              │
+│       ↓              ↓            ↓                      │
+│   (12:00 JST)   (Scraping)   (Schedule)                 │
+└─────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────┐
+│                      Supabase                           │
+├─────────────────────────────────────────────────────────┤
+│  PostgreSQL ← PostgREST API → Edge Functions           │
+│      ↓           ↓                ↓                     │
+│   (Storage)   (CRUD API)    (Notifications)            │
+└─────────────────────────────────────────────────────────┘
+                                     ↓
+┌─────────────────────────────────────────────────────────┐
+│                  External Services                      │
+├─────────────────────────────────────────────────────────┤
+│            LINE API        Discord Webhook              │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Clean Architecture Layers
+
+### 1. Interface Layer (Cloud Run + Edge Functions)
 
 **Responsibility**: Handle external requests and trigger application workflows
 
-```typescript
-// Edge Function Entry Points
-supabase/functions/
-├── daily-check/           # Daily ticket monitoring
-├── notification-check/    # Time-based notifications
-└── system-health/         # Health monitoring
-```
+**Component Structure:**
+
+- Cloud Run Services: Scraping handlers and HTTP endpoints
+- Supabase Edge Functions: Notification delivery and health monitoring
+- Request processing and response transformation layers
 
 **Key Features**:
 
@@ -30,12 +78,11 @@ supabase/functions/
 
 **Responsibility**: Orchestrate business operations and coordinate between layers
 
-```typescript
-src/application/services/
-├── ScrapingService.ts     # Web scraping orchestration
-├── NotificationService.ts # Multi-channel notifications
-└── HealthCheckService.ts  # System monitoring
-```
+**Service Components:**
+
+- ScrapingService: Web scraping orchestration and data extraction
+- NotificationService: Multi-channel notification coordination
+- HealthCheckService: System monitoring and health validation
 
 **Key Features**:
 
@@ -48,17 +95,11 @@ src/application/services/
 
 **Responsibility**: Encapsulate business rules and domain knowledge
 
-```typescript
-src/domain/
-├── entities/              # Business entities with behavior
-│   ├── Ticket.ts
-│   ├── NotificationHistory.ts
-│   ├── NotificationConfig.ts
-│   └── __tests__/
-└── interfaces/           # Repository contracts
-    ├── TicketRepository.ts
-    └── NotificationRepository.ts
-```
+**Domain Components:**
+
+- Business Entities: Ticket, NotificationHistory, NotificationConfig
+- Repository Interfaces: TicketRepository, NotificationRepository
+- Domain Services: Business rule validation and processing
 
 **Key Principles**:
 
@@ -71,18 +112,11 @@ src/domain/
 
 **Responsibility**: Provide technical capabilities and external system integration
 
-```typescript
-src/infrastructure/
-├── repositories/         # Data persistence implementations
-│   ├── TicketRepositoryImpl.ts
-│   ├── NotificationRepositoryImpl.ts
-│   ├── converters/       # Data transformation
-│   └── __tests__/
-├── services/            # External service clients
-└── utils/               # Technical utilities
-    ├── error-handler.ts
-    └── constants.ts
-```
+**Infrastructure Components:**
+
+- Repository Implementations: Data persistence layer
+- External Service Clients: Cloud Tasks, Playwright integration
+- Technical Utilities: Error handling, logging, configuration management
 
 ## Data Flow Architecture
 
@@ -90,20 +124,21 @@ src/infrastructure/
 
 ```mermaid
 graph TD
-    A[pg_cron Scheduler] --> B[daily-check Edge Function]
+    A[Google Cloud Scheduler] --> B[Google Cloud Run]
     B --> C[ScrapingService]
     C --> D[J-League Ticket Site]
     D --> E[Extract Ticket Data]
     E --> F[TicketRepositoryImpl]
     F --> G[Supabase Database]
-    G --> H[Notification Scheduling]
+    G --> H[Cloud Tasks Scheduling]
+    H --> I[Notification Records]
 ```
 
 ### Notification Delivery Flow
 
 ```mermaid
 graph TD
-    A[pg_cron Scheduler] --> B[notification-check Edge Function]
+    A[Google Cloud Tasks] --> B[Supabase Edge Functions]
     B --> C[NotificationService]
     C --> D{Check Due Notifications}
     D --> E[NotificationRepositoryImpl]
@@ -127,7 +162,8 @@ CREATE TABLE tickets (
     purchase_url VARCHAR NOT NULL,
     seat_categories TEXT[] NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(match_name, match_date)
 );
 ```
 
@@ -140,88 +176,120 @@ CREATE TABLE notification_history (
     notification_type VARCHAR NOT NULL,
     scheduled_time TIMESTAMPTZ NOT NULL,
     sent_time TIMESTAMPTZ,
-    status VARCHAR NOT NULL DEFAULT 'pending',
+    status VARCHAR NOT NULL DEFAULT 'scheduled',
     retry_count INTEGER DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    error_message TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    INDEX idx_status_scheduled (status, scheduled_time)
 );
+```
+
+### Notification Trigger
+
+```sql
+CREATE OR REPLACE FUNCTION create_notification_records()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO notification_history 
+    (ticket_id, notification_type, scheduled_time, status)
+  VALUES
+    (NEW.id, 'day_before', NEW.sale_start_date - interval '1 day' + time '20:00', 'scheduled'),
+    (NEW.id, 'one_hour', NEW.sale_start_date - interval '1 hour', 'scheduled'),
+    (NEW.id, '15_minutes', NEW.sale_start_date - interval '15 minutes', 'scheduled');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 ```
 
 ## Configuration Management
 
 ### Environment-Based Configuration
 
-```typescript
-// Configuration hierarchy
-config/
-├── development.ts        # Local development settings
-├── production.ts         # Production environment
-└── base.ts               # Common configuration
-```
+**Configuration Structure:**
 
+- Environment-based configuration files (development, production, base)
+- Hierarchical configuration inheritance
+- Type-safe configuration validation
+
+### Notification Timing Configuration
+
+**Notification Timing Strategy:**
+
+- **day_before**: 20:00 on the day before sale start (5-minute tolerance)
+- **one_hour**: 60 minutes before sale start (2-minute tolerance)
+- **fifteen_minutes**: 15 minutes before sale start (1-minute tolerance)
+
+**Configuration Benefits:**
+
+- Centralized timing management
+- Easy modification without code changes
+- Type-safe configuration validation
+
+```
 ### Feature Flags
 
-```typescript
-export const FEATURE_FLAGS = {
-  ENABLE_DISCORD_NOTIFICATIONS: true,
-  ENABLE_LINE_NOTIFICATIONS: true,
-  ENABLE_RETRY_MECHANISM: true,
-  MAX_RETRY_ATTEMPTS: 3,
-} as const;
-```
+**Feature Management:**
+- Toggle-based feature control for all notification channels
+- Configurable retry mechanisms with attempt limits
+- Environment-specific feature enablement
 
 ## Security Architecture
 
 ### Authentication & Authorization
 
-- **Supabase RLS**: Row-level security policies
-- **API Key Management**: Secure environment variable storage
-- **Rate Limiting**: Edge function request throttling
+#### Service-to-Service Authentication
+- **Cloud Run → Supabase**: Service Role Key (environment variable)
+- **Cloud Tasks → Edge Functions**: Service Role Key in Authorization header
+- **Cloud Scheduler → Cloud Run**: OIDC token with service account
+
+#### Security Best Practices
+- All API keys stored in environment variables
+- Service Role Keys rotated quarterly
+- Minimum privilege principle for service accounts
+- No public endpoints without authentication
 
 ### Data Protection
-
-- **Input Validation**: Type-safe data processing
-- **SQL Injection Prevention**: Parameterized queries
-- **Sensitive Data Handling**: No PII storage
+- TLS encryption for all API communications
+- No PII storage in logs
+- Database Row Level Security (RLS) policies
+- Input validation at all entry points
 
 ## Monitoring & Observability
 
 ### Logging Strategy
 
-```typescript
-interface LogEntry {
-  timestamp: string;
-  level: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL';
-  service: string;
-  operation: string;
-  data?: Record<string, any>;
-  error?: Error;
-}
-```
+#### Structured Logging Format
+**Structured Logging Format:**
+- Standardized log entry structure with severity levels
+- Service and operation identification
+- Performance metrics and error context
+- JSON format for queryability and analysis
 
 ### Health Checks
 
-```typescript
-interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'down';
-  services: {
-    database: ServiceHealth;
-    scraping: ServiceHealth;
-    notifications: ServiceHealth;
-  };
-  timestamp: string;
-}
-```
+**Health Check Components:**
+- System-wide health status aggregation
+- Individual service health monitoring
+- Database, scraping, notification, and task queue status
+- Real-time health reporting with timestamps
 
 ### Error Tracking
 
 - **Structured Logging**: JSON format for query-ability
 - **Error Aggregation**: Pattern recognition
-- **Alert Thresholds**: Automatic escalation
+- **Alert Thresholds**: Automatic escalation via Discord
 
 ## Performance Considerations
 
 ### Optimization Strategies
 
+#### Cloud Run Optimization
+- Container image optimization
+- Cold start minimization
+- Resource allocation tuning
+- Concurrent request handling
+
+#### Database Performance
 - **Database Indexing**: Query optimization
 - **Connection Pooling**: Resource efficiency
 - **Caching Strategy**: Reduce external API calls
@@ -229,8 +297,8 @@ interface HealthStatus {
 
 ### Constraints Management
 
-- **Memory Limit**: 512MB (Edge Functions)
-- **Execution Time**: 60 seconds maximum
+- **Memory Limit**: 2GB (Cloud Run), 512MB (Edge Functions)
+- **Execution Time**: 300 seconds (Cloud Run), 60 seconds (Edge Functions)
 - **Rate Limiting**: Respectful scraping intervals
 - **Cost Optimization**: Free tier compliance
 
@@ -238,26 +306,76 @@ interface HealthStatus {
 
 ### Horizontal Scaling
 
-- **Stateless Functions**: Easy replication
+- **Stateless Services**: Easy replication across regions
+- **Load Distribution**: Multiple Cloud Run instances
+- **Task Distribution**: Cloud Tasks queue management
 - **Database Partitioning**: Time-based ticket archiving
-- **Load Distribution**: Multiple scraping endpoints
 
 ### Vertical Scaling
 
 - **Resource Optimization**: Memory and CPU efficiency
 - **Query Optimization**: Index usage and query planning
-- **Caching Layers**: Redis for frequently accessed data
+- **Caching Layers**: In-memory caching for frequently accessed data
+
+## Cost Analysis
+
+### Google Cloud (Monthly)
+- **Cloud Run**: ~60 minutes/month = Free (180,000 vCPU-seconds free tier)
+- **Cloud Scheduler**: 1 job = Free (3 jobs free tier)
+- **Cloud Tasks**: ~300 tasks/month = Free (1 million tasks free tier)
+
+### Supabase (Monthly)
+- **Database**: < 500MB = Free
+- **Edge Functions**: ~300 invocations = Free
+- **API Calls**: Minimal = Free
+
+**Total Monthly Cost**: $0 (completely within free tiers)
 
 ## Disaster Recovery
 
 ### Backup Strategy
 
-- **Database Backups**: Daily automated snapshots
+- **Database Backups**: Daily automated snapshots (Supabase)
 - **Configuration Backup**: Version-controlled settings
 - **Code Backup**: Git repository with multiple remotes
 
 ### Failover Mechanisms
 
-- **Fallback URLs**: Alternative scraping endpoints
-- **Notification Redundancy**: Multiple channel support
-- **Health Check Recovery**: Automatic service restart
+#### Retry Strategy
+- Cloud Tasks: Automatic retry with exponential backoff
+- Maximum 3 retry attempts
+- Dead letter queue for persistent failures
+
+#### Error Notification
+**Error Notification Strategy:**
+- Automated error alerting via Discord webhooks
+- Context-aware error reporting with service identification
+- Stack trace and timestamp inclusion for debugging
+- Severity-based alert routing
+
+## Future Enhancement Path
+
+### Phase 1 (Current)
+- ✅ Automated scraping with Cloud Run
+- ✅ Event-driven notification scheduling
+- ✅ LINE group notifications
+- ✅ Clean Architecture implementation
+
+### Phase 2 (Next)
+- Manual ticket addition via API
+- User preference management
+- Individual LINE notifications
+- Enhanced monitoring dashboard
+
+### Phase 3 (Future)
+- Mobile app with push notifications
+- AI-powered ticket recommendations
+- Multi-language support
+- Seat availability tracking
+
+### Phase 4 (Advanced)
+- Ticket purchase automation
+- Price tracking and alerts
+- Social features for supporter groups
+- Integration with official fan club systems
+```
