@@ -1,3 +1,7 @@
+---
+description: "オープンなGitHub issue一覧を取得し、選択したissueに基づいてCLAUDE.md命名規則に従ったfeature/fixブランチを作成し、新しい開発タスクを開始する"
+---
+
 # GitHub Issue から新しいタスクを開始
 
 GitHub issueから作業するタスクを選択し、適切な命名規則でブランチを作成します。
