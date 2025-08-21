@@ -1,4 +1,4 @@
-### 2.2 実装済みドメインエンティティ
+### 2.2 ドメインエンティティ
 
 ```typescript
 // src/domain/entities/NotificationHistory.ts
@@ -28,7 +28,7 @@ export const NOTIFICATION_TIMING_CONFIG = {
 } as const;
 ```
 
-## 3. 実装済みリポジトリ層
+## 3. リポジトリ層
 
 ### 3.1 ドメインインターフェース
 
@@ -67,7 +67,7 @@ export class TicketRepositoryImpl implements TicketRepository {
 }
 ```
 
-### 3.3 実装済みテスト
+### 3.3 テスト例
 
 ```typescript
 // tests/integration/repository.test.ts - 統合テスト
@@ -84,7 +84,7 @@ Deno.test('Ticket - 正常なチケット作成', () => {
   assertEquals(ticket.id, 'test-id');
 });
 
-// 45テスト実装済み（unit + integration）
+// テスト例（unit + integration）
 import { TicketRepository } from '../../shared/repositories/TicketRepository.ts';
 
 export class SupabaseTicketRepository implements TicketRepository {
@@ -1381,144 +1381,4 @@ SELECT
   MAX(created_at) as latest_record,
   NOW() as backup_timestamp
 FROM notification_history;
-```
-
-## 17. Claude Code実装ガイド
-
-### 17.1 実装の段階的進行
-
-1. **Phase 1: 基盤構築**
-   - Supabaseプロジェクト初期化
-   - データベーススキーマ適用
-   - 基本的な型定義作成
-
-2. **Phase 2: リポジトリ層**
-   - インターフェース定義
-   - Supabase実装
-   - 基本的なCRUD操作
-
-3. **Phase 3: サービス層**
-   - URL管理システム
-   - スクレイピングサービス（実際のサイト調査後）
-   - 通知サービス
-
-4. **Phase 4: Edge Functions**
-   - daily-check実装
-   - notification-check実装
-   - エラーハンドリング
-
-5. **Phase 5: テスト・最適化**
-   - 単体テスト
-   - 統合テスト
-   - パフォーマンス調整
-
-### 17.2 実装時の注意点
-
-- **サイト構造調査**: 実装前に必ずJリーグチケットサイトの詳細調査を実施
-- **段階的テスト**: 各機能を個別にテストしてから統合
-- **エラーハンドリング**: 外部API呼び出しは必ずtry-catch
-- **ログ出力**: デバッグ情報の適切な出力
-- **メモリ監視**: 512MB制限を意識した実装
-
-この詳細設計書に従って実装することで、堅牢で保守性の高いシステムを構築できます。# urawa-support-hub
-詳細設計書
-
-## 1. プロジェクト構成
-
-```
-urawa-support-hub/
-├── src/
-│   ├── features/
-│   │   ├── away-tickets/               # アウェイチケット監視機能
-│   │   │   ├── repositories/
-│   │   │   │   ├── SupabaseTicketRepository.ts
-│   │   │   │   └── SupabaseNotificationRepository.ts
-│   │   │   ├── services/
-│   │   │   │   ├── AwayTabScrapingService.ts
-│   │   │   │   └── LineNotificationService.ts
-│   │   │   └── types/
-│   │   │       ├── Ticket.ts
-│   │   │       └── NotificationHistory.ts
-│   │   ├── hotel-booking/              # Phase 2: ホテル予約リマインド
-│   │   ├── home-tickets/               # Phase 2: ホームチケットアラート
-│   │   └── shared/                     # 共通機能
-│   │       ├── repositories/
-│   │       │   ├── TicketRepository.ts
-│   │       │   └── NotificationRepository.ts
-│   │       ├── services/
-│   │       │   ├── NotificationService.ts
-│   │       │   └── UrlManager.ts
-│   │       ├── types/
-│   │       │   └── index.ts
-│   │       └── utils/
-│   │           ├── ticketUtils.ts
-│   │           ├── dateUtils.ts
-│   │           └── scrapingUtils.ts
-│   └── config/
-│       ├── scrapingConfig.ts
-│       ├── urlConfig.ts
-│       └── environments/
-├── supabase/
-│   ├── functions/
-│   │   ├── daily-check/
-│   │   │   └── index.ts
-│   │   ├── notification-check/
-│   │   │   └── index.ts
-│   │   └── _shared/
-│   │       └── import_map.json
-│   ├── migrations/
-│   │   ├── 001_initial_schema.sql
-│   │   └── 002_cron_jobs.sql
-│   └── config.toml
-├── tests/
-│   ├── features/
-│   ├── config/
-│   └── integration/
-├── docs/
-│   └── README.md
-├── deno.json
-├── import_map.json
-└── .gitignore
-```
-
-## 2. 型定義
-
-### 2.1 チケット関連型
-
-```typescript
-// src/features/shared/types/Ticket.ts
-export interface Ticket {
-  id: string;
-  matchName: string;
-  matchDate: Date;
-  homeTeam: string;
-  awayTeam: string;
-  saleStartDate: Date;
-  saleStartTime?: string;
-  venue: string;
-  ticketTypes: string[];
-  ticketUrl: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface ScrapedTicketData {
-  matchName: string;
-  matchDate: string;
-  saleDate: string;
-  ticketTypes: string[];
-  ticketUrl: string;
-  venue: string;
-}
-```
-
-### 2.2 通知関連型
-
-```typescript
-// src/features/shared/types/NotificationHistory.ts
-export interface NotificationHistory {
-  id: string;
-  ticketId: string;
-  notificationType: 'day_before' | 'hour_before' | 'minutes_before';
-  scheduledAt
 ```

@@ -1,66 +1,63 @@
-# urawa-support-hub 環境設定手順書
+# 環境セットアップガイド
 
-## 1. 開発環境セットアップ
+## 前提条件
 
-### 1.1 必要なランタイム
+### 必要なソフトウェア
 
-**Deno（推奨: 2.x）**
+1. **Deno Runtime 2.x**
+   ```bash
+   # Denoのインストール
+   curl -fsSL https://deno.land/install.sh | sh
 
-```bash
-# macOS/Linux
-curl -fsSL https://deno.land/install.sh | sh
+   # インストール確認
+   deno --version
+   ```
 
-# Windows (PowerShell)
-irm https://deno.land/install.ps1 | iex
+2. **Supabase CLI**
+   ```bash
+   # npmでインストール
+   npm install -g supabase
 
-# 確認
-deno --version
-```
+   # インストール確認
+   supabase --version
+   ```
 
-**Supabase CLI**
+3. **Google Cloud CLI**
+   ```bash
+   # gcloud CLIのインストール
+   curl https://sdk.cloud.google.com | bash
+   exec -l $SHELL
 
-```bash
-# macOS
-brew install supabase/tap/supabase
+   # インストール確認
+   gcloud --version
+   ```
 
-# npm
-npm install -g supabase
+4. **Docker**
+   ```bash
+   # Dockerのインストール（プラットフォーム固有）
+   # macOS: Docker Desktopをダウンロード
+   # Linux: パッケージマネージャーを使用
 
-# 確認  
-supabase --version
-```
+   # インストール確認
+   docker --version
+   ```
 
-### 1.2 プロジェクト初期化
+5. **Git**
+   ```bash
+   git --version
+   ```
+
+## ローカル開発環境セットアップ
+
+### 1. リポジトリセットアップ
 
 ```bash
 # リポジトリクローン
 git clone https://github.com/kazuya-m/urawa-support-hub.git
 cd urawa-support-hub
 
-# 依存関係確認
-deno check **/*.ts
-```
-
-### 1.3 Claude Code 基本使用方法
-
-```bash
-# 開発セッション開始
-claude-code start
-
-# ファイル作成・編集
-claude-code create src/types/Ticket.ts "TypeScriptの型定義ファイル"
-
-# 実装依頼（具体的に）
-claude-code implement "SupabaseTicketRepositoryクラスを実装してください。TicketRepositoryインターフェースを実装し、findFutureTickets、save、update、deleteExpiredメソッドを含めてください"
-
-# コード修正
-claude-code fix "TypeScriptコンパイルエラーを修正してください"
-
-# テスト実行
-claude-code test
-
-# 段階的な実装指示
-claude-code plan "この機能を実装するためのステップバイステップの計画を作成してください"
+# プロジェクト構造確認
+ls -la
 ```
 
 ## 2. ローカル開発環境

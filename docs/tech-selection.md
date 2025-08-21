@@ -86,21 +86,21 @@ requirements for web scraping workloads.
 
 ### Scraping Execution Environment
 
-| Aspect                 | Supabase Edge Functions (v1.0) | Google Cloud Run ()         |
-| ---------------------- | ------------------------------ | --------------------------- |
-| **Memory Limit**       | 512MB                          | 2GB                         |
-| **Execution Time**     | 60 seconds                     | 300 seconds                 |
-| **Container Support**  | Deno runtime only              | Full Docker containers      |
-| **Playwright Support** | Limited                        | Full support                |
-| **Cold Start**         | ~100ms                         | ~1-2 seconds                |
-| **Cost**               | Free (500,000 requests)        | Free (180,000 vCPU-seconds) |
-| **Reliability**        | Good                           | Excellent                   |
+| Aspect                 | Supabase Edge Functions | Google Cloud Run            |
+| ---------------------- | ----------------------- | --------------------------- |
+| **Memory Limit**       | 512MB                   | 2GB                         |
+| **Execution Time**     | 60 seconds              | 300 seconds                 |
+| **Container Support**  | Deno runtime only       | Full Docker containers      |
+| **Playwright Support** | Limited                 | Full support                |
+| **Cold Start**         | ~100ms                  | ~1-2 seconds                |
+| **Cost**               | Free (500,000 requests) | Free (180,000 vCPU-seconds) |
+| **Reliability**        | Good                    | Excellent                   |
 
 **Decision**: Cloud Run chosen for better resource allocation and Playwright compatibility.
 
 ### Scheduling Mechanisms
 
-| Aspect             | pg_cron (v1.0)        | Cloud Scheduler + Tasks ()   |
+| Aspect             | pg_cron               | Cloud Scheduler + Tasks      |
 | ------------------ | --------------------- | ---------------------------- |
 | **Reliability**    | Database-dependent    | Independent service          |
 | **Retry Logic**    | Manual implementation | Built-in exponential backoff |
@@ -110,31 +110,6 @@ requirements for web scraping workloads.
 | **Monitoring**     | PostgreSQL logs       | Cloud Console + logging      |
 
 **Decision**: Cloud Scheduler + Tasks for better reliability and error handling.
-
-## Implementation Status
-
-### Completed ✅
-
-- **Architecture Migration**: Hybrid GCP + Supabase architecture
-- **Domain Layer**: Ticket, NotificationHistory entities with business logic
-- **Infrastructure Layer**: Repository implementations with proper abstraction
-- **Configuration-Driven Design**: Externalized notification timing and business rules
-- **Comprehensive Test Suite**: 45+ test cases covering all layers
-- **CI/CD Optimization**: Fast test execution and deployment pipeline
-
-### In Progress 🚧
-
-- **Cloud Run Implementation**: Playwright-based scraping service
-- **Cloud Tasks Integration**: Event-driven notification scheduling
-- **Edge Functions Update**: Notification delivery service
-- **Monitoring Enhancement**: GCP logging and alerting integration
-
-### Planned 📋
-
-- **Production Deployment**: GCP + Supabase environment setup
-- **Monitoring Dashboard**: Unified observability across GCP and Supabase
-- **Performance Optimization**: Container image optimization, caching strategies
-- **Cost Monitoring**: Usage tracking and optimization
 
 ## Technology Dependencies
 
@@ -266,32 +241,6 @@ const AUTH_MATRIX = {
 4. **Scalability**: Handle 10x growth without architecture changes
 5. **Maintenance Overhead**: Minimal operational requirements
 6. **Community Support**: Active community, regular updates
-
-## Migration Strategy (v1.0 → )
-
-### Phase 1: Preparation
-
-- ✅ GCP account setup and service activation
-- ✅ Cloud Run containerization of scraping logic
-- ✅ Cloud Tasks integration for scheduling
-
-### Phase 2: Gradual Migration
-
-- ✅ Deploy Cloud Run scraping service
-- ✅ Update Edge Functions to work with Cloud Tasks
-- ✅ Parallel testing of both systems
-
-### Phase 3: Cutover
-
-- 🚧 Switch Cloud Scheduler to trigger Cloud Run
-- 🚧 Decommission pg_cron schedules
-- 🚧 Monitor system performance
-
-### Phase 4: Optimization
-
-- 📋 Performance tuning and cost optimization
-- 📋 Enhanced monitoring and alerting
-- 📋 Documentation updates
 
 ## Future Technology Roadmap
 

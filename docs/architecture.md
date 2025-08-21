@@ -1,20 +1,10 @@
-# Architecture Design Documentv2.0
+# Architecture Design Document
 
 ## System Overview
 
 The urawa-support-hub is an automated ticket monitoring and notification system for Urawa Red
 Diamonds supporters. The system scrapes ticket information from the J-League website, stores it in a
 database, and sends timely notifications to LINE groups before ticket sales begin.
-
-## Architecture Revision History
-
-### v2.0 Changes (2025-01)
-
-- **Added**: Google Cloud Run for web scraping execution environment
-- **Added**: Google Cloud Tasks for efficient notification scheduling
-- **Removed**: Supabase Edge Functions scraping (technical limitation)
-- **Improved**: Notification efficiency (from polling to event-driven)
-- **Maintained**: Clean Architecture pattern with clear separation of concerns
 
 ## Technology Stack
 
@@ -353,27 +343,21 @@ $$ LANGUAGE plpgsql;
 - Stack trace and timestamp inclusion for debugging
 - Severity-based alert routing
 
-## Future Enhancement Path
+## Future Enhancement Roadmap
 
-### Phase 1
-- ✅ Automated scraping with Cloud Run
-- ✅ Event-driven notification scheduling
-- ✅ LINE group notifications
-- ✅ Clean Architecture implementation
-
-### Phase 2 (Next)
+### Near-term Enhancements
 - Manual ticket addition via API
 - User preference management
 - Individual LINE notifications
 - Enhanced monitoring dashboard
 
-### Phase 3 (Future)
+### Medium-term Enhancements
 - Mobile app with push notifications
 - AI-powered ticket recommendations
 - Multi-language support
 - Seat availability tracking
 
-### Phase 4 (Advanced)
+### Long-term Enhancements
 - Ticket purchase automation
 - Price tracking and alerts
 - Social features for supporter groups
