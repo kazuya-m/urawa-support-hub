@@ -4,7 +4,7 @@
 
 ### 1.1 必要なランタイム
 
-**Deno（推奨: v2.x）**
+**Deno（推奨: 2.x）**
 
 ```bash
 # macOS/Linux

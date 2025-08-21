@@ -1,10 +1,10 @@
-# Environment Setup Guide v2.0
+# Environment Setup Guide
 
 ## Prerequisites
 
 ### Required Software
 
-1. **Deno Runtime v2.x**
+1. **Deno Runtime 2.x**
    ```bash
    # Install Deno
    curl -fsSL https://deno.land/install.sh | sh
@@ -22,7 +22,7 @@
    supabase --version
    ```
 
-3. **Google Cloud CLI (New in v2.0)**
+3. **Google Cloud CLI **
    ```bash
    # Install gcloud CLI
    curl https://sdk.cloud.google.com | bash
@@ -32,7 +32,7 @@
    gcloud --version
    ```
 
-4. **Docker (New in v2.0)**
+4. **Docker **
    ```bash
    # Install Docker (platform specific)
    # For macOS: Download Docker Desktop
@@ -60,7 +60,7 @@ cd urawa-support-hub
 ls -la
 ```
 
-### 2. Google Cloud Platform Setup (New in v2.0)
+### 2. Google Cloud Platform Setup
 
 #### GCP Project Setup
 
@@ -146,7 +146,7 @@ SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_ANON_KEY=your-anon-key-from-supabase-status
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-from-supabase-status
 
-# Google Cloud Configuration (New in v2.0)
+# Google Cloud Configuration 
 GOOGLE_CLOUD_PROJECT=urawa-support-hub
 GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
 CLOUD_TASKS_QUEUE=notifications
@@ -211,7 +211,7 @@ deno test --allow-env --allow-net=127.0.0.1 --coverage=coverage
 deno coverage coverage
 ```
 
-#### GCP Development (New in v2.0)
+#### GCP Development
 
 ```bash
 # Build Cloud Run container locally

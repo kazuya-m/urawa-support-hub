@@ -1,11 +1,11 @@
-# Technology Selection Document v2.0
+# Technology Selection Document
 
-## Technology Stack Overview v2.0
+## Technology Stack Overview
 
 ### Architecture Evolution
 
-The system has evolved from a pure Supabase architecture (v1.0) to a hybrid GCP + Supabase
-architecture (v2.0) to address scalability and reliability requirements for web scraping workloads.
+The system utilizes a hybrid GCP + Supabase architecture to address scalability and reliability
+requirements for web scraping workloads.
 
 ## Core Technology Stack
 
@@ -17,7 +17,7 @@ architecture (v2.0) to address scalability and reliability requirements for web 
 
 ### Cloud Computing Platform
 
-#### Google Cloud Platform (New in v2.0)
+#### Google Cloud Platform
 
 - **Google Cloud Run**: Containerized web scraping execution environment
 - **Google Cloud Scheduler**: Reliable daily trigger mechanism
@@ -48,8 +48,8 @@ architecture (v2.0) to address scalability and reliability requirements for web 
 - **Reason**:
   - Reliable scraping with JavaScript execution support
   - Multiple browser support (Chromium, Firefox, WebKit)
-  - Better resource allocation in Cloud Run (2GB memory vs 512MB)
-  - Longer execution time (300s vs 60s)
+  - Adequate resource allocation in Cloud Run (2GB memory)
+  - Sufficient execution time (300s timeout)
   - Container-based deployment
 
 ### Notification Services
@@ -60,7 +60,7 @@ architecture (v2.0) to address scalability and reliability requirements for web 
 
 ### Scheduling Architecture
 
-#### v2.0 Hybrid Approach
+#### Hybrid Approach
 
 - **Google Cloud Scheduler**: Daily scraping trigger (12:00 JST)
 - **Google Cloud Tasks**: Individual notification scheduling
@@ -86,7 +86,7 @@ architecture (v2.0) to address scalability and reliability requirements for web 
 
 ### Scraping Execution Environment
 
-| Aspect                 | Supabase Edge Functions (v1.0) | Google Cloud Run (v2.0)     |
+| Aspect                 | Supabase Edge Functions (v1.0) | Google Cloud Run ()         |
 | ---------------------- | ------------------------------ | --------------------------- |
 | **Memory Limit**       | 512MB                          | 2GB                         |
 | **Execution Time**     | 60 seconds                     | 300 seconds                 |
@@ -100,14 +100,14 @@ architecture (v2.0) to address scalability and reliability requirements for web 
 
 ### Scheduling Mechanisms
 
-| Aspect             | pg_cron (v1.0)        | Cloud Scheduler + Tasks (v2.0) |
-| ------------------ | --------------------- | ------------------------------ |
-| **Reliability**    | Database-dependent    | Independent service            |
-| **Retry Logic**    | Manual implementation | Built-in exponential backoff   |
-| **Error Handling** | Limited               | Dead letter queue              |
-| **Scalability**    | Database load         | Unlimited task queuing         |
-| **Cost**           | Free                  | Free (1M tasks/month)          |
-| **Monitoring**     | PostgreSQL logs       | Cloud Console + logging        |
+| Aspect             | pg_cron (v1.0)        | Cloud Scheduler + Tasks ()   |
+| ------------------ | --------------------- | ---------------------------- |
+| **Reliability**    | Database-dependent    | Independent service          |
+| **Retry Logic**    | Manual implementation | Built-in exponential backoff |
+| **Error Handling** | Limited               | Dead letter queue            |
+| **Scalability**    | Database load         | Unlimited task queuing       |
+| **Cost**           | Free                  | Free (1M tasks/month)        |
+| **Monitoring**     | PostgreSQL logs       | Cloud Console + logging      |
 
 **Decision**: Cloud Scheduler + Tasks for better reliability and error handling.
 
@@ -165,19 +165,19 @@ import { assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
 
 ## Performance Characteristics
 
-### v2.0 Performance Improvements
+### System Performance Specifications
 
-| Metric                    | v1.0 (Supabase Only)    | v2.0 (GCP Hybrid)          | Improvement     |
-| ------------------------- | ----------------------- | -------------------------- | --------------- |
-| **Scraping Success Rate** | ~85% (memory limits)    | ~98% (adequate resources)  | +13%            |
-| **Notification Latency**  | 1-5 minutes (polling)   | <30 seconds (event-driven) | ~5-10x faster   |
-| **Error Recovery**        | Manual intervention     | Automatic retry            | Fully automated |
-| **Resource Utilization**  | Edge Functions overload | Optimal allocation         | Significant     |
-| **Cost Efficiency**       | Free tier strain        | Within all free tiers      | Maintained      |
+| Metric                    | Target Performance    | Implementation Strategy      |
+| ------------------------- | --------------------- | ---------------------------- |
+| **Scraping Success Rate** | ~98%                  | Cloud Run adequate resources |
+| **Notification Latency**  | <30 seconds           | Event-driven architecture    |
+| **Error Recovery**        | Fully automated       | Cloud Tasks automatic retry  |
+| **Resource Utilization**  | Optimal allocation    | GCP + Supabase hybrid        |
+| **Cost Efficiency**       | Within all free tiers | Optimized resource usage     |
 
 ### Scalability Metrics
 
-- **Current Load**: ~10-20 tickets/month, ~30-60 notifications/month
+- **Expected Load**: ~10-20 tickets/month, ~30-60 notifications/month
 - **Supported Scale**: Up to 1,000 tickets/month, 3,000 notifications/month
 - **Bottlenecks**: J-League site rate limiting, LINE API rate limits
 - **Future Scaling**: Regional deployment, caching layers
@@ -205,7 +205,7 @@ const AUTH_MATRIX = {
 - **Input Validation**: Type-safe data processing throughout
 - **Audit Logging**: Comprehensive security event logging
 
-## Cost Analysis v2.0
+## Cost Analysis
 
 ### Monthly Cost Breakdown (Free Tier)
 
@@ -267,7 +267,7 @@ const AUTH_MATRIX = {
 5. **Maintenance Overhead**: Minimal operational requirements
 6. **Community Support**: Active community, regular updates
 
-## Migration Strategy (v1.0 → v2.0)
+## Migration Strategy (v1.0 → )
 
 ### Phase 1: Preparation
 

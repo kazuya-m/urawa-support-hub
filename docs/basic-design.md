@@ -1,6 +1,6 @@
-# Basic Design Document v2.0
+# Basic Design Document
 
-## System Architecture v2.0
+## System Architecture
 
 ### Hybrid Architecture Implementation (GCP + Supabase)
 
@@ -43,7 +43,7 @@
 
 ### Layer Responsibilities
 
-#### Interface Layer (Updated for v2.0)
+#### Interface Layer
 
 - **Cloud Run Service**: Web scraping execution environment
   - `scrape`: Daily ticket extraction endpoint
@@ -57,30 +57,30 @@
 - **Services**: Orchestration of domain operations
   - `ScrapingService`: Ticket information extraction with Playwright
   - `NotificationService`: Multi-channel notification delivery
-  - `CloudTasksService`: Event-driven notification scheduling (New in v2.0)
+  - `CloudTasksService`: Event-driven notification scheduling
 
 #### Domain Layer
 
 - **Entities**: Core business objects with behavior
   - `Ticket`: Match ticket information with business logic
   - `NotificationHistory`: Notification tracking with duplicate prevention
-  - `NotificationConfig`: Configuration-driven timing management (Enhanced in v2.0)
+  - `NotificationConfig`: Configuration-driven timing management
 - **Interfaces**: Abstract contracts for external dependencies
   - `TicketRepository`: Data persistence abstraction
   - `NotificationRepository`: Notification history abstraction
 
-#### Infrastructure Layer (Enhanced for v2.0)
+#### Infrastructure Layer
 
 - **Repository Implementations**: Concrete data access implementations
   - `TicketRepositoryImpl`: Supabase-based ticket storage
   - `NotificationRepositoryImpl`: Supabase-based notification tracking
-- **Cloud Services Integration**: External service clients (New in v2.0)
+- **Cloud Services Integration**: External service clients
   - `CloudTasksClient`: Google Cloud Tasks integration
   - `PlaywrightClient`: Web scraping automation
 - **Converters**: Data transformation between database and domain models
 - **Utils**: Common infrastructure utilities (error handling, logging)
 
-## Data Flow v2.0
+## Data Flow
 
 ### Daily Ticket Check Flow (Updated)
 
@@ -139,7 +139,7 @@ sequenceDiagram
     NR-->>EF: Process completed
 ```
 
-### Notification Scheduling Flow (New in v2.0)
+### Notification Scheduling Flow
 
 ```mermaid
 sequenceDiagram
@@ -162,7 +162,7 @@ sequenceDiagram
     TR-->>DB: All notifications scheduled
 ```
 
-## System Components v2.0
+## System Components
 
 ### Google Cloud Platform Components (New)
 
@@ -220,7 +220,7 @@ sequenceDiagram
   - `send-notification`: Process individual notification requests
   - `system-health`: Monitor system status and performance
 
-## Design Patterns v2.0
+## Design Patterns
 
 ### Repository Pattern (Enhanced)
 
@@ -233,7 +233,7 @@ sequenceDiagram
 interface TicketRepository {
   save(ticket: Ticket): Promise<void>;
   findByMatchDate(date: Date): Promise<Ticket[]>;
-  // New method for v2.0
+  // Event-driven notification scheduling
   scheduleNotifications(ticketId: string): Promise<void>;
 }
 ```
@@ -260,7 +260,7 @@ export const NOTIFICATION_TIMING_CONFIG = {
 };
 ```
 
-### Event-Driven Architecture (New in v2.0)
+### Event-Driven Architecture
 
 - **Decoupled Components**: Services communicate via events
 - **Asynchronous Processing**: Non-blocking notification scheduling
@@ -323,16 +323,16 @@ export class ErrorRecoveryService {
 }
 ```
 
-## Performance Characteristics v2.0
+## Performance Characteristics
 
-### Throughput Improvements
+### System Performance Characteristics
 
-| Metric                    | v1.0 (Supabase Only)      | v2.0 (GCP Hybrid) | Improvement    |
-| ------------------------- | ------------------------- | ----------------- | -------------- |
-| **Scraping Success Rate** | ~85%                      | ~98%              | +15%           |
-| **Notification Latency**  | 1-5 minutes               | <30 seconds       | ~10x faster    |
-| **Concurrent Processing** | Limited by Edge Functions | Cloud Run scaling | Unlimited      |
-| **Error Recovery**        | Manual                    | Automatic         | 100% automated |
+| Metric                    | Performance Target | Implementation            |
+| ------------------------- | ------------------ | ------------------------- |
+| **Scraping Success Rate** | ~98%               | Cloud Run reliability     |
+| **Notification Latency**  | <30 seconds        | Event-driven architecture |
+| **Concurrent Processing** | Unlimited scaling  | Cloud Run auto-scaling    |
+| **Error Recovery**        | 100% automated     | Cloud Tasks retry         |
 
 ### Resource Utilization
 
@@ -349,7 +349,7 @@ export class ErrorRecoveryService {
 - **Query Optimization**: Indexed columns for fast retrieval
 - **Batch Operations**: Multiple notifications scheduled together
 
-## Security Design v2.0
+## Security Design
 
 ### Multi-Layer Security Architecture
 
@@ -377,7 +377,7 @@ const AUTH_FLOW = {
 - **IAM Policies**: Fine-grained Google Cloud IAM roles
 - **Network Security**: Private service communication where possible
 
-## Monitoring and Observability v2.0
+## Monitoring and Observability
 
 ### Distributed Tracing
 

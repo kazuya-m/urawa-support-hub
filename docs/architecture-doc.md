@@ -1,4 +1,4 @@
-# Architecture Design Document v2.0
+# Architecture Design Document
 
 ## System Overview
 
@@ -6,14 +6,15 @@ The urawa-support-hub is an automated ticket monitoring and notification system 
 Diamonds supporters. The system scrapes ticket information from the J-League website, stores it in a
 database, and sends timely notifications to LINE groups before ticket sales begin.
 
-## Architecture Revision History
+## System Architecture
 
-### v2.0 Changes (2025-01)
+This system utilizes a hybrid architecture combining Google Cloud Platform services with Supabase
+backend:
 
-- **Added**: Google Cloud Run for web scraping execution environment
-- **Added**: Google Cloud Tasks for efficient notification scheduling
-- **Removed**: Supabase Edge Functions scraping (technical limitation)
-- **Improved**: Notification efficiency (from polling to event-driven)
+- **Google Cloud Run**: Web scraping execution environment
+- **Google Cloud Tasks**: Efficient notification scheduling
+- **Supabase**: Database and Edge Functions for notifications
+- **Event-driven**: Notification system for improved efficiency
 
 ## Technology Stack
 
@@ -449,7 +450,7 @@ async function notifyError(error, context) {
 
 ## Scalability Considerations
 
-### Current Capacity
+### System Capacity
 
 - Tickets: ~10-20 per month
 - Notifications: ~30-60 per month
@@ -464,7 +465,7 @@ async function notifyError(error, context) {
 
 ## Future Enhancement Path
 
-### Phase 1 (Current)
+### Phase 1
 
 - ✅ Automated scraping
 - ✅ Fixed notification timing

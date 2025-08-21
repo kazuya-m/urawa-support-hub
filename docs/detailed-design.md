@@ -1,6 +1,6 @@
-# Detailed Design Document v2.0
+# Detailed Design Document
 
-## Domain Entities (Enhanced for v2.0)
+## Domain Entities
 
 ### Ticket Entity
 
@@ -16,7 +16,7 @@ export class Ticket {
     public readonly seatCategories: string[],
   ) {}
 
-  // Business Logic Methods (Enhanced for v2.0)
+  // Business Logic Methods
   shouldSendNotification(type: NotificationType, currentTime: Date): boolean {
     return shouldSendNotificationAtTime(type, this.saleStartDate, currentTime);
   }
@@ -30,7 +30,7 @@ export class Ticket {
     return formatNotificationMessage(this, config.displayName);
   }
 
-  // New method for v2.0
+  // New method for
   getScheduledNotificationTimes(): Array<{ type: NotificationType; scheduledTime: Date }> {
     return Object.entries(NOTIFICATION_TIMING_CONFIG).map(([type, config]) => ({
       type: type as NotificationType,
@@ -59,10 +59,10 @@ export class NotificationHistory {
     public readonly sentTime: Date | null = null,
     public readonly status: NotificationStatus,
     public readonly retryCount: number = 0,
-    public readonly errorMessage: string | null = null, // New in v2.0
+    public readonly errorMessage: string | null = null, // New in
   ) {}
 
-  // Business Logic Methods (Enhanced for v2.0)
+  // Business Logic Methods
   canRetry(): boolean {
     const maxRetries = FEATURE_FLAGS.MAX_RETRY_ATTEMPTS;
     return this.retryCount < maxRetries && this.status !== 'sent';
@@ -94,7 +94,7 @@ export class NotificationHistory {
     );
   }
 
-  // New method for v2.0
+  // New method for
   isOverdue(currentTime: Date): boolean {
     const config = NOTIFICATION_TIMING_CONFIG[this.notificationType];
     const deadline = new Date(this.scheduledTime.getTime() + config.toleranceMs);
@@ -110,7 +110,7 @@ export class NotificationHistory {
 - Duplicate prevention and error tracking
 - **New**: Integration with Cloud Tasks retry mechanisms
 
-## Repository Interfaces (Enhanced for v2.0)
+## Repository Interfaces
 
 ### TicketRepository Interface
 
@@ -123,7 +123,7 @@ export interface TicketRepository {
   delete(id: string): Promise<void>;
   findExpiredTickets(): Promise<Ticket[]>;
 
-  // New methods for v2.0
+  // New methods for
   scheduleNotifications(ticketId: string): Promise<void>;
   findPendingTickets(): Promise<Ticket[]>;
   upsert(ticket: Ticket): Promise<void>; // Save or update
@@ -140,7 +140,7 @@ export interface NotificationRepository {
   update(history: NotificationHistory): Promise<void>;
   findDuplicates(ticketId: string, type: NotificationType): Promise<NotificationHistory[]>;
 
-  // New methods for v2.0
+  // New methods for
   findByTicketAndType(
     ticketId: string,
     type: NotificationType,
@@ -150,7 +150,7 @@ export interface NotificationRepository {
 }
 ```
 
-## Infrastructure Implementations (Enhanced for v2.0)
+## Infrastructure Implementations
 
 ### TicketRepositoryImpl
 
@@ -158,7 +158,7 @@ export interface NotificationRepository {
 export class TicketRepositoryImpl implements TicketRepository {
   constructor(
     private supabaseClient: SupabaseClient,
-    private cloudTasksClient: CloudTasksClient, // New dependency for v2.0
+    private cloudTasksClient: CloudTasksClient, // New dependency for
   ) {}
 
   async save(ticket: Ticket): Promise<void> {
@@ -182,7 +182,7 @@ export class TicketRepositoryImpl implements TicketRepository {
     if (error) handleSupabaseError('upsert ticket', error);
   }
 
-  // New method for v2.0: Cloud Tasks integration
+  // New method for : Cloud Tasks integration
   async scheduleNotifications(ticketId: string): Promise<void> {
     const ticket = await this.findById(ticketId);
     if (!ticket) {
@@ -205,7 +205,7 @@ export class TicketRepositoryImpl implements TicketRepository {
 }
 ```
 
-### CloudTasksClient (New for v2.0)
+### CloudTasksClient
 
 ```typescript
 export interface CloudTasksClient {
@@ -270,7 +270,7 @@ export class CloudTasksClientImpl implements CloudTasksClient {
 }
 ```
 
-### PlaywrightClient (New for v2.0)
+### PlaywrightClient
 
 ```typescript
 export interface PlaywrightClient {
@@ -331,7 +331,7 @@ export class PlaywrightClientImpl implements PlaywrightClient {
 }
 ```
 
-## Data Converters (Enhanced for v2.0)
+## Data Converters
 
 ### TicketConverter
 
@@ -363,7 +363,7 @@ export class TicketConverter {
     );
   }
 
-  // New method for v2.0: Convert scraped data to domain entity
+  // New method for : Convert scraped data to domain entity
   static fromScrapedData(data: ScrapedTicketData): Ticket {
     return new Ticket(
       generateUUID(),
@@ -378,7 +378,7 @@ export class TicketConverter {
 }
 ```
 
-### NotificationHistoryConverter (New for v2.0)
+### NotificationHistoryConverter
 
 ```typescript
 export class NotificationHistoryConverter {
@@ -411,7 +411,7 @@ export class NotificationHistoryConverter {
 }
 ```
 
-## Configuration Management (Enhanced for v2.0)
+## Configuration Management
 
 ### NotificationConfig
 
@@ -447,7 +447,7 @@ export const NOTIFICATION_TIMING_CONFIG = {
 } as const;
 ```
 
-### Environment Configuration (New for v2.0)
+### Environment Configuration
 
 ```typescript
 export interface EnvironmentConfig {
@@ -499,7 +499,7 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
 }
 ```
 
-## Application Services (New for v2.0)
+## Application Services
 
 ### ScrapingService
 
@@ -608,7 +608,7 @@ export class NotificationService {
 }
 ```
 
-## Error Handling Strategy (Enhanced for v2.0)
+## Error Handling Strategy
 
 ### Structured Error Types
 
@@ -702,7 +702,7 @@ export class ErrorRecoveryService {
 }
 ```
 
-## Testing Strategy (Enhanced for v2.0)
+## Testing Strategy
 
 ### Test Structure
 
@@ -722,11 +722,11 @@ src/infrastructure/repositories/__tests__/
 ├── TicketRepositoryImpl.test.ts (14 test cases, enhanced with Cloud Tasks)
 ├── NotificationRepositoryImpl.test.ts (12 test cases, enhanced)
 
-src/infrastructure/clients/__tests__/ (New for v2.0)
+src/infrastructure/clients/__tests__/ 
 ├── CloudTasksClientImpl.test.ts (8 test cases)
 ├── PlaywrightClientImpl.test.ts (10 test cases)
 
-src/application/services/__tests__/ (New for v2.0)
+src/application/services/__tests__/ 
 ├── ScrapingService.test.ts (12 test cases)
 ├── NotificationService.test.ts (10 test cases)
 
@@ -738,7 +738,7 @@ tests/integration/
 
 **Total: 122 test cases ensuring comprehensive coverage**
 
-### Mock Implementations (Enhanced for v2.0)
+### Mock Implementations
 
 ```typescript
 export class MockCloudTasksClient implements CloudTasksClient {
@@ -787,7 +787,7 @@ export class MockPlaywrightClient implements PlaywrightClient {
 }
 ```
 
-## Performance Optimization (New for v2.0)
+## Performance Optimization
 
 ### Database Query Optimization
 

@@ -1,4 +1,4 @@
-# Architecture Design Document v2.0
+# Architecture Design Documentv2.0
 
 ## System Overview
 
@@ -355,7 +355,7 @@ $$ LANGUAGE plpgsql;
 
 ## Future Enhancement Path
 
-### Phase 1 (Current)
+### Phase 1
 - ✅ Automated scraping with Cloud Run
 - ✅ Event-driven notification scheduling
 - ✅ LINE group notifications
