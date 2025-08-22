@@ -1,120 +1,126 @@
 # Issue Priority Roadmap
 
-**対象**: 個人開発・ローンチ優先 **作成日**: 2025-08-22 **目標**:
-最小限のMVPとして2025年9月末までにローンチ
+**Target**: Personal development, launch-first approach\
+**Created**: 2025-08-22\
+**Goal**: Launch MVP by end of September 2025
 
-## 実装フェーズ概要
+## Implementation Phases Overview
 
-### Phase 1: 基盤構築 (必須・ローンチ前に完了必要)
+### Phase 1: Foundation Setup (Required - Must complete before launch)
 
-**期限**: 9月第1週まで **目的**: 開発・デプロイ環境の確立
+**Deadline**: By 1st week of September\
+**Purpose**: Establish development and deployment environment
 
-| Issue | Title                                              | 重要度  | 理由                         |
-| ----- | -------------------------------------------------- | ------- | ---------------------------- |
-| #28   | Google Cloud Platform プロジェクト・アカウント設定 | 🔴 最高 | 全てのGCPサービスの前提条件  |
-| #29   | LINE Bot・Discord Webhook 外部サービス設定         | 🔴 最高 | 通知機能の前提条件           |
-| #17   | 環境設定とシークレット管理の完全セットアップ       | 🔴 最高 | セキュリティとデプロイの基盤 |
+| Issue | Title                                               | Priority    | Reason                                  |
+| ----- | --------------------------------------------------- | ----------- | --------------------------------------- |
+| #28   | Google Cloud Platform project and account setup     | 🔴 Critical | Prerequisites for all GCP services      |
+| #29   | LINE Bot and Discord Webhook external service setup | 🔴 Critical | Prerequisites for notification features |
+| #17   | Complete environment setup and secret management    | 🔴 Critical | Security and deployment foundation      |
 
-### Phase 2: コア機能実装 (ローンチに必須)
+### Phase 2: Core Feature Implementation (Required for launch)
 
-**期限**: 9月第2-3週 **目的**: スクレイピングとスケジューリング機能の実装
+**Deadline**: 2nd-3rd week of September\
+**Purpose**: Implement scraping and scheduling functionality
 
-| Issue | Title                                        | 重要度  | 理由                   |
-| ----- | -------------------------------------------- | ------- | ---------------------- |
-| #12   | チケット管理用アプリケーションサービスの実装 | 🔴 最高 | ビジネスロジックの中核 |
-| #24   | Google Cloud Run スクレイピングサービス実装  | 🔴 最高 | データ取得の中核機能   |
-| #26   | Cloud Scheduler 日次実行設定実装             | 🔴 最高 | 自動化の要件           |
-| #25   | Google Cloud Tasks 通知スケジューリング実装  | 🔴 最高 | 通知タイミング制御     |
+| Issue | Title                                                     | Priority    | Reason                            |
+| ----- | --------------------------------------------------------- | ----------- | --------------------------------- |
+| #12   | Ticket management application service implementation      | 🔴 Critical | Core business logic               |
+| #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | Core data retrieval functionality |
+| #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | Automation requirements           |
+| #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | Notification timing control       |
 
-### Phase 3: 通知サービス (ローンチに必須)
+### Phase 3: Notification Services (Required for launch)
 
-**期限**: 9月第3-4週 **目的**: 実際の通知配信機能の実装
+**Deadline**: 3rd-4th week of September\
+**Purpose**: Implement actual notification delivery functionality
 
-| Issue | Title                                    | 重要度  | 理由                         |
-| ----- | ---------------------------------------- | ------- | ---------------------------- |
-| #27   | LINE 通知サービス実装                    | 🔴 最高 | メイン通知チャネル           |
-| #30   | Discord 通知サービス実装                 | 🟠 高   | サブ通知チャネル・エラー通知 |
-| #13   | 通知管理用アプリケーションサービスの実装 | 🔴 最高 | 通知ロジック統合             |
-| #15   | 通知送信用Supabase Edge Function実装     | 🔴 最高 | 通知配信の実行層             |
+| Issue | Title                                                           | Priority    | Reason                                    |
+| ----- | --------------------------------------------------------------- | ----------- | ----------------------------------------- |
+| #27   | LINE notification service implementation                        | 🔴 Critical | Main notification channel                 |
+| #30   | Discord notification service implementation                     | 🟠 High     | Sub notification channel and error alerts |
+| #13   | Notification management application service implementation      | 🔴 Critical | Notification logic integration            |
+| #15   | Supabase Edge Function for notification delivery implementation | 🔴 Critical | Notification delivery execution layer     |
 
-### Phase 4: 統合・最小限の運用準備 (ローンチ直前)
+### Phase 4: Integration & Minimal Operations Preparation (Pre-launch)
 
-**期限**: 9月第4週 **目的**: システム統合とローンチ前の最終準備
+**Deadline**: 4th week of September\
+**Purpose**: System integration and final preparation before launch
 
-| Issue | Title                                          | 重要度  | 理由               |
-| ----- | ---------------------------------------------- | ------- | ------------------ |
-| #31   | 通知サービス統合・調整                         | 🔴 最高 | 全体統合の最終調整 |
-| #16   | システムヘルス監視用Supabase Edge Function実装 | 🟠 高   | 運用監視の最低限   |
+| Issue | Title                                                              | Priority    | Reason                         |
+| ----- | ------------------------------------------------------------------ | ----------- | ------------------------------ |
+| #31   | Notification service integration and adjustment                    | 🔴 Critical | Final integration adjustment   |
+| #16   | Supabase Edge Function for system health monitoring implementation | 🟠 High     | Minimum operational monitoring |
 
-## ローンチ可能な最小条件
+## Minimum Launch Conditions
 
-Phase 1-4完了時点で以下が実現される：
+Upon completion of Phase 1-4, the following will be achieved:
 
-- ✅ 日次でのチケット情報取得
-- ✅ LINE・Discordへの通知配信
-- ✅ 基本的なエラー監視
+- ✅ Daily ticket information retrieval
+- ✅ LINE and Discord notification delivery
+- ✅ Basic error monitoring
 
-### Phase 5: 運用改善 (ローンチ後実装可能)
+### Phase 5: Operational Improvements (Post-launch implementation)
 
-**期限**: 運用しながら随時実装 **目的**: 運用効率とコード品質の向上
+**Deadline**: Implement gradually during operation\
+**Purpose**: Improve operational efficiency and code quality
 
-| Issue | Title                                    | 重要度 | 理由                       |
-| ----- | ---------------------------------------- | ------ | -------------------------- |
-| #32   | データベース・マイグレーション管理       | 🟡 中  | スキーマ変更時の安全性向上 |
-| #33   | CI/CD パイプライン設定                   | 🟡 中  | デプロイ効率化             |
-| #18   | エンドツーエンド統合テストスイートの作成 | 🟡 中  | 品質向上                   |
-| #34   | セキュリティ・権限管理詳細設計           | 🟡 中  | セキュリティ強化           |
+| Issue | Title                                              | Priority  | Reason                                |
+| ----- | -------------------------------------------------- | --------- | ------------------------------------- |
+| #32   | Database migration management                      | 🟡 Medium | Safety improvement for schema changes |
+| #33   | CI/CD pipeline setup                               | 🟡 Medium | Deployment efficiency                 |
+| #18   | End-to-end integration test suite creation         | 🟡 Medium | Quality improvement                   |
+| #34   | Security and permission management detailed design | 🟡 Medium | Security enhancement                  |
 
-## 開発進行ルール
+## Development Progress Rules
 
-### 1. フェーズ順守
+### 1. Phase Adherence
 
-- **必須**: 前フェーズ完了後に次フェーズに進む
-- **理由**: 依存関係による開発効率とリスク管理
+- **Required**: Proceed to next phase only after previous phase completion
+- **Reason**: Development efficiency and risk management through dependency management
 
-### 2. ブランチ戦略
+### 2. Branch Strategy
 
-- **パターン**: `feature/#<issue-number>_<description>`
-- **例**: `feature/#28_gcp-project-setup`
+- **Pattern**: `feature/#<issue-number>_<description>`
+- **Example**: `feature/#28_gcp-project-setup`
 
-### 3. 完了判定基準
+### 3. Completion Criteria
 
-各issueは以下の条件を満たした時点で完了：
+Each issue is considered complete when the following conditions are met:
 
-- [ ] 機能実装完了
-- [ ] `deno check` 成功
-- [ ] `deno lint` 成功
-- [ ] 単体テスト作成・成功
-- [ ] 統合テスト実行・成功
+- [ ] Feature implementation complete
+- [ ] `deno check` success
+- [ ] `deno lint` success
+- [ ] Unit tests created and passing
+- [ ] Integration tests executed and passing
 
-### 4. 緊急時の対応
+### 4. Emergency Response
 
-Phase 1-4で想定以上の工数が発生した場合：
+If Phase 1-4 requires more effort than expected:
 
-- **優先**: 機能削減でもローンチを優先
-- **延期可能**: Discord通知（#30）をPhase 5に移動
-- **延期可能**: システム監視機能（#16）の簡素化
+- **Priority**: Prioritize launch even with feature reduction
+- **Deferrable**: Move Discord notifications (#30) to Phase 5
+- **Deferrable**: Simplify system monitoring features (#16)
 
-## マイルストーン
+## Milestones
 
 ### MVP Launch (2025-09-30)
 
-- **対象**: Phase 1-4の全issue
-- **成功条件**: 基本的なチケット監視・通知機能の稼働
+- **Target**: All issues in Phase 1-4
+- **Success Criteria**: Basic ticket monitoring and notification functionality operational
 
-### Post-Launch Improvements (期限なし)
+### Post-Launch Improvements (No deadline)
 
-- **対象**: Phase 5の全issue
-- **成功条件**: 運用効率と品質の段階的向上
+- **Target**: All issues in Phase 5
+- **Success Criteria**: Gradual improvement of operational efficiency and quality
 
-## 進捗確認方法
+## Progress Tracking Methods
 
 ```bash
-# フェーズ別進捗確認
+# Check progress by phase
 gh issue list --milestone "MVP Launch" --label "phase-1-foundation"
 gh issue list --milestone "MVP Launch" --label "phase-2-core"
-# 以下同様...
+# Continue similarly...
 
-# 全体進捗確認
+# Check overall progress
 gh issue list --milestone "MVP Launch" --state "open"
 ```
