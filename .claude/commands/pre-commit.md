@@ -1,5 +1,5 @@
 ---
-description: "Pre-commit workflow that performs Deno type checking, formatting, and appropriate change granularity splitting, generating commit commands following CLAUDE.md rules"
+description: 'Pre-commit workflow that performs Deno type checking, formatting, and appropriate change granularity splitting, generating commit commands following CLAUDE.md rules'
 ---
 
 # Pre-commit Command

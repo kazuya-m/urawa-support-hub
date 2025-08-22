@@ -1,8 +1,8 @@
 ---
-description: "Retrieve open GitHub issues list, create feature/fix branches following CLAUDE.md naming conventions based on selected issue, and start new development tasks"
+description: 'Retrieve open GitHub issues list, create feature/fix branches following CLAUDE.md naming conventions based on selected issue, and start new development tasks'
 arguments:
   - name: issue_number
-    description: "GitHub issue number to start working on"
+    description: 'GitHub issue number to start working on'
     required: false
 ---
 

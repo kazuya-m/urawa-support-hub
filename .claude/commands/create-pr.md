@@ -1,5 +1,5 @@
 ---
-description: "Custom command to create GitHub Pull Requests following CLAUDE.md rules. Supports Japanese titles, automatic issue linking, and proper PR creation with test plans"
+description: 'Custom command to create GitHub Pull Requests following CLAUDE.md rules. Supports Japanese titles, automatic issue linking, and proper PR creation with test plans'
 ---
 
 # Create GitHub Pull Request Command
