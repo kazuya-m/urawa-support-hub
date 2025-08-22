@@ -1,32 +1,53 @@
-# Basic Design Document
+# System Architecture Document
 
-## System Architecture
+## System Overview
 
-### Hybrid Architecture Implementation (GCP + Supabase)
+The urawa-support-hub is an automated ticket monitoring and notification system for Urawa Red
+Diamonds supporters. The system scrapes ticket information from the J-League website, stores it in a
+database, and sends timely notifications to LINE groups before ticket sales begin.
+
+## Technology Stack
+
+| Layer                       | Technology              | Purpose                               | Execution Frequency |
+| --------------------------- | ----------------------- | ------------------------------------- | ------------------- |
+| **Scraping Execution**      | Google Cloud Run        | Playwright execution, data extraction | Once daily          |
+| **Schedule Trigger**        | Google Cloud Scheduler  | Trigger daily scraping                | 12:00 JST daily     |
+| **Notification Scheduling** | Google Cloud Tasks      | Individual notification timing        | As scheduled        |
+| **Data Storage**            | Supabase PostgreSQL     | Ticket and notification history       | Real-time           |
+| **Data API**                | Supabase PostgREST      | CRUD operations                       | On-demand           |
+| **Notification Delivery**   | Supabase Edge Functions | LINE/Discord messaging                | When triggered      |
+
+## Hybrid Architecture Implementation (GCP + Supabase)
+
+### High-Level Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                Google Cloud Platform                    │
 ├─────────────────────────────────────────────────────────┤
-│  Cloud Scheduler  →  Cloud Run  →  Cloud Tasks         │
-│       (Trigger)       (Scraping)    (Task Queue)        │
+│  Cloud Scheduler → Cloud Run → Cloud Tasks             │
+│       ↓              ↓            ↓                     │
+│   (12:00 JST)   (Scraping)   (Schedule)                │
 └─────────────────────────────────────────────────────────┘
-                           ↓
+                         ↓
 ┌─────────────────────────────────────────────────────────┐
 │                      Supabase                          │
 ├─────────────────────────────────────────────────────────┤
-│  PostgreSQL  ←→  PostgREST API  ←→  Edge Functions     │
-│   (Storage)       (CRUD Layer)      (Notifications)     │
+│  PostgreSQL ← PostgREST API → Edge Functions           │
+│      ↓           ↓                ↓                     │
+│   (Storage)   (CRUD API)    (Notifications)            │
 └─────────────────────────────────────────────────────────┘
-                           ↓
+                                     ↓
 ┌─────────────────────────────────────────────────────────┐
-│                External Services                        │
+│                  External Services                      │
 ├─────────────────────────────────────────────────────────┤
-│         LINE API         Discord Webhook               │
+│            LINE API        Discord Webhook              │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Clean Architecture Implementation
+## Clean Architecture Implementation
+
+### Layer Structure
 
 ```
 ┌─────────────────────────────────────┐
@@ -43,128 +64,73 @@
 
 ### Layer Responsibilities
 
-#### Interface Layer
+#### 1. Interface Layer (Cloud Run + Edge Functions)
+
+**Responsibility**: Handle external requests and trigger application workflows
+
+**Components:**
 
 - **Cloud Run Service**: Web scraping execution environment
   - `scrape`: Daily ticket extraction endpoint
   - `health`: Service health monitoring endpoint
-- **Supabase Edge Functions**: Notification delivery
-  - `send-notification`: Individual notification delivery
-  - `system-health`: System status monitoring
+- **Supabase Edge Functions**: Notification delivery and health monitoring
+  - `send-notification`: Process individual notification requests
+  - `system-health`: Monitor system status and performance
 
-#### Application Layer
+**Key Features:**
 
-- **Services**: Orchestration of domain operations
-  - `ScrapingService`: Ticket information extraction with Playwright
-  - `NotificationService`: Multi-channel notification delivery
-  - `CloudTasksService`: Event-driven notification scheduling
+- HTTP endpoint handling
+- Authentication and authorization
+- Request/response transformation
+- Error boundary implementation
 
-#### Domain Layer
+#### 2. Application Layer (Services)
 
-- **Entities**: Core business objects with behavior
-  - `Ticket`: Match ticket information with business logic
-  - `NotificationHistory`: Notification tracking with duplicate prevention
-  - `NotificationConfig`: Configuration-driven timing management
-- **Interfaces**: Abstract contracts for external dependencies
-  - `TicketRepository`: Data persistence abstraction
-  - `NotificationRepository`: Notification history abstraction
+**Responsibility**: Orchestrate business operations and coordinate between layers
 
-#### Infrastructure Layer
+**Service Components:**
 
-- **Repository Implementations**: Concrete data access implementations
-  - `TicketRepositoryImpl`: Supabase-based ticket storage
-  - `NotificationRepositoryImpl`: Supabase-based notification tracking
-- **Cloud Services Integration**: External service clients
-  - `CloudTasksClient`: Google Cloud Tasks integration
-  - `PlaywrightClient`: Web scraping automation
-- **Converters**: Data transformation between database and domain models
-- **Utils**: Common infrastructure utilities (error handling, logging)
+- **ScrapingService**: Web scraping orchestration and data extraction
+- **NotificationService**: Multi-channel notification coordination
+- **CloudTasksService**: Event-driven notification scheduling
 
-## Data Flow
+**Key Features:**
 
-### Daily Ticket Check Flow (Updated)
+- Business workflow orchestration
+- Cross-cutting concerns (logging, monitoring)
+- External service integration
+- Transaction management
 
-```mermaid
-sequenceDiagram
-    participant CS as Cloud Scheduler
-    participant CR as Cloud Run
-    participant SS as ScrapingService
-    participant JS as J-League Site
-    participant TR as TicketRepository
-    participant DB as Supabase DB
-    participant CT as Cloud Tasks
+#### 3. Domain Layer (Core Business Logic)
 
-    CS->>CR: Daily trigger (12:00 JST)
-    CR->>SS: Start scraping process
-    SS->>JS: Extract ticket data
-    JS-->>SS: Return ticket information
-    SS->>TR: Save/update tickets
-    TR->>DB: Store ticket data
-    DB-->>TR: Confirm storage
-    TR->>CT: Schedule notifications
-    CT-->>CR: Task scheduling confirmed
-    CR-->>CS: Process completed
-```
+**Responsibility**: Encapsulate business rules and domain knowledge
 
-### Notification Flow (Updated)
+**Domain Components:**
 
-```mermaid
-sequenceDiagram
-    participant CT as Cloud Tasks
-    participant EF as Edge Functions
-    participant NS as NotificationService
-    participant NR as NotificationRepository
-    participant LINE as LINE API
-    participant DISC as Discord Webhook
-    participant DB as Supabase DB
+- **Business Entities**: Ticket, NotificationHistory, NotificationConfig
+- **Repository Interfaces**: TicketRepository, NotificationRepository
+- **Domain Services**: Business rule validation and processing
 
-    CT->>EF: Trigger notification at scheduled time
-    EF->>NS: Process notification request
-    NS->>NR: Check notification status
-    NR->>DB: Query notification history
-    DB-->>NR: Return status
-    NR-->>NS: Confirm not sent
-    
-    par Send to LINE
-        NS->>LINE: Send notification
-        LINE-->>NS: Delivery confirmation
-    and Send to Discord
-        NS->>DISC: Send monitoring alert
-        DISC-->>NS: Webhook confirmation
-    end
-    
-    NS->>NR: Update delivery status
-    NR->>DB: Mark as sent
-    DB-->>NR: Confirm update
-    NR-->>EF: Process completed
-```
+**Key Principles:**
 
-### Notification Scheduling Flow
+- **Technology Independence**: No external framework dependencies
+- **Business Logic Encapsulation**: Rich domain entities with behavior
+- **Interface Segregation**: Focused repository contracts
+- **Configuration-Driven Design**: Externalized business rules
 
-```mermaid
-sequenceDiagram
-    participant TR as TicketRepository
-    participant DB as Supabase DB
-    participant CT as Cloud Tasks
-    participant NC as NotificationConfig
+#### 4. Infrastructure Layer (Technical Implementation)
 
-    TR->>DB: Insert new ticket
-    DB->>DB: Trigger: create_notification_records()
-    DB->>DB: Insert notification history records
-    TR->>NC: Get notification timing config
-    NC-->>TR: Return timing calculations
-    
-    loop For each notification type
-        TR->>CT: Create scheduled task
-        CT-->>TR: Task created with ID
-    end
-    
-    TR-->>DB: All notifications scheduled
-```
+**Responsibility**: Provide technical capabilities and external system integration
+
+**Infrastructure Components:**
+
+- **Repository Implementations**: Data persistence layer
+- **External Service Clients**: Cloud Tasks, Playwright integration
+- **Technical Utilities**: Error handling, logging, configuration management
 
 ## System Components
 
-### Google Cloud Platform Components (New)
+### Google Cloud Platform Components
 
 #### Cloud Run Service
 
@@ -174,9 +140,6 @@ sequenceDiagram
   - CPU: 1 vCPU
   - Timeout: 300 seconds
   - Concurrency: 1 (sequential processing)
-- **Endpoints**:
-  - `POST /scrape`: Main scraping endpoint
-  - `GET /health`: Health check endpoint
 
 #### Cloud Scheduler
 
@@ -220,6 +183,36 @@ sequenceDiagram
   - `send-notification`: Process individual notification requests
   - `system-health`: Monitor system status and performance
 
+## Data Flow Architecture
+
+### Ticket Monitoring Flow
+
+```mermaid
+graph TD
+    A[Google Cloud Scheduler] --> B[Google Cloud Run]
+    B --> C[ScrapingService]
+    C --> D[J-League Ticket Site]
+    D --> E[Extract Ticket Data]
+    E --> F[TicketRepositoryImpl]
+    F --> G[Supabase Database]
+    G --> H[Cloud Tasks Scheduling]
+    H --> I[Notification Records]
+```
+
+### Notification Delivery Flow
+
+```mermaid
+graph TD
+    A[Google Cloud Tasks] --> B[Supabase Edge Functions]
+    B --> C[NotificationService]
+    C --> D{Check Due Notifications}
+    D --> E[NotificationRepositoryImpl]
+    E --> F[LINE Messaging API]
+    E --> G[Discord Webhook]
+    F --> H[Update Delivery Status]
+    G --> H
+```
+
 ## Design Patterns
 
 ### Repository Pattern (Enhanced)
@@ -227,7 +220,7 @@ sequenceDiagram
 - Abstracts data access behind interfaces
 - Enables testing with mock implementations
 - Isolates domain logic from persistence concerns
-- **New**: Integrates with Cloud Tasks for scheduling
+- **Enhanced**: Integrates with Cloud Tasks for scheduling
 
 ```typescript
 interface TicketRepository {
@@ -238,12 +231,12 @@ interface TicketRepository {
 }
 ```
 
-### Configuration-Driven Design (Enhanced)
+### Configuration-Driven Design
 
 - Externalized notification timing configuration
 - Runtime adjustable without code changes
 - Type-safe configuration management
-- **New**: Supports complex timing calculations
+- Supports complex timing calculations
 
 ```typescript
 export const NOTIFICATION_TIMING_CONFIG = {
@@ -267,7 +260,7 @@ export const NOTIFICATION_TIMING_CONFIG = {
 - **Scalable Design**: Independent scaling of components
 - **Error Isolation**: Failures in one component don't cascade
 
-### Service Orchestration Pattern (New)
+### Service Orchestration Pattern
 
 ```typescript
 // Cloud Run orchestrates multiple services
@@ -289,22 +282,22 @@ export class ScrapingOrchestrator {
 }
 ```
 
-### Error Handling Strategy (Enhanced)
+## Error Handling Strategy
 
-#### Layered Error Handling
+### Layered Error Handling
 
 - **Domain Layer**: Business rule violations
 - **Application Layer**: Service orchestration errors
 - **Infrastructure Layer**: External service failures
 - **Interface Layer**: HTTP/request errors
 
-#### Retry Mechanisms
+### Retry Mechanisms
 
 - **Cloud Tasks**: Built-in exponential backoff
 - **Database Operations**: Connection pool retry
 - **External APIs**: Custom retry with circuit breaker
 
-#### Error Recovery
+### Error Recovery
 
 ```typescript
 export class ErrorRecoveryService {
@@ -323,9 +316,35 @@ export class ErrorRecoveryService {
 }
 ```
 
+## Security Architecture
+
+### Service-to-Service Authentication
+
+```typescript
+const AUTH_FLOW = {
+  'Cloud Scheduler → Cloud Run': 'OIDC Token (Service Account)',
+  'Cloud Run → Supabase': 'Service Role Key (JWT)',
+  'Cloud Tasks → Edge Functions': 'Service Role Key (Authorization Header)',
+  'Edge Functions → External APIs': 'API Keys (Environment Variables)',
+};
+```
+
+### Data Protection
+
+- **Encryption in Transit**: TLS 1.3 for all API communications
+- **Encryption at Rest**: Supabase automatic database encryption
+- **Secrets Management**: Environment variables with proper access controls
+- **Input Validation**: Type-safe processing at all boundaries
+
+### Access Control
+
+- **Principle of Least Privilege**: Minimal required permissions
+- **IAM Policies**: Fine-grained Google Cloud IAM roles
+- **Network Security**: Private service communication where possible
+
 ## Performance Characteristics
 
-### System Performance Characteristics
+### System Performance Targets
 
 | Metric                    | Performance Target | Implementation            |
 | ------------------------- | ------------------ | ------------------------- |
@@ -334,7 +353,7 @@ export class ErrorRecoveryService {
 | **Concurrent Processing** | Unlimited scaling  | Cloud Run auto-scaling    |
 | **Error Recovery**        | 100% automated     | Cloud Tasks retry         |
 
-### Resource Utilization
+### Resource Optimization
 
 #### Cloud Run Optimization
 
@@ -349,35 +368,23 @@ export class ErrorRecoveryService {
 - **Query Optimization**: Indexed columns for fast retrieval
 - **Batch Operations**: Multiple notifications scheduled together
 
-## Security Design
+## Cost Analysis
 
-### Multi-Layer Security Architecture
+### Google Cloud (Monthly)
 
-#### Service-to-Service Authentication
+- **Cloud Run**: ~60 minutes/month = Free (180,000 vCPU-seconds free tier)
+- **Cloud Scheduler**: 1 job = Free (3 jobs free tier)
+- **Cloud Tasks**: ~300 tasks/month = Free (1 million tasks free tier)
 
-```typescript
-const AUTH_FLOW = {
-  'Cloud Scheduler → Cloud Run': 'OIDC Token (Service Account)',
-  'Cloud Run → Supabase': 'Service Role Key (JWT)',
-  'Cloud Tasks → Edge Functions': 'Service Role Key (Authorization Header)',
-  'Edge Functions → External APIs': 'API Keys (Environment Variables)',
-};
-```
+### Supabase (Monthly)
 
-#### Data Protection
+- **Database**: < 500MB = Free
+- **Edge Functions**: ~300 invocations = Free
+- **API Calls**: Minimal = Free
 
-- **Encryption in Transit**: TLS 1.3 for all API communications
-- **Encryption at Rest**: Supabase automatic database encryption
-- **Secrets Management**: Environment variables with proper access controls
-- **Input Validation**: Type-safe processing at all boundaries
+**Total Monthly Cost**: $0 (completely within free tiers)
 
-#### Access Control
-
-- **Principle of Least Privilege**: Minimal required permissions
-- **IAM Policies**: Fine-grained Google Cloud IAM roles
-- **Network Security**: Private service communication where possible
-
-## Monitoring and Observability
+## Monitoring & Observability
 
 ### Distributed Tracing
 
@@ -427,3 +434,27 @@ const ALERT_THRESHOLDS = {
   RESPONSE_TIME_MS: 30000, // 30 second response time
 };
 ```
+
+## Scalability & Reliability
+
+### Horizontal Scaling
+
+- **Stateless Services**: Easy replication across regions
+- **Load Distribution**: Multiple Cloud Run instances
+- **Task Distribution**: Cloud Tasks queue management
+- **Database Partitioning**: Time-based ticket archiving
+
+### Disaster Recovery
+
+#### Backup Strategy
+
+- **Database Backups**: Daily automated snapshots (Supabase)
+- **Configuration Backup**: Version-controlled settings
+- **Code Backup**: Git repository with multiple remotes
+
+#### Failover Mechanisms
+
+- **Cloud Tasks**: Automatic retry with exponential backoff
+- **Maximum 3 retry attempts**
+- **Dead letter queue for persistent failures**
+- **Automated error alerting via Discord webhooks**

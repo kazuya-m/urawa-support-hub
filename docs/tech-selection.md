@@ -241,23 +241,3 @@ const AUTH_MATRIX = {
 4. **Scalability**: Handle 10x growth without architecture changes
 5. **Maintenance Overhead**: Minimal operational requirements
 6. **Community Support**: Active community, regular updates
-
-## Future Technology Roadmap
-
-### Short Term (3-6 months)
-
-- WebAssembly (WASM) support for better performance
-- Enhanced monitoring with OpenTelemetry
-- Multi-region deployment for reliability
-
-### Medium Term (6-12 months)
-
-- AI/ML integration for intelligent scheduling
-- Push notification support (FCM)
-- Advanced caching strategies
-
-### Long Term (1+ years)
-
-- Edge computing for global users
-- GraphQL API layer
-- Real-time collaborative features

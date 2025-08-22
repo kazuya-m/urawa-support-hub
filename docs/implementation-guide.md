@@ -1,4 +1,8 @@
-# Detailed Design Document
+# Implementation Guide
+
+This document provides detailed technical implementation guidance for the urawa-support-hub system,
+including domain entities, repository patterns, infrastructure implementations, and testing
+strategies.
 
 ## Domain Entities
 
@@ -30,7 +34,6 @@ export class Ticket {
     return formatNotificationMessage(this, config.displayName);
   }
 
-  // New method for
   getScheduledNotificationTimes(): Array<{ type: NotificationType; scheduledTime: Date }> {
     return Object.entries(NOTIFICATION_TIMING_CONFIG).map(([type, config]) => ({
       type: type as NotificationType,
@@ -45,7 +48,7 @@ export class Ticket {
 - Match ticket information encapsulation
 - Notification timing business logic with configuration-driven calculations
 - Data validation and business rules
-- **New**: Integration with Cloud Tasks scheduling
+- Integration with Cloud Tasks scheduling
 
 ### NotificationHistory Entity
 
@@ -59,7 +62,7 @@ export class NotificationHistory {
     public readonly sentTime: Date | null = null,
     public readonly status: NotificationStatus,
     public readonly retryCount: number = 0,
-    public readonly errorMessage: string | null = null, // New in
+    public readonly errorMessage: string | null = null,
   ) {}
 
   // Business Logic Methods
@@ -94,7 +97,6 @@ export class NotificationHistory {
     );
   }
 
-  // New method for
   isOverdue(currentTime: Date): boolean {
     const config = NOTIFICATION_TIMING_CONFIG[this.notificationType];
     const deadline = new Date(this.scheduledTime.getTime() + config.toleranceMs);
@@ -108,7 +110,7 @@ export class NotificationHistory {
 - Notification delivery tracking with enhanced status management
 - Retry logic management with configurable limits
 - Duplicate prevention and error tracking
-- **New**: Integration with Cloud Tasks retry mechanisms
+- Integration with Cloud Tasks retry mechanisms
 
 ## Repository Interfaces
 
@@ -123,7 +125,7 @@ export interface TicketRepository {
   delete(id: string): Promise<void>;
   findExpiredTickets(): Promise<Ticket[]>;
 
-  // New methods for
+  // Enhanced methods for Cloud Tasks integration
   scheduleNotifications(ticketId: string): Promise<void>;
   findPendingTickets(): Promise<Ticket[]>;
   upsert(ticket: Ticket): Promise<void>; // Save or update
@@ -140,7 +142,7 @@ export interface NotificationRepository {
   update(history: NotificationHistory): Promise<void>;
   findDuplicates(ticketId: string, type: NotificationType): Promise<NotificationHistory[]>;
 
-  // New methods for
+  // Enhanced methods for improved error handling
   findByTicketAndType(
     ticketId: string,
     type: NotificationType,
@@ -158,7 +160,7 @@ export interface NotificationRepository {
 export class TicketRepositoryImpl implements TicketRepository {
   constructor(
     private supabaseClient: SupabaseClient,
-    private cloudTasksClient: CloudTasksClient, // New dependency for
+    private cloudTasksClient: CloudTasksClient,
   ) {}
 
   async save(ticket: Ticket): Promise<void> {
@@ -182,7 +184,7 @@ export class TicketRepositoryImpl implements TicketRepository {
     if (error) handleSupabaseError('upsert ticket', error);
   }
 
-  // New method for : Cloud Tasks integration
+  // Cloud Tasks integration for notification scheduling
   async scheduleNotifications(ticketId: string): Promise<void> {
     const ticket = await this.findById(ticketId);
     if (!ticket) {
@@ -201,11 +203,24 @@ export class TicketRepositoryImpl implements TicketRepository {
     }
   }
 
-  // Other implementation methods...
+  // Additional implementation methods...
+  async findById(id: string): Promise<Ticket | null> {
+    const { data, error } = await this.supabaseClient
+      .from('tickets')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      handleSupabaseError('find ticket by id', error);
+    }
+
+    return data ? TicketConverter.fromDatabase(data) : null;
+  }
 }
 ```
 
-### CloudTasksClient
+### CloudTasksClient Implementation
 
 ```typescript
 export interface CloudTasksClient {
@@ -266,11 +281,13 @@ export class CloudTasksClientImpl implements CloudTasksClient {
     return response.name;
   }
 
-  // Other implementation methods...
+  async cancelTask(taskId: string): Promise<void> {
+    await this.tasksClient.deleteTask({ name: taskId });
+  }
 }
 ```
 
-### PlaywrightClient
+### PlaywrightClient Implementation
 
 ```typescript
 export interface PlaywrightClient {
@@ -363,7 +380,6 @@ export class TicketConverter {
     );
   }
 
-  // New method for : Convert scraped data to domain entity
   static fromScrapedData(data: ScrapedTicketData): Ticket {
     return new Ticket(
       generateUUID(),
@@ -702,41 +718,93 @@ export class ErrorRecoveryService {
 }
 ```
 
+## Database Schema Implementation
+
+### Database Setup
+
+```sql
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Tickets table
+CREATE TABLE tickets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    match_name VARCHAR NOT NULL,
+    match_date TIMESTAMPTZ NOT NULL,
+    venue VARCHAR NOT NULL,
+    sale_start_date TIMESTAMPTZ NOT NULL,
+    purchase_url VARCHAR NOT NULL,
+    seat_categories TEXT[] NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(match_name, match_date)
+);
+
+-- Notification history table
+CREATE TABLE notification_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ticket_id UUID REFERENCES tickets(id) ON DELETE CASCADE,
+    notification_type VARCHAR NOT NULL,
+    scheduled_time TIMESTAMPTZ NOT NULL,
+    sent_time TIMESTAMPTZ,
+    status VARCHAR NOT NULL DEFAULT 'scheduled',
+    retry_count INTEGER DEFAULT 0,
+    error_message TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_tickets_match_date ON tickets(match_date);
+CREATE INDEX idx_tickets_sale_start_date ON tickets(sale_start_date);
+CREATE INDEX idx_notification_history_status_scheduled ON notification_history(status, scheduled_time);
+CREATE INDEX idx_notification_history_ticket_type ON notification_history(ticket_id, notification_type);
+
+-- Automatic notification record creation trigger
+CREATE OR REPLACE FUNCTION create_notification_records()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO notification_history 
+    (ticket_id, notification_type, scheduled_time, status)
+  VALUES
+    (NEW.id, 'day_before', NEW.sale_start_date - interval '1 day' + time '20:00', 'scheduled'),
+    (NEW.id, 'one_hour', NEW.sale_start_date - interval '1 hour', 'scheduled'),
+    (NEW.id, 'fifteen_minutes', NEW.sale_start_date - interval '15 minutes', 'scheduled');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_create_notifications
+    AFTER INSERT ON tickets
+    FOR EACH ROW
+    EXECUTE FUNCTION create_notification_records();
+```
+
 ## Testing Strategy
-
-### Test Structure
-
-- **Unit Tests**: Entity business logic, repository implementations
-- **Integration Tests**: Database operations, Cloud Tasks integration, end-to-end workflows
-- **Contract Tests**: External service API interactions
-- **Mock Utilities**: External service simulation with enhanced scenarios
 
 ### Test Organization
 
 ```
 src/domain/entities/__tests__/
-├── Ticket.test.ts (12 test cases, enhanced)
-├── NotificationHistory.test.ts (15 test cases, enhanced)
+├── Ticket.test.ts
+├── NotificationHistory.test.ts
 
 src/infrastructure/repositories/__tests__/
-├── TicketRepositoryImpl.test.ts (14 test cases, enhanced with Cloud Tasks)
-├── NotificationRepositoryImpl.test.ts (12 test cases, enhanced)
+├── TicketRepositoryImpl.test.ts
+├── NotificationRepositoryImpl.test.ts
 
 src/infrastructure/clients/__tests__/ 
-├── CloudTasksClientImpl.test.ts (8 test cases)
-├── PlaywrightClientImpl.test.ts (10 test cases)
+├── CloudTasksClientImpl.test.ts
+├── PlaywrightClientImpl.test.ts
 
 src/application/services/__tests__/ 
-├── ScrapingService.test.ts (12 test cases)
-├── NotificationService.test.ts (10 test cases)
+├── ScrapingService.test.ts
+├── NotificationService.test.ts
 
 tests/integration/
-├── repository.test.ts (15 test cases, enhanced)
-├── cloud-tasks.test.ts (8 test cases, new)
-├── end-to-end.test.ts (6 test cases, new)
+├── repository.test.ts
+├── cloud-tasks.test.ts
+├── end-to-end.test.ts
 ```
-
-**Total: 122 test cases ensuring comprehensive coverage**
 
 ### Mock Implementations
 
@@ -833,3 +901,58 @@ export class InMemoryCacheService implements CacheService {
   // Other methods...
 }
 ```
+
+## Deployment Implementation
+
+### Cloud Run Dockerfile
+
+```dockerfile
+FROM denoland/deno:1.38.0
+
+WORKDIR /app
+
+# Copy dependency files
+COPY deno.json deno.lock ./
+
+# Cache dependencies
+RUN deno cache deno.json
+
+# Copy source code
+COPY . .
+
+# Cache application
+RUN deno cache src/main.ts
+
+EXPOSE 8000
+
+CMD ["deno", "run", "--allow-net", "--allow-env", "--allow-read", "src/main.ts"]
+```
+
+### Deployment Scripts
+
+```bash
+#!/bin/bash
+# deploy.sh
+
+# Build and deploy Cloud Run
+gcloud run deploy urawa-scraper \
+  --source . \
+  --region asia-northeast1 \
+  --memory 2Gi \
+  --timeout 300 \
+  --max-instances 10 \
+  --set-env-vars "NODE_ENV=production"
+
+# Deploy Edge Functions
+supabase functions deploy send-notification
+supabase functions deploy system-health
+
+# Apply database migrations
+supabase db push
+
+echo "Deployment completed successfully!"
+```
+
+This implementation guide provides the detailed technical foundation needed to build and maintain
+the urawa-support-hub system with proper architecture patterns, error handling, and testing
+strategies.
