@@ -1,5 +1,10 @@
 # urawa-support-hub Claude Code Development Guide
 
+**🌐 Language Versions**:
+
+- **English**: This document (CLAUDE.md)
+- **日本語**: docs/ja/CLAUDE.md
+
 ## Role (Claude's Role)
 
 - Act as a software engineering expert
@@ -13,6 +18,12 @@
 
 Automated notification system for Urawa Red Diamonds away match ticket sales information targeting
 supporters
+
+**🗺️ IMPORTANT**: For issue prioritization and implementation roadmap, always refer to:
+
+- **docs/issue-priority-roadmap.md** - Complete phase-based development plan with deadlines
+- Phases: Foundation → Core → Notification → Integration → Post-Launch Improvements
+- MVP Launch target: 2025-09-30
 
 ## Development Workflow
 
@@ -96,6 +107,23 @@ Phase 1: Foundation building and core feature implementation
 - **docs/tech-selection.md** - Technology selection rationale and alternatives
 - **docs/requirements.md** - Functional and non-functional requirements
 - **docs/setup-guide.md** - Environment setup and deployment guide
+
+### Documentation Language Management
+
+**🌐 Multi-language Documentation Policy**:
+
+- **Primary Language**: English (docs/*.md)
+- **Secondary Language**: Japanese (docs/ja/*.md)
+- **Update Order**: Always update English first, then Japanese follows
+- **Consistency Rule**: Japanese version must always track English version
+- **Reference Priority**: Use English docs as the source of truth for implementation
+
+**Important**: When creating or updating documentation:
+
+1. Create/update English version first
+2. Immediately create/update corresponding Japanese version
+3. Ensure content consistency between languages
+4. Reference English docs in CLAUDE.md instructions
 
 ## Development Notes
 
