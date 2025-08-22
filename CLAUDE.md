@@ -103,6 +103,8 @@ Phase 1: Foundation building and core feature implementation
 - Implement error handling for each feature
 - Record appropriate debug information in log output
 - Practice test-driven development
+- **Code Formatting**: Always use `deno fmt` for consistent code formatting across all TypeScript
+  and Markdown files
 
 ## Required Development Process
 
@@ -348,3 +350,5 @@ Alternatively, I can mark files as DEPRECATED using the Edit tool.
 - Group related commands together
 - Provide verification commands when applicable
 ```
+
+- to memorize 'write docs and code with deno fmt'
