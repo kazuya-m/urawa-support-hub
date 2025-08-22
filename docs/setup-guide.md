@@ -203,10 +203,10 @@ gcloud auth login
 
 ## Next Steps
 
-1. Follow the [architecture documentation](architecture.md) for system design
+1. Follow the [system architecture documentation](system-architecture.md) for system design
 2. Review [technology selection rationale](tech-selection.md)
 3. Check [requirements documentation](requirements.md) for specifications
-4. Refer to [detailed implementation guide](architecture-doc.md)
+4. Refer to [implementation guide](implementation-guide.md)
 
 ---
 
