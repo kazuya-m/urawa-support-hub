@@ -58,37 +58,44 @@ supporters
 
 Phase 1: Foundation building and core feature implementation
 
-### Next Steps
+### Implementation Phases
 
-1. Foundation setup (project structure, Deno configuration)
-2. Supabase initialization (DB schema)
-3. Type definition creation
-4. Repository layer implementation
-5. Notification service implementation
-6. Scraping functionality implementation
-7. Edge Functions implementation
-8. Test implementation
+1. **Google Cloud Setup**: Configure Cloud Run, Scheduler, and Tasks
+2. **Supabase Integration**: Database schema and Edge Functions setup
+3. **Scraping Service**: Playwright-based ticket extraction in Cloud Run
+4. **Notification System**: Event-driven notifications via Cloud Tasks
+5. **Repository Layer**: Data persistence with Supabase PostgreSQL
+6. **Error Handling**: Comprehensive monitoring with Discord alerts
+7. **Testing Strategy**: Unit and integration tests with proper permissions
+8. **Production Deployment**: Multi-stage deployment with monitoring
 
-### Technology Stack
+### Core Architecture
 
-- Runtime: Deno + TypeScript
-- Database: Supabase PostgreSQL
-- Functions: Supabase Edge Functions
-- Scraping: Playwright
-- Notifications: LINE Messaging API + Discord Webhook
-- Scheduler: pg_cron
+**🏗️ Hybrid Google Cloud + Supabase Architecture**
 
-### Environment Setup Status
-
-- LINE Messaging API: ✅ Setup complete
-- Discord Webhook: Not configured
-- Supabase: Not initialized
+- **Scraping Execution**: Google Cloud Run (Playwright, 2GB memory, 300s timeout)
+- **Daily Trigger**: Google Cloud Scheduler (12:00 JST)
+- **Notification Scheduling**: Google Cloud Tasks (event-driven, exponential backoff)
+- **Database**: Supabase PostgreSQL (primary data storage)
+- **Notification Delivery**: Supabase Edge Functions (512MB memory, 60s timeout)
+- **External Services**: LINE Messaging API + Discord Webhook
 
 ### Important Constraints
 
-- Memory limit: 512MB (Edge Functions)
-- Execution time limit: 60 seconds
-- Must operate within free tier
+- **Cloud Run**: 2GB memory, 300 seconds timeout (for scraping)
+- **Edge Functions**: 512MB memory, 60 seconds timeout (for notifications)
+- **Cost**: Must operate within free tier limits
+- **Reliability**: Event-driven architecture with built-in retry mechanisms
+
+### Latest Design Documentation
+
+**⚠️ IMPORTANT**: Always refer to the latest documentation before implementation:
+
+- **docs/system-architecture.md** - Complete system architecture and design patterns
+- **docs/implementation-guide.md** - Detailed technical implementation with code examples
+- **docs/tech-selection.md** - Technology selection rationale and alternatives
+- **docs/requirements.md** - Functional and non-functional requirements
+- **docs/setup-guide.md** - Environment setup and deployment guide
 
 ## Development Notes
 
@@ -96,6 +103,8 @@ Phase 1: Foundation building and core feature implementation
 - Implement error handling for each feature
 - Record appropriate debug information in log output
 - Practice test-driven development
+- **Code Formatting**: Always use `deno fmt` for consistent code formatting across all TypeScript
+  and Markdown files
 
 ## Required Development Process
 
@@ -155,10 +164,10 @@ step after passing tests.
 
 **🎯 Project Technology Stack Priority**:
 
-- **Primary consideration**: Maintain consistency with project's technology choices (Deno +
-  TypeScript)
-- **External dependencies**: Minimize external dependencies; prioritize Deno ecosystem solutions
-- **Existing patterns**: Leverage existing project patterns (e.g., `deno task` usage in deno.json)
+- **Primary consideration**: Follow the hybrid Google Cloud + Supabase architecture
+- **Cloud Run**: Use for resource-intensive Playwright scraping operations
+- **Edge Functions**: Use for lightweight notification delivery
+- **External dependencies**: Minimize dependencies; prioritize architecture consistency
 
 **🎯 Problem-solving Approach**:
 
@@ -166,14 +175,21 @@ step after passing tests.
 - **Project context**: Understand project philosophy and constraints before proposing solutions
 - **Avoid tool fixation**: Don't default to popular tools; find project-optimal solutions
 
-**Examples**:
+**Architecture Examples**:
 
 ```typescript
-// ✅ Good: Deno-native approach
-"pre-commit": "deno check src/**/*.ts && deno lint"
+// ✅ Good: Cloud Run for heavy operations
+export class PlaywrightScrapingService {
+  // Runs in Cloud Run with 2GB memory
+}
 
-// ❌ Bad: External tool dependency (without justification)  
-"pre-commit": "pre-commit run --all-files"
+// ✅ Good: Edge Functions for lightweight tasks
+export class LineNotificationService {
+  // Runs in Edge Functions with 512MB memory
+}
+
+// ❌ Bad: Wrong service for task complexity
+// Running Playwright in Edge Functions (memory limit)
 ```
 
 #### 2. Naming Conventions
@@ -201,6 +217,8 @@ if (error) throw new Error(`Failed to save ticket: ${error.message}`);
 - **Separation**: Create individual test cases (prohibit giant integration tests)
 - **Common utilities**: Utilize `createTestSupabaseClient()`, `cleanupTestData()`
 - **Permissions**: `--allow-env --allow-net=127.0.0.1` (prohibit `--allow-all`)
+- **Cloud Integration**: Test Cloud Run and Edge Functions separately
+- **Mock Services**: Mock external Cloud services for unit tests
 
 #### 4. Directory Structure
 
@@ -290,3 +308,47 @@ shouldSendNotification(type: NotificationType, currentTime: Date): boolean {
 - `src/domain/entities/NotificationConfig.ts`: Configuration definition
 - `src/domain/entities/Ticket.ts`: Removed hard coding, use configuration
 - `src/domain/entities/NotificationHistory.ts`: Unified display names and validation
+
+## Command Execution Guidelines
+
+### When Commands Fail Due to Permissions
+
+If system modification commands (like `rm`, `mv`, `mkdir`) fail due to permission restrictions:
+
+1. **Explain the situation clearly** to the user
+2. **Provide the exact commands** in copy-pastable format
+3. **Use alternative approaches** when possible (e.g., Edit/Write tools for file modifications)
+
+#### Example Response Pattern:
+
+````
+⚠️ Permission denied for direct file deletion.
+
+Please run the following commands manually:
+
+```bash
+rm docs/environment-setup.md
+rm docs/ja/environment-setup.md
+rm docs/ja/basic-design.md
+rm docs/ja/detailed-design.md
+````
+
+Alternatively, I can mark files as DEPRECATED using the Edit tool.
+
+```
+#### Alternative Approaches:
+
+- **File deletion**: Use Edit/Write to create DEPRECATED placeholders
+- **File moves**: Use Read + Write to copy content to new location
+- **Directory operations**: Provide manual commands with clear explanations
+- **Git operations**: Always provide commands for user execution
+
+### Command Format Requirements:
+
+- Use proper code blocks with `bash` syntax highlighting
+- Include clear descriptions of what each command does
+- Group related commands together
+- Provide verification commands when applicable
+```
+
+- to memorize 'write docs and code with deno fmt'

@@ -2,9 +2,9 @@
 
 ## 1. System Overview
 
-As the first phase of the comprehensive support tool "urawa-support-hub" for Urawa Red Diamonds
-supporters, build a system that automatically monitors away match ticket sales information and sends
-reminder notifications to LINE group chats before sales start.
+Build a comprehensive support tool "urawa-support-hub" for Urawa Red Diamonds supporters that
+automatically monitors away match ticket sales information and sends reminder notifications to LINE
+group chats before sales start.
 
 ## 2. Functional Requirements
 
@@ -14,7 +14,7 @@ reminder notifications to LINE group chats before sales start.
   - Main URL: `https://www.jleague-ticket.jp/club/ur/`
   - AWAY tab: `https://www.jleague-ticket.jp/club/ur/?tab=away` (estimated)
 - **Monitoring Frequency**: Once daily, executed at 12:00 JST (03:00 UTC) every day
-- **Monitoring Period**: Year-round except December (off-season) (January to November)
+- **Monitoring Period**: Year-round execution, except December (off-season) (January to November)
 - **Target Tickets**:
   - Seat categories containing any of "Visitor", "Mix", "Away", "Back Away", "Main Away"
   - Limited to "General Sales" (excludes pre-sales)

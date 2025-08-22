@@ -1,90 +1,107 @@
-# urawa-support-hub Claude Code 開発メモ
+# urawa-support-hub Claude Code 開発ガイド
 
-# Role (Claudeの役割)
+## ロール（Claudeの役割）
 
-- ソフトウェアエンジニアのエキスパートとして振る舞います
-- 肯定を目的とせず、批判的かつ建設的な視点で分析します
-- 理解度が100%に達していない場合、そのまま実装を進めるのではなく、質問を返して理解を深めること
-- 理解度が100%に達していない場合、その時点での理解度を示した上で実装の内容を説明すること
+- ソフトウェアエンジニアリングエキスパートとして行動
+- 肯定を求めるのではなく、批判的で建設的な視点で分析
+- 理解が100%でない場合、実装を進めるのではなく理解を深める質問をする
+- 理解が100%でない場合、現在の理解レベルと共に実装内容を説明する
 
 ## プロジェクト概要
 
-浦和レッズサポーター向けアウェイ戦チケット販売情報自動通知システム
+浦和レッズサポーター向けのアウェイ戦チケット販売情報自動通知システム
 
 ## 開発ワークフロー
 
 ### ブランチ戦略
 
-- `main`: 本番環境用の安定ブランチ
-- `feature/*`: 機能開発用ブランチ（例: `feature/implement-ticket-repository`）
-- `fix/*`: バグ修正用ブランチ
+- `main`: 本番環境用安定ブランチ
+- `feature/*`: 機能開発ブランチ（例：`feature/implement-ticket-repository`）
+- `fix/*`: バグ修正ブランチ
 
-### コミット粒度とブランチ運用
+### コミット粒度とブランチ管理
 
-**重要**: 機能単位で適切にブランチを切り、小さな単位でコミットすること
+**🚨 重要**: 実装開始前に必ず新しいブランチを作成
+
+**ブランチ作成要件**:
+
+- **必須**: issue番号付きブランチ作成: `feature/#<issue-number>_<description>`
+- **例**: `feature/#6_add-pre-commit-hooks`
+- **`main`ブランチでの直接実装は禁止**
+
+**重要**: 機能ごとに適切にブランチを作成し、小さな単位でコミット
 
 #### 推奨パターン:
 
-1. **機能実装時**: 各機能ごとに新しいブランチを作成
+1. **機能実装**: 機能ごとに新しいブランチを作成
    ```bash
    git checkout -b feature/implement-basic-types
-   # 型定義実装
+   # 型定義を実装
    git add . && git commit -m "add basic types for Ticket and NotificationHistory"
 
    git checkout -b feature/implement-ticket-repository
-   # リポジトリ実装
+   # リポジトリを実装
    git add . && git commit -m "implement TicketRepository interface and Supabase implementation"
    ```
 
-2. **コミット単位**: 1つの論理的変更につき1コミット
-   - ✅ Good: "add Ticket type definition"
-   - ✅ Good: "implement SupabaseTicketRepository save method"
-   - ❌ Bad: "implement everything for ticket management"
+2. **コミット単位**: 論理的変更につき1コミット
+   - ✅ 良い例: "Ticket型定義を追加"
+   - ✅ 良い例: "SupabaseTicketRepository saveメソッドを実装"
+   - ❌ 悪い例: "チケット管理に関するすべてを実装"
 
 3. **プルリクエスト**: 機能完成後にmainまたはdevelopにマージ
 
 ### 現在の実装フェーズ
 
-Phase 1: 基盤構築とコア機能実装
+フェーズ1: 基盤構築とコア機能実装
 
-### 次のステップ
+### 実装フェーズ
 
-1. 基盤構築 (プロジェクト構造、Deno設定)
-2. Supabase初期化 (DB スキーマ)
-3. 型定義作成
-4. リポジトリ層実装
-5. 通知サービス実装
-6. スクレイピング機能実装
-7. Edge Functions実装
-8. テスト実装
+1. **Google Cloudセットアップ**: Cloud Run、Scheduler、Tasksの設定
+2. **Supabase統合**: データベーススキーマとEdge Functions設定
+3. **スクレイピングサービス**: Cloud Run内でPlaywrightベースのチケット抽出
+4. **通知システム**: Cloud Tasks経由のイベント駆動通知
+5. **リポジトリレイヤー**: Supabase PostgreSQLでのデータ永続化
+6. **エラーハンドリング**: Discord アラート付き包括的監視
+7. **テスト戦略**: 適切な権限でのユニット・統合テスト
+8. **本番デプロイ**: 監視付きマルチステージデプロイ
 
-### 技術スタック
+### コアアーキテクチャ
 
-- Runtime: Deno + TypeScript
-- Database: Supabase PostgreSQL
-- Functions: Supabase Edge Functions
-- Scraping: Playwright
-- Notifications: LINE Messaging API + Discord Webhook
-- Scheduler: pg_cron
+**🏗️ ハイブリッド Google Cloud + Supabase アーキテクチャ**
 
-### 環境設定状況
+- **スクレイピング実行**: Google Cloud Run（Playwright、2GBメモリ、300秒タイムアウト）
+- **日次トリガー**: Google Cloud Scheduler（12:00 JST）
+- **通知スケジューリング**: Google Cloud Tasks（イベント駆動、指数バックオフ）
+- **データベース**: Supabase PostgreSQL（プライマリデータストレージ）
+- **通知配信**: Supabase Edge Functions（512MBメモリ、60秒タイムアウト）
+- **外部サービス**: LINE Messaging API + Discord Webhook
 
-- LINE Messaging API: ✅ 設定完了
-- Discord Webhook: 未設定
-- Supabase: 未初期化
+### 重要な制約
 
-### 重要な制約事項
+- **Cloud Run**: 2GBメモリ、300秒タイムアウト（スクレイピング用）
+- **Edge Functions**: 512MBメモリ、60秒タイムアウト（通知用）
+- **コスト**: 無料枠制限内での運用必須
+- **信頼性**: 内蔵リトライメカニズム付きイベント駆動アーキテクチャ
 
-- メモリ制限: 512MB (Edge Functions)
-- 実行時間制限: 60秒
-- 無料枠内での運用必須
+### 最新設計ドキュメント
 
-## 開発時の注意点
+**⚠️ 重要**: 実装前に必ず最新ドキュメントを参照:
 
-- 実装前に必ずJリーグチケットサイトの構造を調査
-- エラーハンドリングを各機能に必ず実装
-- ログ出力でデバッグ情報を適切に記録
-- テスト駆動開発を心がける
+- **docs/ja/system-architecture.md** - システムアーキテクチャと設計パターン
+- **docs/ja/implementation-guide.md** - コード例付き詳細技術実装
+- **docs/ja/tech-selection.md** - 技術選定根拠と代替案
+- **docs/ja/requirements.md** - 機能・非機能要件
+- **docs/ja/setup-guide.md** - 環境セットアップとデプロイガイド
+
+## 開発ノート
+
+- 実装前にJリーグチケットサイト構造を必ず調査
+- 各機能にエラーハンドリングを実装
+- ログ出力に適切なデバッグ情報を記録
+- テスト駆動開発を実践
+- **コードフォーマット**:
+  全TypeScriptとMarkdownファイルで一貫したコードフォーマットのため必ず`deno fmt`を使用
 
 ## 必須開発プロセス
 
