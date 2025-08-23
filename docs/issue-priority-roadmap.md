@@ -1,126 +1,98 @@
 # Issue Priority Roadmap
 
-**Target**: Personal development, launch-first approach\
+**Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Goal**: Launch MVP by end of September 2025
+**Updated**: 2025-08-23\
+**Goal**: Launch MVP in 10 days
 
 ## Implementation Phases Overview
 
-### Phase 1: Foundation Setup (Required - Must complete before launch)
+### Phase 1: Foundation Setup (3 days)
 
-**Deadline**: By 1st week of September\
-**Purpose**: Establish development and deployment environment
+**Purpose**: Establish minimal development environment
 
 | Issue | Title                                               | Priority    | Reason                                  |
 | ----- | --------------------------------------------------- | ----------- | --------------------------------------- |
 | #28   | Google Cloud Platform project and account setup     | 🔴 Critical | Prerequisites for all GCP services      |
 | #29   | LINE Bot and Discord Webhook external service setup | 🔴 Critical | Prerequisites for notification features |
-| #17   | Complete environment setup and secret management    | 🔴 Critical | Security and deployment foundation      |
+| #17   | Environment variables and basic secrets setup       | 🔴 Critical | Simplified security foundation          |
+| #36   | Basic type definitions and entities                 | 🔴 Critical | Core domain models                      |
+| #37   | Supabase client and repositories                    | 🔴 Critical | Data persistence layer                  |
+| #39   | Minimal security configuration                      | 🔴 Critical | Basic security requirements             |
+| #40   | Initial database schema creation                    | 🔴 Critical | Database structure                      |
 
-### Phase 2: Core Feature Implementation (Required for launch)
+### Phase 2: Core Feature Implementation (3 days)
 
-**Deadline**: 2nd-3rd week of September\
 **Purpose**: Implement scraping and scheduling functionality
 
 | Issue | Title                                                     | Priority    | Reason                            |
 | ----- | --------------------------------------------------------- | ----------- | --------------------------------- |
+| #38   | Playwright scraping implementation                        | 🔴 Critical | Core data retrieval functionality |
 | #12   | Ticket management application service implementation      | 🔴 Critical | Core business logic               |
-| #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | Core data retrieval functionality |
+| #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | Container deployment              |
 | #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | Automation requirements           |
 | #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | Notification timing control       |
 
-### Phase 3: Notification Services (Required for launch)
+### Phase 3: Notification Services (2 days)
 
-**Deadline**: 3rd-4th week of September\
-**Purpose**: Implement actual notification delivery functionality
+**Purpose**: Implement notification delivery
 
-| Issue | Title                                                           | Priority    | Reason                                    |
-| ----- | --------------------------------------------------------------- | ----------- | ----------------------------------------- |
-| #27   | LINE notification service implementation                        | 🔴 Critical | Main notification channel                 |
-| #30   | Discord notification service implementation                     | 🟠 High     | Sub notification channel and error alerts |
-| #13   | Notification management application service implementation      | 🔴 Critical | Notification logic integration            |
-| #15   | Supabase Edge Function for notification delivery implementation | 🔴 Critical | Notification delivery execution layer     |
+| Issue | Title                                                       | Priority    | Reason                     |
+| ----- | ----------------------------------------------------------- | ----------- | -------------------------- |
+| #27   | LINE notification service implementation                    | 🔴 Critical | Main notification channel  |
+| #30   | Discord error notification implementation                   | 🟠 High     | Error alerts only          |
+| #13   | Notification management application service implementation  | 🔴 Critical | Notification orchestration |
 
-### Phase 4: Integration & Minimal Operations Preparation (Pre-launch)
+### Phase 4: Deployment (2 days)
 
-**Deadline**: 4th week of September\
-**Purpose**: System integration and final preparation before launch
+**Purpose**: Automated deployment and testing
 
-| Issue | Title                                                              | Priority    | Reason                         |
-| ----- | ------------------------------------------------------------------ | ----------- | ------------------------------ |
-| #31   | Notification service integration and adjustment                    | 🔴 Critical | Final integration adjustment   |
-| #16   | Supabase Edge Function for system health monitoring implementation | 🟠 High     | Minimum operational monitoring |
+| Issue | Title                     | Priority    | Reason                      |
+| ----- | ------------------------- | ----------- | --------------------------- |
+| #33   | Minimal CI/CD setup       | 🔴 Critical | Automated deployment        |
+| -     | Manual testing            | 🔴 Critical | Final verification          |
 
-## Minimum Launch Conditions
+## Removed Issues (Personal use - not needed)
 
-Upon completion of Phase 1-4, the following will be achieved:
-
-- ✅ Daily ticket information retrieval
-- ✅ LINE and Discord notification delivery
-- ✅ Basic error monitoring
-
-### Phase 5: Operational Improvements (Post-launch implementation)
-
-**Deadline**: Implement gradually during operation\
-**Purpose**: Improve operational efficiency and code quality
-
-| Issue | Title                                              | Priority  | Reason                                |
-| ----- | -------------------------------------------------- | --------- | ------------------------------------- |
-| #32   | Database migration management                      | 🟡 Medium | Safety improvement for schema changes |
-| #33   | CI/CD pipeline setup                               | 🟡 Medium | Deployment efficiency                 |
-| #18   | End-to-end integration test suite creation         | 🟡 Medium | Quality improvement                   |
-| #34   | Security and permission management detailed design | 🟡 Medium | Security enhancement                  |
+- ~~#34 Security and permission detailed design~~ - Over-engineering
+- ~~#32 Database migration management~~ - Initial schema only
+- ~~#18 End-to-end test suite~~ - Manual testing sufficient
+- ~~#31 Notification service integration~~ - Included in each service
+- ~~#16 System health monitoring Edge Function~~ - Discord alerts sufficient
+- ~~#15 Notification Edge Function~~ - Direct notification from Cloud Run
 
 ## Development Progress Rules
 
-### 1. Phase Adherence
-
-- **Required**: Proceed to next phase only after previous phase completion
-- **Reason**: Development efficiency and risk management through dependency management
+### 1. Keep It Simple
+- Minimal implementation for personal use
+- No staging environment
+- Direct deployment to production
+- Manual testing acceptable
 
 ### 2. Branch Strategy
-
 - **Pattern**: `feature/#<issue-number>_<description>`
-- **Example**: `feature/#28_gcp-project-setup`
+- **Example**: `feature/#36_basic-types`
 
 ### 3. Completion Criteria
-
-Each issue is considered complete when the following conditions are met:
-
-- [ ] Feature implementation complete
-- [ ] `deno check` success
-- [ ] `deno lint` success
-- [ ] Unit tests created and passing
-- [ ] Integration tests executed and passing
-
-### 4. Emergency Response
-
-If Phase 1-4 requires more effort than expected:
-
-- **Priority**: Prioritize launch even with feature reduction
-- **Deferrable**: Move Discord notifications (#30) to Phase 5
-- **Deferrable**: Simplify system monitoring features (#16)
+Each issue is considered complete when:
+- [ ] Feature works
+- [ ] `deno check` passes
+- [ ] Manual test passes
 
 ## Milestones
 
-### MVP Launch (2025-09-30)
-
+### MVP Launch (10 days from start)
 - **Target**: All issues in Phase 1-4
-- **Success Criteria**: Basic ticket monitoring and notification functionality operational
+- **Success Criteria**: Basic ticket monitoring and LINE notification working
 
-### Post-Launch Improvements (No deadline)
-
-- **Target**: All issues in Phase 5
-- **Success Criteria**: Gradual improvement of operational efficiency and quality
-
-## Progress Tracking Methods
+## Progress Tracking
 
 ```bash
 # Check progress by phase
-gh issue list --milestone "MVP Launch" --label "phase-1-foundation"
-gh issue list --milestone "MVP Launch" --label "phase-2-core"
-# Continue similarly...
+gh issue list --label "phase-1-foundation" --state "open"
+gh issue list --label "phase-2-core" --state "open"
+gh issue list --label "phase-3-notification" --state "open"
 
 # Check overall progress
-gh issue list --milestone "MVP Launch" --state "open"
+gh issue list --state "open"
 ```
