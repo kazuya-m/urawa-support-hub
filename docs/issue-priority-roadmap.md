@@ -37,20 +37,20 @@
 
 **Purpose**: Implement notification delivery
 
-| Issue | Title                                                       | Priority    | Reason                     |
-| ----- | ----------------------------------------------------------- | ----------- | -------------------------- |
-| #27   | LINE notification service implementation                    | 🔴 Critical | Main notification channel  |
-| #30   | Discord error notification implementation                   | 🟠 High     | Error alerts only          |
-| #13   | Notification management application service implementation  | 🔴 Critical | Notification orchestration |
+| Issue | Title                                                      | Priority    | Reason                     |
+| ----- | ---------------------------------------------------------- | ----------- | -------------------------- |
+| #27   | LINE notification service implementation                   | 🔴 Critical | Main notification channel  |
+| #30   | Discord error notification implementation                  | 🟠 High     | Error alerts only          |
+| #13   | Notification management application service implementation | 🔴 Critical | Notification orchestration |
 
 ### Phase 4: Deployment (2 days)
 
 **Purpose**: Automated deployment and testing
 
-| Issue | Title                     | Priority    | Reason                      |
-| ----- | ------------------------- | ----------- | --------------------------- |
-| #33   | Minimal CI/CD setup       | 🔴 Critical | Automated deployment        |
-| -     | Manual testing            | 🔴 Critical | Final verification          |
+| Issue | Title               | Priority    | Reason               |
+| ----- | ------------------- | ----------- | -------------------- |
+| #33   | Minimal CI/CD setup | 🔴 Critical | Automated deployment |
+| -     | Manual testing      | 🔴 Critical | Final verification   |
 
 ## Removed Issues (Personal use - not needed)
 
@@ -64,17 +64,21 @@
 ## Development Progress Rules
 
 ### 1. Keep It Simple
+
 - Minimal implementation for personal use
 - No staging environment
 - Direct deployment to production
 - Manual testing acceptable
 
 ### 2. Branch Strategy
+
 - **Pattern**: `feature/#<issue-number>_<description>`
 - **Example**: `feature/#36_basic-types`
 
 ### 3. Completion Criteria
+
 Each issue is considered complete when:
+
 - [ ] Feature works
 - [ ] `deno check` passes
 - [ ] Manual test passes
@@ -82,6 +86,7 @@ Each issue is considered complete when:
 ## Milestones
 
 ### MVP Launch (10 days from start)
+
 - **Target**: All issues in Phase 1-4
 - **Success Criteria**: Basic ticket monitoring and LINE notification working
 
