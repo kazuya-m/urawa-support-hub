@@ -31,3 +31,40 @@ yarn-error.log*
 
 # Claude Code settings
 .claude/*.local*
+
+# Security & Secrets
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+service-account*.json
+gcp-key*.json
+credentials.json
+auth.json
+secrets.json
+.secrets/
+
+# Local configuration
+.env.local
+.env.production
+.env.development
+.env.staging
+local.settings.json
+
+# Google Cloud
+.gcloud/
+gcloud-key.json
+application_default_credentials.json
+
+# Backup files
+*.backup
+*.bak
+*.old
+*.orig
+
+# Temporary sensitive files
+temp-auth*
+temp-key*
+*.tmp.json
