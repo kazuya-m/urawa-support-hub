@@ -79,7 +79,7 @@ Generate messages following CLAUDE.md rules in the following format:
 
 ### 7. Output Commands for User Execution
 
-**⚠️ IMPORTANT: Single-line format for copy-paste compatibility**
+**⚠️ CRITICAL: Single-line format for copy-paste compatibility**
 
 All `git add` commands MUST be formatted as single lines to prevent copy-paste errors in terminal:
 
@@ -93,11 +93,29 @@ git add src/domain/entities/__tests__/NewType.test.ts
 git commit -m "add unit tests for NewType entity"
 ```
 
-**Format Rules:**
+**⚠️ CRITICAL Format Rules:**
 
-- Keep all file paths on the same line separated by spaces
-- Never break `git add` commands across multiple lines
-- Use single line even for many files: `git add file1.ts file2.ts file3.ts file4.ts`
+- **Single line requirement**: Keep all file paths on the same line separated by spaces
+- **Line break prohibition**: Never break `git add` commands across multiple lines
+- **Multiple files**: Use single line even for many files:
+  `git add file1.ts file2.ts file3.ts file4.ts`
+- **Copy-paste safety**: Line breaks in `git add` commands cause terminal execution failures
+
+**Example of INCORRECT formatting (will fail):**
+
+```bash
+# ❌ This WILL FAIL when copy-pasted to terminal
+git add docs/security/environment-variable-management.md \
+       docs/security/gcp-service-account-permissions.md \
+       docs/security/supabase-rls-settings.md
+```
+
+**Example of CORRECT formatting:**
+
+```bash
+# ✅ This is safe for copy-paste
+git add docs/security/environment-variable-management.md docs/security/gcp-service-account-permissions.md docs/security/supabase-rls-settings.md
+```
 
 ## Notes
 
@@ -107,3 +125,5 @@ git commit -m "add unit tests for NewType entity"
 - Split with appropriate granularity following CLAUDE.md commit granularity
 - Generate commit messages in Japanese (when needed)
 - **CRITICAL**: Format all `git add` commands as single lines to prevent terminal copy-paste errors
+- **Line break failure**: Multi-line `git add` commands with line breaks will fail when copy-pasted
+  to terminal
