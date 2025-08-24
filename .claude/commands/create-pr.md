@@ -32,17 +32,7 @@ Check differences between current branch and `main`:
 git diff main...HEAD
 ```
 
-### 4. Push to Remote (if needed)
-
-```bash
-# If branch doesn't exist on remote
-git push -u origin <current-branch-name>
-
-# For existing branches
-git push origin <current-branch-name>
-```
-
-### 5. Create Pull Request
+### 4. Create Pull Request
 
 Create PR with the following command:
 
@@ -116,9 +106,16 @@ Closes #<issue-number>
    - `feature/#<issue-number>_<description>`
    - `fix/#<issue-number>_<description>`
 
-3. **Remote Branch Status Check**
-   - Branch exists on remote
-   - Latest changes are pushed
+3. **Security Check** 🛡️
+   - No API keys, tokens, or secrets in code
+   - No hardcoded passwords or credentials
+   - No sensitive configuration data exposed
+   - Environment variables properly used for sensitive data
+   - Database connection strings not exposed
+
+4. **Remote Branch Status Check**
+   - Branch exists on remote (user should push if needed)
+   - Latest changes are available for PR creation
 
 ### 📝 Post-PR Creation Check
 
@@ -144,8 +141,9 @@ gh pr create --title "アーキテクチャドキュメント更新とスラッ�
 ### Error Handling
 
 - **Uncommitted changes exist**: Display message prompting commit
-- **Remote branch doesn't exist**: Present push commands
+- **Remote branch doesn't exist**: Inform user to push branch first
 - **GitHub authentication error**: Prompt `gh auth login`
+- **Security violations found**: Refuse PR creation and inform about security risks
 
 ## Notes
 
@@ -154,3 +152,5 @@ gh pr create --title "アーキテクチャドキュメント更新とスラッ�
 - **Issue numbers**: Specify appropriate issue numbers
 - **CLAUDE.md compliance**: Follow all PR creation requirements
 - **Japanese usage**: Write titles and descriptions in Japanese
+- **Security Priority**: 🛡️ Security takes precedence - refuse PR creation if any security risks are
+  detected

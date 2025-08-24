@@ -21,8 +21,13 @@ First, retrieve the list of currently open GitHub issues:
 gh issue list --state open --limit 15 --json number,title,labels --format json
 ```
 
-If an issue number is provided as argument, proceed directly with that issue. Otherwise, display the
-retrieved issues and decide which issue to work on.
+If an issue number is provided as argument, proceed directly with that issue. Otherwise:
+
+1. Check if docs/issue-priority-roadmap.md exists for priority context
+2. Display issues with available priority information:
+   - If roadmap exists: Show roadmap-based priorities and phase information
+   - If no roadmap: Show issues with label-based priority (priority/high, priority/critical, etc.)
+3. Present recommended next issues based on available information
 
 After selection, create branches following these naming conventions:
 
@@ -40,8 +45,23 @@ After selection, create branches following these naming conventions:
 ### When no issue number is provided:
 
 1. Check issue list with the above command
-2. Display issues and prompt user to select one
-3. Create branch based on selected issue
+2. Check if docs/issue-priority-roadmap.md exists
+3. Display issues with priority context:
+
+   **If roadmap exists:**
+   - 🔴 Critical (Phase-based priorities from roadmap)
+   - 🟠 High (Phase-based priorities)
+   - 📋 Next Steps priority order from roadmap
+   - Show completion status and blockers from roadmap
+
+   **If no roadmap (fallback):**
+   - Show issues grouped by GitHub labels (priority/critical, priority/high, bug, enhancement)
+   - Sort by creation date (newest first) within each priority group
+   - Highlight issues with recent activity
+
+4. Recommend next issues based on available information
+5. Prompt user to select one or suggest most urgent task
+6. Create branch based on selected issue
 
 ### When issue number is provided as argument:
 
@@ -62,4 +82,46 @@ implementation", always create a new branch from the main branch.
 ### Logic Flow:
 
 - If `issue_number` argument provided → fetch that specific issue and create branch
-- If no argument → show issue list and prompt for selection
+- If no argument → show prioritized issue list with available context and recommend next steps
+
+### Sample Output Examples:
+
+#### When roadmap exists:
+
+```
+📋 Current Development Status (based on issue-priority-roadmap.md):
+
+🔴 CRITICAL - Next Priority Tasks:
+  #28 - Google Cloud Platform project and account setup (BLOCKER)
+  #29 - LINE Bot and Discord Webhook external service setup (BLOCKER)  
+  #17 - Environment variables and basic secrets setup
+
+✅ COMPLETED (5/16 - 31%):
+  #36, #37, #40, #33, local scraping
+
+📈 RECOMMENDED NEXT: Start with #28 (GCP setup) - required for cloud services
+```
+
+#### When no roadmap (fallback):
+
+```
+📋 Open GitHub Issues:
+
+🔴 CRITICAL PRIORITY:
+  #15 - Fix authentication bug (priority/critical)
+  #23 - Security vulnerability in API (priority/critical)
+
+🟠 HIGH PRIORITY:  
+  #31 - Implement user dashboard (priority/high)
+  #42 - Add email notifications (priority/high)
+
+🐛 BUGS:
+  #18 - Login page not responsive (bug)
+  #26 - Database connection timeout (bug)
+
+✨ ENHANCEMENTS:
+  #12 - Dark mode support (enhancement)
+  #35 - Export functionality (enhancement)
+
+📈 RECOMMENDED NEXT: #15 (critical bug - affects user access)
+```

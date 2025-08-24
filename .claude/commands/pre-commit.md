@@ -6,16 +6,36 @@ description: 'Pre-commit workflow that performs Deno type checking, formatting, 
 
 This command executes the following processes sequentially and generates commit commands:
 
-1. Type check with `deno check`
-2. If type errors exist, stop processing and present error files
-3. Format code with `deno fmt`
-4. Split changed files into appropriate granularity
-5. Generate commit messages for each change
-6. Output `git add` and `git commit` commands that users can copy-paste
+1. **Security check** - Verify no sensitive data or security risks exist
+2. Type check with `deno check`
+3. If security violations or type errors exist, stop processing and present issues
+4. Format code with `deno fmt`
+5. Split changed files into appropriate granularity
+6. Generate commit messages for each change
+7. Output `git add` and `git commit` commands that users can copy-paste
 
 ## Execution Steps
 
-### 1. Execute Type Check
+### 1. Security Check 🛡️
+
+**⚠️ CRITICAL: Execute security check before any processing**
+
+Check for security vulnerabilities in changed files:
+
+- No API keys, tokens, or secrets in code
+- No hardcoded passwords or credentials
+- No sensitive configuration data exposed
+- Environment variables properly used for sensitive data
+- Database connection strings not exposed
+- No malicious code patterns
+
+**When security violations found:**
+
+- **REFUSE** to proceed with commit process
+- Display security risk details
+- Stop all processing immediately
+
+### 2. Execute Type Check
 
 ```bash
 deno check src/**/*.ts
@@ -27,13 +47,13 @@ deno check src/**/*.ts
 - Stop processing (do not execute fmt or commit processes)
 - Prompt user to fix errors
 
-### 2. Execute Code Formatting (only when type check succeeds)
+### 3. Execute Code Formatting (only when security and type checks succeed)
 
 ```bash
 deno fmt
 ```
 
-### 3. Check Current Changes
+### 4. Check Current Changes
 
 ```bash
 git status
@@ -41,7 +61,7 @@ git diff --cached
 git diff
 ```
 
-### 4. Analyze and Split Changes into Appropriate Granularity
+### 5. Analyze and Split Changes into Appropriate Granularity
 
 Split changed files based on the following criteria:
 
@@ -49,7 +69,7 @@ Split changed files based on the following criteria:
 - Split by file types (config files, implementation files, test files, etc.)
 - Group files with high relevance together
 
-### 5. Generate Commit Messages
+### 6. Generate Commit Messages
 
 Generate messages following CLAUDE.md rules in the following format:
 
@@ -57,7 +77,7 @@ Generate messages following CLAUDE.md rules in the following format:
 - **Good**: "implement SupabaseTicketRepository save method"
 - **Bad**: "implement everything for ticket management"
 
-### 6. Output Commands for User Execution
+### 7. Output Commands for User Execution
 
 **⚠️ IMPORTANT: Single-line format for copy-paste compatibility**
 
@@ -81,6 +101,7 @@ git commit -m "add unit tests for NewType entity"
 
 ## Notes
 
+- **Security Priority**: 🛡️ Stop processing immediately when security violations exist
 - Stop processing immediately when type check errors exist
 - Claude has no commit permissions, so all commands must be copy-pasted by user
 - Split with appropriate granularity following CLAUDE.md commit granularity
