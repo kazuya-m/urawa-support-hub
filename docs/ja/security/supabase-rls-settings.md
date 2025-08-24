@@ -182,18 +182,102 @@ SELECT count(*) FROM tickets;  -- 0を返却またはエラー
 
 ## セキュリティベストプラクティス
 
-### 1. キー管理
+### 1. RLSポリシー設計原則
+
+#### ❌ 現在の実装課題
+
+- **過剰権限のサービスロール**: `FOR ALL USING (true)` により無制限アクセスを付与
+- **単一障害点**: 1つのサービスキー漏洩で全操作が影響
+- **操作分離なし**: 読み書き操作で同じキーを使用
+- **監査証跡不足**: サービス別アクセス追跡なし
+
+#### ✅ 推奨ベストプラクティス
+
+##### A. 最小権限の原則
+
+```sql
+-- ❌ 悪い例: 無制限アクセスのサービスロール
+CREATE POLICY "Service role full access" ON tickets
+FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
+
+-- ✅ 良い例: 操作別ポリシー
+CREATE POLICY "Scraper service write" ON tickets
+FOR INSERT, UPDATE USING (
+  auth.jwt() ->> 'role' = 'service_role' AND
+  auth.jwt() ->> 'service' = 'scraper'
+);
+
+CREATE POLICY "Notification service read" ON tickets
+FOR SELECT USING (
+  auth.jwt() ->> 'role' = 'service_role' AND
+  auth.jwt() ->> 'service' = 'notification'
+);
+```
+
+##### B. サービス分離
+
+- **scraper_service**: tickets INSERT/UPDATE のみ
+- **notification_service**: tickets SELECT + notification_history 全操作
+- **monitoring_service**: 全テーブル SELECT のみ
+- **admin_service**: 明示的フラグ付き緊急時全アクセス
+
+##### C. JWT Claims戦略
+
+```typescript
+// サービス固有JWTクレーム
+{
+  "role": "service_role",
+  "service": "scraper|notification|monitoring|admin",
+  "operations": ["read", "write"],
+  "emergency": false  // 管理者緊急アクセス時のみtrue
+}
+```
+
+##### D. 時間ベースアクセス制御
+
+```sql
+-- 重要でない操作の営業時間制限
+CREATE POLICY "Business hours write" ON tickets
+FOR UPDATE USING (
+  auth.jwt() ->> 'role' = 'service_role' AND
+  EXTRACT(hour FROM NOW()) BETWEEN 6 AND 23
+);
+```
+
+### 2. 実装ロードマップ
+
+#### フェーズ1: 評価（現在）
+
+- 既存の過剰権限ポリシーを文書化
+- サービス固有アクセス要件を特定
+- 最小限の中断移行戦略を計画
+
+#### フェーズ2: サービスキー分離
+
+- 機能別サービスアカウント作成
+- JWTクレーム基盤ポリシー実装
+- 各サービスを独立してテスト
+
+#### フェーズ3: 監視・監査
+
+- ポリシー違反ログ追加
+- アクセスパターン監視実装
+- 緊急アクセス手順作成
+
+### 3. キー管理
 
 - サービスロールキーを安全に保存（環境変数のみ）
+- **追加**: サービス機能別キー分離使用
 - キーを定期的にローテーション（90日ごと）
 - サービスロールキーをクライアントサイドコードで公開しない
 - 公開/認証クライアントアクセスにはanonキーを使用
 
-### 2. ポリシーレビュー
+### 4. ポリシーレビュー
 
 - 月次でRLSポリシーをレビュー
 - スキーマ変更後にポリシーをテスト
 - ポリシー変更をこのファイルに文書化
+- **追加**: 自動ポリシーテスト実装
 - 最小権限の原則を使用
 
 ### 3. 監視
