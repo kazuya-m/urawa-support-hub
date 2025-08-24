@@ -184,18 +184,102 @@ SELECT count(*) FROM tickets;  -- Should return 0 or error
 
 ## Security Best Practices
 
-### 1. Key Management
+### 1. RLS Policy Design Principles
+
+#### ❌ Current Implementation Issues
+
+- **Over-permissive service role**: `FOR ALL USING (true)` grants unlimited access
+- **Single-point-of-failure**: One compromised service key affects all operations
+- **No operation segregation**: Same key used for read/write operations
+- **Lack of audit trail**: No service-specific access tracking
+
+#### ✅ Recommended Best Practices
+
+##### A. Principle of Least Privilege
+
+```sql
+-- ❌ Bad: Service role with unlimited access
+CREATE POLICY "Service role full access" ON tickets
+FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
+
+-- ✅ Good: Operation-specific policies
+CREATE POLICY "Scraper service write" ON tickets
+FOR INSERT, UPDATE USING (
+  auth.jwt() ->> 'role' = 'service_role' AND
+  auth.jwt() ->> 'service' = 'scraper'
+);
+
+CREATE POLICY "Notification service read" ON tickets
+FOR SELECT USING (
+  auth.jwt() ->> 'role' = 'service_role' AND
+  auth.jwt() ->> 'service' = 'notification'
+);
+```
+
+##### B. Service Segregation
+
+- **scraper_service**: tickets INSERT/UPDATE only
+- **notification_service**: tickets SELECT + notification_history full access
+- **monitoring_service**: All tables SELECT only
+- **admin_service**: Emergency full access with explicit flag
+
+##### C. JWT Claims Strategy
+
+```typescript
+// Service-specific JWT claims
+{
+  "role": "service_role",
+  "service": "scraper|notification|monitoring|admin",
+  "operations": ["read", "write"],
+  "emergency": false  // true only for admin emergency access
+}
+```
+
+##### D. Time-based Access Control
+
+```sql
+-- Business hours restriction for non-critical operations
+CREATE POLICY "Business hours write" ON tickets
+FOR UPDATE USING (
+  auth.jwt() ->> 'role' = 'service_role' AND
+  EXTRACT(hour FROM NOW()) BETWEEN 6 AND 23
+);
+```
+
+### 2. Implementation Roadmap
+
+#### Phase 1: Assessment (Current)
+
+- Document existing over-permissive policies
+- Identify service-specific access requirements
+- Plan minimal disruption migration strategy
+
+#### Phase 2: Service Key Segregation
+
+- Create separate service accounts per function
+- Implement JWT claims-based policies
+- Test each service independently
+
+#### Phase 3: Monitoring & Audit
+
+- Add policy violation logging
+- Implement access pattern monitoring
+- Create emergency access procedures
+
+### 3. Key Management
 
 - Store service role key securely (environment variables only)
+- **NEW**: Use separate keys per service function
 - Rotate keys regularly (every 90 days)
 - Never expose service role key in client-side code
 - Use anon key for public/authenticated client access
 
-### 2. Policy Review
+### 4. Policy Review
 
 - Review RLS policies monthly
 - Test policies after any schema changes
 - Document policy changes in this file
+- **NEW**: Implement automated policy testing
 - Use least privilege principle
 
 ### 3. Monitoring
