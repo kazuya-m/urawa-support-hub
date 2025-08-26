@@ -24,7 +24,7 @@
 | #29   | LINE Bot and Discord Webhook external service setup | 🔴 Critical | ✅ **COMPLETED**   | Prerequisites for notification features |
 | #17   | Environment variables and basic secrets setup       | 🔴 Critical | ⏳ **IN PROGRESS** | Simplified security foundation          |
 | #36   | Basic type definitions and entities                 | 🔴 Critical | ✅ **COMPLETED**   | Core domain models                      |
-| #37   | Supabase client and repositories                    | 🔴 Critical | ⏳ **IN PROGRESS** | Data persistence layer                  |
+| #37   | Supabase client and repositories                    | 🔴 Critical | ✅ **COMPLETED**   | Data persistence layer                  |
 | #39   | Minimal security configuration                      | 🔴 Critical | ✅ **COMPLETED**   | Basic security requirements             |
 | #40   | Initial database schema creation                    | 🔴 Critical | ✅ **COMPLETED**   | Database structure                      |
 
@@ -102,17 +102,18 @@ Each issue is considered complete when:
 
 - **Target**: Complete Google Cloud integration and production deployment
 - **Success Criteria**: Automated daily ticket monitoring with LINE/Discord notifications
-- **Remaining**: 6 issues (26% of total scope)
+- **Remaining**: 5 issues (22% of total scope)
 
 ## Current Status (2025-08-26)
 
-### ✅ Completed Issues: 17/23 (74%)
+### ✅ Completed Issues: 18/23 (78%)
 
 **Foundation & Infrastructure:**
 
 - #28 - Google Cloud Platform project setup
 - #29 - LINE Bot and Discord Webhook external setup
 - #36 - Basic type definitions and entities
+- #37 - Supabase client and repositories
 - #39 - Minimal security configuration
 - #40 - Initial database schema creation
 
@@ -135,14 +136,13 @@ Each issue is considered complete when:
 - #32 - Database migration management
 - #34 - Security and permission detailed design
 
-### ⏳ In Progress: 5/23 (22%)
+### ⏳ In Progress: 4/23 (17%)
 
 - #12 - Ticket management application service
 - #13 - Notification management application service
 - #17 - Environment variables and basic secrets
 - #30 - Discord error notification implementation
 - #33 - Minimal CI/CD setup
-- #37 - Supabase client and repositories
 - #38 - Playwright scraping implementation
 
 ### ❌ Not Started: 3/23 (13%)
@@ -154,12 +154,11 @@ Each issue is considered complete when:
 
 ## Next Steps Priority
 
-1. **#37** - Complete Supabase client and repositories (core infrastructure)
-2. **#12** - Complete ticket management application service (core business logic)
-3. **#13** - Complete notification management application service (notification orchestration)
-4. **#24** - Deploy scraping to Cloud Run (production deployment)
-5. **#25** - Setup Google Cloud Tasks notification scheduling
-6. **#26** - Setup Cloud Scheduler daily execution
+1. **#12** - Complete ticket management application service (core business logic)
+2. **#13** - Complete notification management application service (notification orchestration)
+3. **#24** - Deploy scraping to Cloud Run (production deployment)
+4. **#25** - Setup Google Cloud Tasks notification scheduling
+5. **#26** - Setup Cloud Scheduler daily execution
 
 ## Progress Tracking
 
