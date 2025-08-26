@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "allowJs": true,
     "lib": ["deno.window"],
     "strict": true,
     "noImplicitAny": true,
@@ -21,10 +20,8 @@
     "pre-commit": "deno check src/ && deno lint && deno fmt --check"
   },
   "lint": {
-    "files": {
-      "include": ["src/", "supabase/functions/"],
-      "exclude": ["supabase/functions/_shared/"]
-    }
+    "include": ["src/", "supabase/functions/"],
+    "exclude": ["supabase/functions/_shared/"]
   },
   "fmt": {
     "useTabs": false,
