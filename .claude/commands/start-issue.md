@@ -6,6 +6,13 @@ arguments:
     required: false
 ---
 
+# Language and Instructions
+
+- 重要：必ず日本語で応答してください（MUST communicate in Japanese）
+- ユーザーとのやり取りは全て日本語で行ってください
+- 説明や推奨事項も日本語で提供してください
+- ステータス更新やガイダンスも日本語で行ってください
+
 # Start New Task from GitHub Issue
 
 Select a task to work on from GitHub issues and create branches with proper naming conventions.
@@ -17,8 +24,10 @@ Select a task to work on from GitHub issues and create branches with proper nami
 
 First, retrieve the list of currently open GitHub issues:
 
+**IMPORTANT**: Only reference GitHub issues with STATUS=Open.
+
 ```bash
-gh issue list --state open --limit 15 --json number,title,labels --format json
+gh issue list --state open --limit 15 --json number,title,labels
 ```
 
 If an issue number is provided as argument, proceed directly with that issue. Otherwise:

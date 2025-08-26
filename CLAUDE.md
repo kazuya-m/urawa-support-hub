@@ -125,6 +125,59 @@ Phase 1: Foundation building and core feature implementation
 3. Ensure content consistency between languages
 4. Reference English docs in CLAUDE.md instructions
 
+### Documentation Creation Principles
+
+**📚 CRITICAL: Documentation as Master Source**
+
+Documentation serves as the single source of truth for implementation and operation, not as
+implementation history or migration guides.
+
+**🎯 Documentation Purpose**:
+
+- **Master reference**: Definitive implementation guide for current state
+- **Operational knowledge**: How systems work and how to use them
+- **Technical specification**: APIs, configurations, and patterns
+
+**❌ What NOT to include**:
+
+- Implementation process descriptions ("Phase 1: First we did...", "Migration steps")
+- Historical context or "how we got here" narratives
+- Temporary workarounds or migration-specific content
+- Development timeline or project management information
+
+**✅ What TO include**:
+
+- Current implementation patterns and examples
+- Configuration requirements and formats
+- API specifications and usage examples
+- Troubleshooting and operational procedures
+- Security requirements and best practices
+
+**Example Structure**:
+
+```markdown
+# Service Name
+
+## Configuration
+
+[Current config format]
+
+## Usage
+
+[How to use the service]
+
+## API Reference
+
+[Current API patterns]
+
+## Security
+
+[Current security requirements]
+```
+
+**🚨 Key Rule**: Write documentation as if the reader needs to understand and use the current
+system, not learn about its development history.
+
 ## Development Notes
 
 - Always investigate J-League ticket site structure before implementation
