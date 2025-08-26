@@ -13,6 +13,7 @@ This command executes the following processes sequentially and generates commit 
 5. Split changed files into appropriate granularity
 6. Generate commit messages for each change
 7. Output `git add` and `git commit` commands that users can copy-paste
+8. **Update project roadmap** - Update issue status in docs/issue-priority-roadmap.md if exists
 
 ## Execution Steps
 
@@ -133,6 +134,42 @@ git add docs/security/environment-variable-management.md \
 ```bash
 # ✅ This is safe for copy-paste
 git add docs/security/environment-variable-management.md docs/security/gcp-service-account-permissions.md docs/security/supabase-rls-settings.md
+```
+
+### 8. Update Project Roadmap (Final Step)
+
+**⚠️ CRITICAL: Execute only AFTER all commits are ready**
+
+If `docs/issue-priority-roadmap.md` exists, update issue statuses based on the commits being made:
+
+**Update Process:**
+
+1. **Check roadmap existence**: Verify `docs/issue-priority-roadmap.md` exists
+2. **Analyze commit contents**: Identify which issues are being addressed in the commits
+3. **Update statuses**: Change issue statuses in the roadmap:
+   - **Features completed**: ❌ Not Started → ✅ **COMPLETED**
+   - **Features started**: ❌ Not Started → ⏳ **IN PROGRESS**
+   - **Partial progress**: Keep ⏳ **IN PROGRESS** if work continues
+4. **Update progress counters**: Recalculate completion percentages
+5. **Update dates**: Refresh "Updated" timestamp to current date
+6. **Next steps**: Reorder "Next Steps Priority" based on new status
+
+**Example Status Updates:**
+
+```bash
+# If implementing repository factory (#37):
+# Change: #37 | Supabase client and repositories | ⏳ IN PROGRESS → ✅ COMPLETED
+
+# If starting new cloud services work (#24):
+# Change: #24 | Google Cloud Run scraping service | ❌ Not Started → ⏳ IN PROGRESS
+```
+
+**Roadmap Update Commands:**
+
+```bash
+# After roadmap updates, add to the commit sequence:
+git add docs/issue-priority-roadmap.md
+git commit -m "プロジェクトロードマップを更新：課題 #XX の進捗を反映"
 ```
 
 ## Notes
