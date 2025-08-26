@@ -1,10 +1,30 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * プロダクション用Supabaseクライアント設定
- * 環境変数から接続情報を取得してクライアントを作成
+ * セキュアなSupabaseクライアント設定（RLS適用）
  */
 export function createSupabaseClient(): SupabaseClient {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      'SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required',
+    );
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+/**
+ * 管理者用Supabaseクライアント（緊急時のみ）
+ */
+export function createSupabaseAdminClient(): SupabaseClient {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -14,7 +34,14 @@ export function createSupabaseClient(): SupabaseClient {
     );
   }
 
-  return createClient(supabaseUrl, supabaseServiceKey);
+  console.warn('WARNING: Using admin client with RLS bypass');
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
 
 /**
