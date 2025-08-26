@@ -77,6 +77,24 @@ Generate messages following CLAUDE.md rules in the following format:
 - **Good**: "implement SupabaseTicketRepository save method"
 - **Bad**: "implement everything for ticket management"
 
+**⚠️ CRITICAL: Commit Message Format**
+
+**DO NOT include "Generated with Claude Code" footer or Co-Authored-By lines**
+
+Use simple, clean commit messages without any meta-information:
+
+```bash
+# ✅ Correct format
+git commit -m "add notification service configuration"
+
+# ❌ Do NOT include these lines
+git commit -m "add notification service configuration
+
+🌐 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
 ### 7. Output Commands for User Execution
 
 **⚠️ CRITICAL: Single-line format for copy-paste compatibility**
