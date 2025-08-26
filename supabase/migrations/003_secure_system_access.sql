@@ -2,9 +2,21 @@
 -- Service Role Keyによる無制限アクセスを制限し、JWT claims ベースの制御を実装
 
 -- 1. システム用ユーザーロール作成
-CREATE ROLE IF NOT EXISTS urawa_scraper_service;
-CREATE ROLE IF NOT EXISTS urawa_notification_service;
-CREATE ROLE IF NOT EXISTS urawa_monitoring_service;
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'urawa_scraper_service') THEN
+        CREATE ROLE urawa_scraper_service;
+    END IF;
+    
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'urawa_notification_service') THEN
+        CREATE ROLE urawa_notification_service;
+    END IF;
+    
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'urawa_monitoring_service') THEN
+        CREATE ROLE urawa_monitoring_service;
+    END IF;
+END
+$$;
 
 -- 2. Tickets テーブル用セキュアポリシー
 
@@ -167,16 +179,22 @@ WHERE tablename IN ('tickets', 'notification_history')
 ORDER BY tablename, policyname;
 
 -- アクセスログ用テーブル（将来実装）
-CREATE TABLE IF NOT EXISTS access_audit_log (
-    id SERIAL PRIMARY KEY,
-    table_name TEXT NOT NULL,
-    operation TEXT NOT NULL,
-    user_role TEXT,
-    jwt_claims JSONB,
-    timestamp TIMESTAMPTZ DEFAULT NOW(),
-    success BOOLEAN DEFAULT true,
-    error_message TEXT
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'access_audit_log') THEN
+        CREATE TABLE access_audit_log (
+            id SERIAL PRIMARY KEY,
+            table_name TEXT NOT NULL,
+            operation TEXT NOT NULL,
+            user_role TEXT,
+            jwt_claims JSONB,
+            timestamp TIMESTAMPTZ DEFAULT NOW(),
+            success BOOLEAN DEFAULT true,
+            error_message TEXT
+        );
+    END IF;
+END
+$$;
 
 -- 8. 権限設定
 
