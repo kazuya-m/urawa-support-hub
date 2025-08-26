@@ -24,9 +24,15 @@ $$;
 DROP POLICY IF EXISTS "Service role full access on tickets" ON tickets;
 
 -- スクレイピングサービス専用ポリシー (INSERT/UPDATE のみ)
-CREATE POLICY "Scraper service write access"
+CREATE POLICY "Scraper service insert access"
 ON tickets
-FOR INSERT, UPDATE
+FOR INSERT
+TO urawa_scraper_service
+WITH CHECK (true);
+
+CREATE POLICY "Scraper service update access"
+ON tickets
+FOR UPDATE
 TO urawa_scraper_service
 USING (true)
 WITH CHECK (true);
@@ -96,9 +102,14 @@ $$;
 -- 5. JWT claims ベースのセキュアポリシー (将来実装用)
 
 -- スクレイピングサービス JWT ベースポリシー
-CREATE POLICY "JWT scraper service access"
+CREATE POLICY "JWT scraper service insert"
 ON tickets
-FOR INSERT, UPDATE
+FOR INSERT
+USING (auth.is_service('scraper'));
+
+CREATE POLICY "JWT scraper service update"
+ON tickets
+FOR UPDATE
 USING (auth.is_service('scraper'));
 
 -- 通知サービス JWT ベースポリシー  
