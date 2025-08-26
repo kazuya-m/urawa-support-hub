@@ -133,12 +133,24 @@ SUPABASE_ANON_KEY="eyJ..."  # Public key with limited permissions
 SUPABASE_SERVICE_ROLE_KEY="eyJ..."  # Full access key for backend
 ```
 
-### 2. Client Configuration
+### 2. セキュアなクライアント設定
 
 ```typescript
-// For backend services (full access)
 import { createClient } from '@supabase/supabase-js';
 
+// 🔐 推奨: セキュアなクライアント（RLS適用）
+const supabaseClient = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_ANON_KEY')!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  },
+);
+
+// ⚠️ 管理者クライアント（緊急時のみ - RLSバイパス）
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -150,13 +162,10 @@ const supabaseAdmin = createClient(
   },
 );
 
-// For frontend/authenticated access (limited access)
-const supabaseClient = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_ANON_KEY')!,
-);
+// 🚨 重要: 通常の運用では supabaseClient を使用すること
 ```
 
+````
 ## RLS Policy Testing
 
 ### 1. Test Service Role Access
@@ -165,7 +174,7 @@ const supabaseClient = createClient(
 -- Connect with service role key
 SELECT count(*) FROM tickets;  -- Should return all records
 INSERT INTO tickets (...) VALUES (...);  -- Should succeed
-```
+````
 
 ### 2. Test Authenticated User Access
 
