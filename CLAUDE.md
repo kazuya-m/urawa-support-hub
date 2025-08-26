@@ -3,7 +3,7 @@
 **🌐 Language Versions**:
 
 - **English**: This document (CLAUDE.md)
-- **日本語**: docs/ja/CLAUDE.md
+- **日本語**: CLAUDE_ja.md
 
 ## Role (Claude's Role)
 
@@ -380,3 +380,64 @@ Alternatively, I can mark files as DEPRECATED using the Edit tool.
 ```
 
 - to memorize 'write docs and code with deno fmt'
+
+## Knowledge Base Documentation Policy
+
+### 🎯 Personal Knowledge Base Integration
+
+During development, proactively identify and document reusable technical knowledge for the personal
+KB:
+
+**Target Path**: `/Users/kazuyamatsuo/second_brain/30_Resources/SoftwareEngineer/`
+
+#### Documentation Criteria
+
+**✅ Should Document**:
+
+- External service integrations (LINE Bot, Discord Webhook, etc.)
+- Development tools and workflows (ngrok, testing patterns)
+- Generic implementation patterns and best practices
+- Security configurations and considerations
+- Troubleshooting solutions for common development issues
+
+**❌ Avoid Documenting**:
+
+- Project-specific business logic
+- Highly context-dependent implementations
+- Temporary workarounds or project-specific configurations
+
+#### Documentation Standards
+
+**Content Requirements**:
+
+- **Generic and reusable**: Avoid project-specific context dependencies
+- **Concise and practical**: Focus on actionable information
+- **Engineer-focused**: Assume technical background, skip basic concepts
+- **Multi-language support**: Include both English and Japanese examples where relevant
+
+**File Naming Convention**:
+
+- Use descriptive, technology-focused names
+- Avoid terms like "完全ガイド" (complete guide)
+- Examples: `LINE Messaging API - Bot開発と配信実装.md`, `Discord Webhook - 外部サービス通知実装.md`
+
+**Obsidian Format**:
+
+- Include frontmatter with tags and metadata
+- Use consistent heading structure
+- Implement cross-references where appropriate
+
+#### Integration Workflow
+
+1. **During Development**: Identify reusable technical patterns
+2. **Post-Implementation**: Create or update relevant KB documents
+3. **Content Review**: Ensure generic applicability and conciseness
+4. **Cross-Reference**: Link related documents and concepts
+
+**Example Trigger Scenarios**:
+
+- Setting up external service APIs
+- Implementing webhook receivers
+- Configuring development tools
+- Solving common integration challenges
+- Creating reusable testing patterns
