@@ -54,12 +54,14 @@ ticket sales begin.
 ┌─────────────────────────────────────┐
 │     Interface Layer                │  ← Cloud Run Service, Edge Functions
 ├─────────────────────────────────────┤
-│     Application Services           │  ← ScrapingService, NotificationService  
+│     Application Layer              │  ← UseCases: TicketCollectionUseCase
 ├─────────────────────────────────────┤
 │        Domain Layer               │  ← Entities: Ticket, NotificationHistory
-│                                   │    Interfaces: TicketRepository
+│                                   │    Interfaces: TicketRepository, HealthRepository
 ├─────────────────────────────────────┤
-│     Infrastructure Layer          │  ← RepositoryImpl, CloudTasks, Supabase
+│     Infrastructure Layer          │  ← Services: ScrapingService, UrawaScrapingService
+│                                   │    Repositories: TicketRepositoryImpl
+│                                   │    Config: notification.ts, scraping.ts
 └─────────────────────────────────────┘
 ```
 
@@ -85,22 +87,23 @@ ticket sales begin.
 - Request/response transformation
 - Error boundary implementation
 
-#### 2. Application Layer (Services)
+#### 2. Application Layer (Use Cases)
 
 **Responsibility**: Orchestrate business operations and coordinate between layers
 
-**Service Components:**
+**UseCase Components:**
 
-- **ScrapingService**: Web scraping orchestration and data extraction
-- **NotificationService**: Multi-channel notification coordination
-- **CloudTasksService**: Event-driven notification scheduling
+- **TicketCollectionUseCase**: Daily ticket scraping workflow orchestration
+  - Coordinates scraping service execution
+  - Records system health metrics
+  - Handles error scenarios and recovery
 
 **Key Features:**
 
 - Business workflow orchestration
-- Cross-cutting concerns (logging, monitoring)
-- External service integration
-- Transaction management
+- Cross-cutting concerns (logging, health monitoring)
+- Clean separation of business logic from infrastructure
+- Dependency injection for testability
 
 #### 3. Domain Layer (Core Business Logic)
 
@@ -108,9 +111,10 @@ ticket sales begin.
 
 **Domain Components:**
 
-- **Business Entities**: Ticket, NotificationHistory, NotificationConfig
-- **Repository Interfaces**: TicketRepository, NotificationRepository
-- **Domain Services**: Business rule validation and processing
+- **Business Entities**: Ticket, NotificationHistory, SystemHealth
+- **Repository Interfaces**: TicketRepository, NotificationRepository, HealthRepository
+- **Business Logic**: Notification timing calculation, ticket validation
+- **Domain Services**: Configuration-driven notification rules
 
 **Key Principles:**
 
@@ -125,9 +129,13 @@ ticket sales begin.
 
 **Infrastructure Components:**
 
-- **Repository Implementations**: Data persistence layer
-- **External Service Clients**: Cloud Tasks, Playwright integration
-- **Technical Utilities**: Error handling, logging, configuration management
+- **Repository Implementations**: TicketRepositoryImpl, NotificationRepositoryImpl,
+  HealthRepositoryImpl
+- **Scraping Services**: ScrapingService (base class), UrawaScrapingService (Urawa-specific)
+- **External Service Clients**: Supabase client, Playwright integration
+- **Configuration Management**: notification.ts, scraping.ts, url.ts
+- **Technical Utilities**: Error handling, logging, type definitions
+- **Factory Pattern**: RepositoryFactory for dependency management
 
 ## System Components
 
@@ -459,3 +467,64 @@ const ALERT_THRESHOLDS = {
 - **Maximum 3 retry attempts**
 - **Dead letter queue for persistent failures**
 - **Automated error alerting via Discord webhooks**
+
+## Current Directory Structure (Clean Architecture)
+
+### Project Layout
+
+```
+src/
+├── application/
+│   └── usecases/                     # Application Use Cases
+│       ├── TicketCollectionUseCase.ts
+│       └── __tests__/
+├── domain/
+│   └── entities/                     # Domain Entities
+│       ├── Ticket.ts
+│       ├── NotificationHistory.ts
+│       ├── NotificationTypes.ts
+│       ├── SystemHealth.ts
+│       ├── ErrorLog.ts
+│       ├── index.ts
+│       └── __tests__/
+└── infrastructure/
+    ├── config/                      # Configuration Management
+    │   ├── notification.ts
+    │   ├── scraping.ts
+    │   ├── url.ts
+    │   ├── supabase.ts
+    │   ├── types/
+    │   │   ├── ScrapingConfig.ts
+    │   │   └── UrlConfig.ts
+    │   └── __tests__/
+    ├── repositories/                # Repository Implementations
+    │   ├── TicketRepositoryImpl.ts
+    │   ├── NotificationRepositoryImpl.ts
+    │   ├── HealthRepositoryImpl.ts
+    │   ├── RepositoryFactory.ts
+    │   ├── converters/
+    │   │   ├── TicketConverter.ts
+    │   │   ├── NotificationConverter.ts
+    │   │   └── HealthConverter.ts
+    │   └── __tests__/
+    ├── services/
+    │   └── scraping/                # Scraping Services
+    │       ├── ScrapingService.ts
+    │       ├── UrawaScrapingService.ts
+    │       └── __tests__/
+    ├── types/
+    │   └── database.ts              # Database Type Definitions
+    └── utils/
+        ├── constants.ts
+        └── error-handler.ts
+```
+
+### Key Architectural Changes
+
+1. **Application Layer Introduction**: New `application/usecases/` layer for business workflow
+   orchestration
+2. **Infrastructure Reorganization**:
+   - Configuration moved from `src/config/` to `src/infrastructure/config/`
+   - Services organized under `src/infrastructure/services/`
+3. **Domain Layer Refinement**: Clear separation of entities and repository interfaces
+4. **Factory Pattern**: `RepositoryFactory` for centralized dependency management

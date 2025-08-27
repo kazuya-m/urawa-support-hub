@@ -1,8 +1,68 @@
 # Implementation Guide
 
 This document provides detailed technical implementation guidance for the urawa-support-hub system,
-including domain entities, repository patterns, infrastructure implementations, and testing
-strategies.
+including Clean Architecture layer implementations, domain entities, repository patterns,
+infrastructure implementations, and testing strategies.
+
+## Application Layer (Use Cases)
+
+### TicketCollectionUseCase
+
+The primary business workflow orchestrator for daily ticket collection operations:
+
+```typescript
+export class TicketCollectionUseCase {
+  constructor(
+    private scrapingService: ScrapingService,
+    private healthRepository: HealthRepository,
+  ) {}
+
+  async execute(): Promise<void> {
+    const startTime = Date.now();
+    let executionResult: HealthCheckResult;
+
+    try {
+      const tickets = await this.scrapingService.scrapeAwayTickets();
+      const executionDuration = Date.now() - startTime;
+
+      executionResult = {
+        executedAt: new Date(),
+        ticketsFound: tickets.length,
+        status: 'success',
+        executionDurationMs: executionDuration,
+      };
+
+      if (Deno.env.get('NODE_ENV') !== 'production') {
+        console.log(
+          `Daily execution completed successfully. Found ${tickets.length} tickets in ${executionDuration}ms`,
+        );
+      }
+    } catch (error) {
+      // Error handling and health recording
+      executionResult = {
+        executedAt: new Date(),
+        ticketsFound: 0,
+        status: 'error',
+        executionDurationMs: Date.now() - startTime,
+        errorDetails: {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      };
+    }
+
+    // Critical: Always record health to prevent Supabase auto-pause
+    await this.healthRepository.recordDailyExecution(executionResult);
+  }
+}
+```
+
+#### Key Responsibilities
+
+- Business workflow orchestration
+- Error handling and recovery
+- System health tracking
+- Supabase free tier auto-pause prevention
 
 ## Domain Entities
 
@@ -152,7 +212,94 @@ export interface NotificationRepository {
 }
 ```
 
-## Infrastructure Implementations
+## Infrastructure Layer
+
+### Repository Factory Pattern
+
+Centralized dependency management using the Factory pattern:
+
+```typescript
+export class RepositoryFactory {
+  private static ticketRepository: TicketRepository | null = null;
+  private static notificationRepository: NotificationRepository | null = null;
+  private static healthRepository: HealthRepository | null = null;
+
+  static getTicketRepository(): TicketRepository {
+    if (!this.ticketRepository) {
+      const client = getSupabaseClient();
+      this.ticketRepository = new TicketRepositoryImpl(client);
+    }
+    return this.ticketRepository;
+  }
+
+  static getHealthRepository(): HealthRepository {
+    if (!this.healthRepository) {
+      const client = getSupabaseClient();
+      this.healthRepository = new HealthRepositoryImpl(client);
+    }
+    return this.healthRepository;
+  }
+
+  static resetInstances(): void {
+    this.ticketRepository = null;
+    this.notificationRepository = null;
+    this.healthRepository = null;
+  }
+}
+```
+
+### Configuration Management
+
+Configuration is externalized and organized under `src/infrastructure/config/`:
+
+```typescript
+// src/infrastructure/config/scraping.ts
+export const URAWA_SCRAPING_CONFIG: ScrapingConfig = {
+  awayTabSelectors: ['.ticket-tab li:nth-child(2) span'],
+  selectors: {
+    ticketContainer: ['.game-list ul li'],
+    matchTitle: ['.vs-box-place .team-name'],
+    venue: ['.vs-box-place span'],
+    // ...
+  },
+  timeouts: {
+    pageLoad: 30000,
+    elementWait: 5000,
+    tabSwitch: 2000,
+  },
+};
+```
+
+### Scraping Service Architecture
+
+```typescript
+// Base ScrapingService (Infrastructure layer)
+export class ScrapingService {
+  constructor(
+    private config: ScrapingConfig,
+    private urlConfig: UrlConfig,
+  ) {}
+
+  async scrapeAwayTickets(): Promise<ScrapedTicketData[]> {
+    // Browser management and scraping logic
+  }
+}
+
+// Urawa-specific implementation
+export class UrawaScrapingService extends ScrapingService {
+  constructor() {
+    super(URAWA_SCRAPING_CONFIG, URAWA_URL_CONFIG);
+  }
+
+  async scrapeUrawaAwayTickets(): Promise<ScrapedTicketData[]> {
+    const tickets = await this.scrapeAwayTickets();
+    // Urawa-specific post-processing
+    return tickets;
+  }
+}
+```
+
+## Repository Implementations
 
 ### TicketRepositoryImpl
 

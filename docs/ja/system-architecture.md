@@ -50,12 +50,72 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 
 ```
 ┌─────────────────────────────────────┐
+│     Interface Layer                │  ← Cloud Run Service, Edge Functions
+├─────────────────────────────────────┤
+│     Application Layer              │  ← UseCases: TicketCollectionUseCase
+├─────────────────────────────────────┤
+│        Domain Layer               │  ← Entities: Ticket, NotificationHistory
+├─────────────────────────────────────┤
+│     Infrastructure Layer          │  ← Services: ScrapingService, UrawaScrapingService
+│                                   │    Repositories: TicketRepositoryImpl
+│                                   │    Config: notification.ts, scraping.ts
+└─────────────────────────────────────┘
+```
+
+### レイヤー責務
+
+#### 1. Interface Layer（Cloud Run + Edge Functions）
+
+**責務**: 外部リクエストの処理とアプリケーションワークフローのトリガー
+
+#### 2. Application Layer（Use Cases）
+
+**責務**: ビジネス操作のオーケストレーションとレイヤー間の調整
+
+**UseCase コンポーネント:**
+
+- **TicketCollectionUseCase**: 日次チケットスクレイピングワークフローのオーケストレーション
+  - スクレイピングサービス実行の調整
+  - システムヘルスメトリクスの記録
+  - エラーシナリオとリカバリーの処理
+
+**主要機能:**
+
+- ビジネスワークフローのオーケストレーション
+- 横断的関心事（ログ、ヘルス監視）
+- ビジネスロジックとインフラストラクチャの明確な分離
+- テスタビリティのための依存性注入
+
+#### 3. Domain Layer（コアビジネスロジック）
+
+**責務**: ビジネスルールとドメイン知識のカプセル化
+
+**ドメインコンポーネント:**
+
+- **ビジネスエンティティ**: Ticket, NotificationHistory, SystemHealth
+- **ビジネスロジック**: 通知タイミング計算、チケット検証
+- **ドメインサービス**: 設定駆動通知ルール
+
+#### 4. Infrastructure Layer（技術実装）
+
+**責務**: 技術的機能と外部システム統合の提供
+
+**インフラストラクチャコンポーネント:**
+
+- **リポジトリ実装**: TicketRepositoryImpl, NotificationRepositoryImpl, HealthRepositoryImpl
+- **スクレイピングサービス**: ScrapingService（基底クラス）, UrawaScrapingService（浦和固有）
+- **外部サービスクライアント**: Supabaseクライアント、Playwright統合
+- **設定管理**: notification.ts, scraping.ts, url.ts
+- **技術ユーティリティ**: エラーハンドリング、ログ、型定義
+- **ファクトリーパターン**: 依存性管理のためのRepositoryFactory
+
+```
+┌─────────────────────────────────────┐
 │     インターフェースレイヤー         │  ← Cloud Run Service, Edge Functions
 ├─────────────────────────────────────┤
 │     アプリケーションサービス         │  ← ScrapingService, NotificationService  
 ├─────────────────────────────────────┤
 │        ドメインレイヤー             │  ← エンティティ: Ticket, NotificationHistory
-│                                   │    インターフェース: TicketRepository
 ├─────────────────────────────────────┤
 │     インフラストラクチャレイヤー     │  ← RepositoryImpl, CloudTasks, Supabase
 └─────────────────────────────────────┘
@@ -107,7 +167,6 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 **ドメインコンポーネント:**
 
 - **ビジネスエンティティ**: Ticket, NotificationHistory, NotificationConfig
-- **リポジトリインターフェース**: TicketRepository, NotificationRepository
 - **ドメインサービス**: ビジネスルール検証と処理
 
 **主要原則:**
@@ -216,13 +275,13 @@ graph TD
 
 ### リポジトリパターン（拡張版）
 
-- インターフェースの背後にデータアクセスを抽象化
-- モック実装でのテストを可能に
+- 具体的な実装クラスを直接使用し、小規模プロジェクトに適したシンプルな設計
+- テスト時はMockを使用して具象クラスをモック化
 - ドメインロジックを永続化の関心事から分離
 - **拡張**: スケジューリング用Cloud Tasks統合
 
 ```typescript
-interface TicketRepository {
+export class TicketRepositoryImpl {
   save(ticket: Ticket): Promise<void>;
   findByMatchDate(date: Date): Promise<Ticket[]>;
   // イベント駆動通知スケジューリング
@@ -266,7 +325,7 @@ export const NOTIFICATION_TIMING_CONFIG = {
 export class ScrapingOrchestrator {
   constructor(
     private scrapingService: ScrapingService,
-    private ticketRepository: TicketRepository,
+    private ticketRepository: TicketRepositoryImpl,
     private cloudTasksService: CloudTasksService,
   ) {}
 
@@ -457,3 +516,65 @@ const ALERT_THRESHOLDS = {
 - **最大3回のリトライ試行**
 - **持続的障害用デッドレターキュー**
 - **Discord webhook経由の自動エラーアラート**
+
+## 現在のディレクトリ構造（クリーンアーキテクチャ）
+
+### プロジェクトレイアウト
+
+```
+src/
+├── application/
+│   └── usecases/                     # アプリケーション Use Cases
+│       ├── TicketCollectionUseCase.ts
+│       └── __tests__/
+├── domain/
+│   └── entities/                     # ドメインエンティティ
+│       ├── Ticket.ts
+│       ├── NotificationHistory.ts
+│       ├── NotificationTypes.ts
+│       ├── SystemHealth.ts
+│       ├── ErrorLog.ts
+│       ├── index.ts
+│       └── __tests__/
+└── infrastructure/
+    ├── config/                      # 設定管理
+    │   ├── notification.ts
+    │   ├── scraping.ts
+    │   ├── url.ts
+    │   ├── supabase.ts
+    │   ├── types/
+    │   │   ├── ScrapingConfig.ts
+    │   │   └── UrlConfig.ts
+    │   └── __tests__/
+    ├── repositories/                # リポジトリ実装
+    │   ├── TicketRepositoryImpl.ts
+    │   ├── NotificationRepositoryImpl.ts
+    │   ├── HealthRepositoryImpl.ts
+    │   ├── RepositoryFactory.ts
+    │   ├── converters/
+    │   │   ├── TicketConverter.ts
+    │   │   ├── NotificationConverter.ts
+    │   │   └── HealthConverter.ts
+    │   └── __tests__/
+    ├── services/
+    │   └── scraping/                # スクレイピングサービス
+    │       ├── ScrapingService.ts
+    │       ├── UrawaScrapingService.ts
+    │       └── __tests__/
+    ├── types/
+    │   └── database.ts              # データベース型定義
+    └── utils/
+        ├── constants.ts
+        └── error-handler.ts
+```
+
+### 主要なアーキテクチャ変更
+
+1. **Application層の導入**:
+   ビジネスワークフローオーケストレーション用の新しい`application/usecases/`レイヤー
+2. **Infrastructure再編成**:
+   - 設定を`src/config/`から`src/infrastructure/config/`に移動
+   - サービスを`src/infrastructure/services/`下に整理
+3. **Domain層の簡素化**:
+   Repositoryインターフェースを削除し、小規模プロジェクトに適したシンプルな設計に変更
+4. **ファクトリーパターン**: 具象クラス管理のための`RepositoryFactory`（インターフェースなし）
