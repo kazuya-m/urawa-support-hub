@@ -13,12 +13,8 @@ export function createSupabaseClient(): SupabaseClient {
     );
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
+  // 本番環境では自動リフレッシュを有効にする
+  return createClient(supabaseUrl, supabaseAnonKey);
 }
 
 /**
@@ -34,8 +30,11 @@ export function createSupabaseAdminClient(): SupabaseClient {
     );
   }
 
-  console.warn('WARNING: Using admin client with RLS bypass');
+  if (Deno.env.get('NODE_ENV') !== 'production') {
+    console.warn('WARNING: Using admin client with RLS bypass');
+  }
 
+  // Service Roleは長期間有効なので自動リフレッシュ不要
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
