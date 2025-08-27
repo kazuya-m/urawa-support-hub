@@ -12,8 +12,7 @@
       "Bash(gh issue view:*)",
       "Bash(gh run list:*)",
       "Bash(git diff:*)",
-      "Bash(mv:*)",
-      "Bash(rm:*)"
+      "Bash(mv:*)"
     ],
     "deny": [
       "Bash(sudo:*)",
