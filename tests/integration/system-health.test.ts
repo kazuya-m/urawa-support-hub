@@ -2,22 +2,21 @@ import { assertEquals, assertExists } from 'https://deno.land/std@0.208.0/assert
 import { cleanupTestTable, createTestSupabaseClient } from '../utils/test-supabase.ts';
 import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
 import { DailyExecutionService } from '@/infrastructure/services/DailyExecutionService.ts';
-import { ScrapingService } from '@/infrastructure/services/ScrapingService.ts';
+// Import removed to avoid Playwright dependency in tests
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
 
-// Mock scraping service for testing
-class TestScrapingService extends ScrapingService {
+// Lightweight mock scraping service for testing (avoids Playwright dependency)
+class TestScrapingService {
   private mockTickets: ScrapedTicketData[];
   private shouldThrow: boolean;
 
   constructor(mockTickets: ScrapedTicketData[] = [], shouldThrow: boolean = false) {
-    super({} as any, {} as any);
     this.mockTickets = mockTickets;
     this.shouldThrow = shouldThrow;
   }
 
-  override async scrapeAwayTickets() {
+  async scrapeAwayTickets(): Promise<ScrapedTicketData[]> {
     await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate some work
 
     if (this.shouldThrow) {
