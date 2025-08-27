@@ -1,6 +1,6 @@
 import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
-import { ScrapingConfig } from '@/domain/entities/ScrapingConfig.ts';
-import { UrlConfig } from '@/domain/entities/UrlConfig.ts';
+import { ScrapingConfig } from '@/infrastructure/config/types/ScrapingConfig.ts';
+import { UrlConfig } from '@/infrastructure/config/types/UrlConfig.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
 import { Browser, chromium, Page } from 'npm:playwright@1.40.0';
@@ -124,7 +124,7 @@ export class ScrapingService {
         contentLoaded = true;
         break;
       } catch (_error) {
-        // 次のセレクターを試行
+        // Try next selector
       }
     }
 
@@ -233,7 +233,7 @@ export class ScrapingService {
           return text;
         }
       } catch (_error) {
-        // 次のセレクターを試行
+        // Try next selector
       }
     }
     return null;
@@ -258,7 +258,7 @@ export class ScrapingService {
           return href;
         }
       } catch (_error) {
-        // 次のセレクターを試行
+        // Try next selector
       }
     }
     return null;
@@ -279,7 +279,7 @@ export class ScrapingService {
         ) as string[];
         ticketTypes.push(...types);
       } catch (_error) {
-        // 次のセレクターを試行
+        // Try next selector
       }
     }
 

@@ -1,6 +1,6 @@
 import { ScrapingService } from './ScrapingService.ts';
-import { URAWA_SCRAPING_CONFIG } from '@/config/scraping-config.ts';
-import { URAWA_URL_CONFIG } from '@/config/url-config.ts';
+import { URAWA_SCRAPING_CONFIG } from '@/infrastructure/config/scraping.ts';
+import { URAWA_URL_CONFIG } from '@/infrastructure/config/url.ts';
 import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
 
 /**
@@ -12,18 +12,20 @@ export class UrawaScrapingService extends ScrapingService {
     super(URAWA_SCRAPING_CONFIG, URAWA_URL_CONFIG);
   }
 
-  /**
-   * 浦和レッズのアウェイチケット情報を取得
-   */
   async scrapeUrawaAwayTickets(): Promise<ScrapedTicketData[]> {
     try {
-      console.log('浦和レッズアウェイチケットスクレイピング開始');
+      if (Deno.env.get('NODE_ENV') !== 'production') {
+        console.log('浦和レッズアウェイチケットスクレイピング開始');
+      }
+
       const tickets = await this.scrapeAwayTickets();
 
-      console.log(`取得したアウェイチケット数: ${tickets.length}`);
-      tickets.forEach((ticket) => {
-        console.log(`- ${ticket.matchName} @${ticket.venue} (${ticket.saleDate})`);
-      });
+      if (Deno.env.get('NODE_ENV') !== 'production') {
+        console.log(`取得したアウェイチケット数: ${tickets.length}`);
+        tickets.forEach((ticket) => {
+          console.log(`- ${ticket.matchName} @${ticket.venue} (${ticket.saleDate})`);
+        });
+      }
 
       return tickets;
     } catch (error) {
@@ -32,9 +34,6 @@ export class UrawaScrapingService extends ScrapingService {
     }
   }
 
-  /**
-   * 試合情報の詳細ログ出力
-   */
   private logTicketDetails(tickets: ScrapedTicketData[]): void {
     tickets.forEach((ticket, index) => {
       console.log(`\n=== 試合 ${index + 1} ===`);
