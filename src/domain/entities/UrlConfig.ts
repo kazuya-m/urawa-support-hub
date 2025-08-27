@@ -3,6 +3,8 @@ export interface UrlConfig {
     readonly jleagueTicketBase: string;
     readonly urawaClubPage: string;
     readonly lineApiBase: string;
+    readonly lineApiBroadcast: string;
+    readonly lineApiInfo: string;
     readonly sitemapUrl: string;
   };
   dynamicUrls: {

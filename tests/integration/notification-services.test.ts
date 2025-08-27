@@ -9,6 +9,7 @@ import {
   getNotificationConfig,
   LINE_MESSAGE_TEMPLATES,
 } from '@/config/notification-config.ts';
+import { URAWA_URL_CONFIG } from '@/config/url-config.ts';
 
 // モック HTTP サーバー用の型定義
 interface MockRequest {
@@ -104,7 +105,7 @@ async function sendLineMessage(
   config: ReturnType<typeof getNotificationConfig>['line'],
   message: Record<string, unknown>,
 ) {
-  const response = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+  const response = await fetch(URAWA_URL_CONFIG.staticUrls.lineApiBroadcast, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${config.channelAccessToken}`,
