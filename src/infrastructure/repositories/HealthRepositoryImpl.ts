@@ -1,10 +1,9 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { HealthRepository } from '@/domain/interfaces/HealthRepository.ts';
 import { HealthCheckResult, SystemHealth } from '@/domain/entities/SystemHealth.ts';
 import { HealthConverter } from './converters/HealthConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
 
-export class HealthRepositoryImpl implements HealthRepository {
+export class HealthRepositoryImpl {
   constructor(private client: SupabaseClient) {}
 
   async recordDailyExecution(result: HealthCheckResult): Promise<void> {
