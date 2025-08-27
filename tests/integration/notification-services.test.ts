@@ -8,8 +8,8 @@ import {
   DISCORD_EMBED_TEMPLATES,
   getNotificationConfig,
   LINE_MESSAGE_TEMPLATES,
-} from '@/config/notification-config.ts';
-import { URAWA_URL_CONFIG } from '@/config/url-config.ts';
+} from '@/infrastructure/config/notification.ts';
+import { URAWA_URL_CONFIG } from '@/infrastructure/config/url.ts';
 
 // モック HTTP サーバー用の型定義
 interface MockRequest {
