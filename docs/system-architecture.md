@@ -4,7 +4,8 @@
 
 The urawa-support-hub is an automated ticket monitoring and notification system for Urawa Red
 Diamonds supporters. The system scrapes ticket information from the J-League website, stores it in a
-database, and sends timely notifications to LINE groups before ticket sales begin.
+database, and sends timely notifications to all LINE Bot followers via broadcast messaging before
+ticket sales begin.
 
 ## Technology Stack
 
