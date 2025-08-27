@@ -5,7 +5,6 @@
 
 export interface LineConfig {
   channelAccessToken: string;
-  groupId: string;
 }
 
 export interface DiscordConfig {
@@ -24,7 +23,6 @@ export interface NotificationServiceConfig {
 export function getNotificationConfig(): NotificationServiceConfig {
   const requiredEnvVars = [
     'LINE_CHANNEL_ACCESS_TOKEN',
-    'LINE_GROUP_ID',
     'DISCORD_WEBHOOK_URL',
   ];
 
@@ -38,7 +36,6 @@ export function getNotificationConfig(): NotificationServiceConfig {
   return {
     line: {
       channelAccessToken: Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')!,
-      groupId: Deno.env.get('LINE_GROUP_ID')!,
     },
     discord: {
       webhookUrl: Deno.env.get('DISCORD_WEBHOOK_URL')!,

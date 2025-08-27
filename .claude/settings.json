@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(deno fmt:*)",
+      "Bash(gh issue list:*)",
+      "Bash(deno check:*)",
+      "Bash(deno lint:*)",
+      "Bash(deno test:*)",
+      "Bash(grep:*)",
+      "Bash(deno task:*)",
+      "Bash(git checkout:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh run list:*)",
+      "Bash(git diff:*)",
+      "Bash(mv:*)"
+    ],
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(rm -rf:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(git reset:*)",
+      "Bash(git rebase:*)",
+      "Read(.env.*)",
+      "Read(id_rsa)",
+      "Read(id_ed25519)",
+      "Read(**/*token*)",
+      "Read(**/*key*)",
+      "Write(.env*)",
+      "Write(**/secrets/**)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(nc:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm remove:*)",
+      "Bash(psql:*)",
+      "Bash(mysql:*)",
+      "Bash(mongod:*)",
+      "mcp__supabase__execute_sql"
+    ]
+  }
+}

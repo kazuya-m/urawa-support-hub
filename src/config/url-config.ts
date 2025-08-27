@@ -9,6 +9,8 @@ export const URAWA_URL_CONFIG: UrlConfig = {
     jleagueTicketBase: 'https://www.jleague-ticket.jp',
     urawaClubPage: 'https://www.jleague-ticket.jp/club/ur/',
     lineApiBase: 'https://api.line.me/v2',
+    lineApiBroadcast: 'https://api.line.me/v2/bot/message/broadcast',
+    lineApiInfo: 'https://api.line.me/v2/bot/info',
     sitemapUrl: 'https://www.jleague-ticket.jp/sitemap.xml',
   },
 

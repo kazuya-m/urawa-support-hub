@@ -3,8 +3,8 @@
 ## 1. System Overview
 
 Build a comprehensive support tool "urawa-support-hub" for Urawa Red Diamonds supporters that
-automatically monitors away match ticket sales information and sends reminder notifications to LINE
-group chats before sales start.
+automatically monitors away match ticket sales information and sends reminder notifications via LINE
+broadcast messaging before sales start.
 
 ## 2. Functional Requirements
 
@@ -21,7 +21,7 @@ group chats before sales start.
 
 ### 2.2 Notification Function
 
-- **Notification Destination**: LINE group chat
+- **Notification Destination**: LINE Bot broadcast messaging (to all Bot followers)
 - **Notification Timing**:
   1. 20:00 JST on the day before sales start
   2. 1 hour before sales start time
@@ -103,7 +103,7 @@ group chats before sales start.
 
 ### 4.1 User Management
 
-- Multi-LINE group support
+- Enhanced user targeting options for broadcast messaging
 - Individual user preference settings
 
 ### 4.2 Enhanced Monitoring

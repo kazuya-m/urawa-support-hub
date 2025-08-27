@@ -9,6 +9,7 @@ import {
   getNotificationConfig,
   LINE_MESSAGE_TEMPLATES,
 } from '@/config/notification-config.ts';
+import { URAWA_URL_CONFIG } from '@/config/url-config.ts';
 
 // モック HTTP サーバー用の型定義
 interface MockRequest {
@@ -104,14 +105,13 @@ async function sendLineMessage(
   config: ReturnType<typeof getNotificationConfig>['line'],
   message: Record<string, unknown>,
 ) {
-  const response = await fetch('https://api.line.me/v2/bot/message/push', {
+  const response = await fetch(URAWA_URL_CONFIG.staticUrls.lineApiBroadcast, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${config.channelAccessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      to: config.groupId,
       messages: [message],
     }),
   });
@@ -187,7 +187,9 @@ Deno.test('Notification Services Integration Tests', async (t) => {
 
     // リクエストが正しく送信されたことを確認
     const requests = mockServer.getRequests();
-    const lineRequest = requests.find((r) => r.url.includes('api.line.me'));
+    const lineRequest = requests.find((r) =>
+      r.url.includes('api.line.me/v2/bot/message/broadcast')
+    );
 
     assertExists(lineRequest);
     assertEquals(lineRequest.method, 'POST');
@@ -196,7 +198,6 @@ Deno.test('Notification Services Integration Tests', async (t) => {
 
     // リクエストボディの検証
     const requestBody = JSON.parse(lineRequest.body!);
-    assertEquals(requestBody.to, 'test-group-456');
     assertEquals(requestBody.messages[0].type, 'flex');
     assertEquals(requestBody.messages[0].altText, '【チケット通知】浦和レッズ vs FC東京');
   });

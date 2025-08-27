@@ -19,8 +19,9 @@ echo ""
 
 # Bot情報を取得
 echo "📋 Bot情報取得中..."
+LINE_API_INFO_URL="https://api.line.me/v2/bot/info"
 curl -s -H "Authorization: Bearer $LINE_CHANNEL_ACCESS_TOKEN" \
-    https://api.line.me/v2/bot/info
+    "$LINE_API_INFO_URL"
 
 echo -e "\n"
 echo "💡 確認事項:"

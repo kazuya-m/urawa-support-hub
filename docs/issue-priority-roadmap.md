@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-08-26\
+**Updated**: 2025-08-27\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
@@ -73,6 +73,7 @@
 - **#31** - Notification service integration ✅
 - **#32** - Database migration management ✅
 - **#34** - Security and permission detailed design ✅
+- **#27** - LINE APIエンドポイント設定統一化（2025-08-27品質改善） ✅
 
 ## Development Progress Rules
 
