@@ -25,7 +25,7 @@ if (!LINE_CHANNEL_ACCESS_TOKEN) {
 console.log('🎫 LINE Bot チケット通知テスト配信中...');
 
 // API エンドポイント
-import { URAWA_URL_CONFIG } from '../src/config/url-config.ts';
+import { URAWA_URL_CONFIG } from '@/infrastructure/config/url.ts';
 const BROADCAST_API = URAWA_URL_CONFIG.staticUrls.lineApiBroadcast;
 
 // 実際のチケット通知メッセージ（Flex Message形式）
