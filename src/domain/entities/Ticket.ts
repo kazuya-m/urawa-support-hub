@@ -1,4 +1,4 @@
-import { NotificationType, shouldSendNotificationAtTime } from './NotificationConfig.ts';
+import { NotificationType, shouldSendNotificationAtTime } from './NotificationTypes.ts';
 
 interface TicketProps {
   id: string;
@@ -70,9 +70,7 @@ export class Ticket {
 
   isValidForNotification(): boolean {
     const now = new Date();
-    // 過去の試合は通知対象外
     if (this.props.matchDate <= now) return false;
-    // 既に販売開始から1日以上経過している場合は通知対象外
     if (now.getTime() > this.props.saleStartDate.getTime() + 24 * 60 * 60 * 1000) return false;
     return this.isValidTicket();
   }
