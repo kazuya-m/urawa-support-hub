@@ -16,11 +16,9 @@ Deno.test('NotificationServiceConfig interfaces', async (t) => {
   await t.step('LineConfig should have required properties', () => {
     const config: LineConfig = {
       channelAccessToken: 'test-token',
-      groupId: 'test-group-id',
     };
 
     assertEquals(typeof config.channelAccessToken, 'string');
-    assertEquals(typeof config.groupId, 'string');
   });
 
   await t.step('DiscordConfig should have required properties', () => {
@@ -45,7 +43,6 @@ Deno.test('NotificationServiceConfig interfaces', async (t) => {
     const config: NotificationServiceConfig = {
       line: {
         channelAccessToken: 'line-token',
-        groupId: 'line-group',
       },
       discord: {
         webhookUrl: 'https://discord.com/api/webhooks/test',
@@ -61,7 +58,6 @@ Deno.test('NotificationServiceConfig interfaces', async (t) => {
 Deno.test('getNotificationConfig function', async (t) => {
   const originalEnv = {
     LINE_CHANNEL_ACCESS_TOKEN: Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN'),
-    LINE_GROUP_ID: Deno.env.get('LINE_GROUP_ID'),
     DISCORD_WEBHOOK_URL: Deno.env.get('DISCORD_WEBHOOK_URL'),
     DISCORD_CHANNEL_ID: Deno.env.get('DISCORD_CHANNEL_ID'),
   };
@@ -80,14 +76,12 @@ Deno.test('getNotificationConfig function', async (t) => {
   await t.step('should return config when all required env vars are set', () => {
     // テスト用環境変数を設定
     Deno.env.set('LINE_CHANNEL_ACCESS_TOKEN', 'test-line-token');
-    Deno.env.set('LINE_GROUP_ID', 'test-line-group');
     Deno.env.set('DISCORD_WEBHOOK_URL', 'https://discord.com/api/webhooks/test');
     Deno.env.set('DISCORD_CHANNEL_ID', 'test-discord-channel');
 
     const config = getNotificationConfig();
 
     assertEquals(config.line.channelAccessToken, 'test-line-token');
-    assertEquals(config.line.groupId, 'test-line-group');
     assertEquals(config.discord.webhookUrl, 'https://discord.com/api/webhooks/test');
     assertEquals(config.discord.channelId, 'test-discord-channel');
 
@@ -97,7 +91,6 @@ Deno.test('getNotificationConfig function', async (t) => {
   await t.step('should work with optional DISCORD_CHANNEL_ID', () => {
     // 必須の環境変数のみ設定
     Deno.env.set('LINE_CHANNEL_ACCESS_TOKEN', 'test-line-token');
-    Deno.env.set('LINE_GROUP_ID', 'test-line-group');
     Deno.env.set('DISCORD_WEBHOOK_URL', 'https://discord.com/api/webhooks/test');
     Deno.env.delete('DISCORD_CHANNEL_ID');
 
@@ -110,7 +103,6 @@ Deno.test('getNotificationConfig function', async (t) => {
 
   await t.step('should throw error when LINE_CHANNEL_ACCESS_TOKEN is missing', () => {
     Deno.env.delete('LINE_CHANNEL_ACCESS_TOKEN');
-    Deno.env.set('LINE_GROUP_ID', 'test-line-group');
     Deno.env.set('DISCORD_WEBHOOK_URL', 'https://discord.com/api/webhooks/test');
 
     assertThrows(
@@ -122,23 +114,8 @@ Deno.test('getNotificationConfig function', async (t) => {
     restoreEnv();
   });
 
-  await t.step('should throw error when LINE_GROUP_ID is missing', () => {
-    Deno.env.set('LINE_CHANNEL_ACCESS_TOKEN', 'test-line-token');
-    Deno.env.delete('LINE_GROUP_ID');
-    Deno.env.set('DISCORD_WEBHOOK_URL', 'https://discord.com/api/webhooks/test');
-
-    assertThrows(
-      () => getNotificationConfig(),
-      Error,
-      'Environment variable LINE_GROUP_ID is required',
-    );
-
-    restoreEnv();
-  });
-
   await t.step('should throw error when DISCORD_WEBHOOK_URL is missing', () => {
     Deno.env.set('LINE_CHANNEL_ACCESS_TOKEN', 'test-line-token');
-    Deno.env.set('LINE_GROUP_ID', 'test-line-group');
     Deno.env.delete('DISCORD_WEBHOOK_URL');
 
     assertThrows(
