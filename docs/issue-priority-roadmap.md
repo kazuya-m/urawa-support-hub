@@ -18,15 +18,15 @@
 
 **Purpose**: Establish minimal development environment
 
-| Issue | Title                                               | Priority    | Status             | Reason                                  |
-| ----- | --------------------------------------------------- | ----------- | ------------------ | --------------------------------------- |
-| #28   | Google Cloud Platform project and account setup     | 🔴 Critical | ✅ **COMPLETED**   | Prerequisites for all GCP services      |
-| #29   | LINE Bot and Discord Webhook external service setup | 🔴 Critical | ✅ **COMPLETED**   | Prerequisites for notification features |
-| #17   | Environment variables and basic secrets setup       | 🔴 Critical | ✅ **COMPLETED**   | Simplified security foundation          |
-| #36   | Basic type definitions and entities                 | 🔴 Critical | ✅ **COMPLETED**   | Core domain models                      |
-| #37   | Supabase client and repositories                    | 🔴 Critical | ✅ **COMPLETED**   | Data persistence layer                  |
-| #39   | Minimal security configuration                      | 🔴 Critical | ✅ **COMPLETED**   | Basic security requirements             |
-| #40   | Initial database schema creation                    | 🔴 Critical | ✅ **COMPLETED**   | Database structure                      |
+| Issue | Title                                               | Priority    | Status           | Reason                                  |
+| ----- | --------------------------------------------------- | ----------- | ---------------- | --------------------------------------- |
+| #28   | Google Cloud Platform project and account setup     | 🔴 Critical | ✅ **COMPLETED** | Prerequisites for all GCP services      |
+| #29   | LINE Bot and Discord Webhook external service setup | 🔴 Critical | ✅ **COMPLETED** | Prerequisites for notification features |
+| #17   | Environment variables and basic secrets setup       | 🔴 Critical | ✅ **COMPLETED** | Simplified security foundation          |
+| #36   | Basic type definitions and entities                 | 🔴 Critical | ✅ **COMPLETED** | Core domain models                      |
+| #37   | Supabase client and repositories                    | 🔴 Critical | ✅ **COMPLETED** | Data persistence layer                  |
+| #39   | Minimal security configuration                      | 🔴 Critical | ✅ **COMPLETED** | Basic security requirements             |
+| #40   | Initial database schema creation                    | 🔴 Critical | ✅ **COMPLETED** | Database structure                      |
 
 ### Phase 2: Core Feature Implementation (3 days)
 
