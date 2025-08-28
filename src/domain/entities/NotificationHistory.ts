@@ -1,4 +1,4 @@
-import { getDisplayName, isValidNotificationType, NotificationType } from './NotificationConfig.ts';
+import { getDisplayName, isValidNotificationType, NotificationType } from './NotificationTypes.ts';
 export type NotificationStatus = 'pending' | 'sent' | 'failed';
 
 interface NotificationHistoryProps {
@@ -46,7 +46,6 @@ export class NotificationHistory {
   }
 
   canBeSent(currentTime: Date = new Date()): boolean {
-    // pending状態でのみ送信可能
     if (this.props.status !== 'pending') return false;
 
     const timeDiff = this.props.scheduledAt.getTime() - currentTime.getTime();

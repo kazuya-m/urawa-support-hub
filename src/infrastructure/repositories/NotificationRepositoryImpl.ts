@@ -1,10 +1,9 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { NotificationRepository } from '@/domain/interfaces/NotificationRepository.ts';
 import { NotificationHistory } from '@/domain/entities/NotificationHistory.ts';
 import { NotificationConverter } from './converters/NotificationConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
 
-export class NotificationRepositoryImpl implements NotificationRepository {
+export class NotificationRepositoryImpl {
   constructor(private client: SupabaseClient) {}
 
   async findAll(): Promise<NotificationHistory[]> {

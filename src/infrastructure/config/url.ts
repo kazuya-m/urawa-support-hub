@@ -1,4 +1,4 @@
-import { UrlConfig } from '@/domain/entities/UrlConfig.ts';
+import { UrlConfig } from './types/UrlConfig.ts';
 
 /**
  * 浦和レッズ関連URL設定

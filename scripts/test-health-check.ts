@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
-import { DailyExecutionService } from '@/infrastructure/services/DailyExecutionService.ts';
+import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 
 // テスト用のモックスクレイピングサービス
@@ -52,10 +52,10 @@ async function testHealthCheck() {
   // テスト1: 成功シナリオ
   console.log('✅ テスト1: 正常動作（チケット発見）');
   const mockScrapingSuccess = new MockScrapingService('success');
-  const dailyService1 = new DailyExecutionService(mockScrapingSuccess as any, healthRepository);
+  const dailyService1 = new TicketCollectionUseCase(mockScrapingSuccess as any, healthRepository);
 
   try {
-    await dailyService1.executeDaily();
+    await dailyService1.execute();
     console.log('✅ 成功時のヘルスチェック記録完了\n');
   } catch (error) {
     console.error('❌ テスト1失敗:', error, '\n');
@@ -64,10 +64,10 @@ async function testHealthCheck() {
   // テスト2: 空結果シナリオ（オフシーズン想定）
   console.log('📭 テスト2: オフシーズン想定（チケットなし）');
   const mockScrapingEmpty = new MockScrapingService('empty');
-  const dailyService2 = new DailyExecutionService(mockScrapingEmpty as any, healthRepository);
+  const dailyService2 = new TicketCollectionUseCase(mockScrapingEmpty as any, healthRepository);
 
   try {
-    await dailyService2.executeDaily();
+    await dailyService2.execute();
     console.log('✅ オフシーズン時のヘルスチェック記録完了\n');
   } catch (error) {
     console.error('❌ テスト2失敗:', error, '\n');
@@ -76,10 +76,10 @@ async function testHealthCheck() {
   // テスト3: エラーシナリオ
   console.log('⚠️ テスト3: スクレイピングエラー');
   const mockScrapingError = new MockScrapingService('error');
-  const dailyService3 = new DailyExecutionService(mockScrapingError as any, healthRepository);
+  const dailyService3 = new TicketCollectionUseCase(mockScrapingError as any, healthRepository);
 
   try {
-    await dailyService3.executeDaily();
+    await dailyService3.execute();
     console.log('❌ エラーが発生すべきでした');
   } catch (error) {
     console.log('✅ エラー時のヘルスチェック記録完了（想定通りのエラー）\n');

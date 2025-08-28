@@ -1,6 +1,7 @@
 import { assertEquals, assertRejects } from 'jsr:@std/assert';
 import { NotificationRepositoryImpl } from '../NotificationRepositoryImpl.ts';
-import { NotificationHistory, NotificationRow } from '@/domain/entities/index.ts';
+import { NotificationHistory } from '@/domain/entities/index.ts';
+import { NotificationRow } from '@/infrastructure/types/database.ts';
 import { createMockSupabaseClient } from './test-utils/SupabaseMock.ts';
 import { RepositoryError } from '../../utils/error-handler.ts';
 

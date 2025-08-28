@@ -26,7 +26,7 @@ curl -s -H "Authorization: Bearer $LINE_CHANNEL_ACCESS_TOKEN" \
 echo -e "\n"
 echo "💡 確認事項:"
 echo "1. LINE Developers Console設定:"
-echo "   - Webhook URL: https://discord.com/api/webhooks/1409819339770826782/P-CzuUXAmSBwSX2DpfiJuPY4zaZqN_s6FZNa_iqf7AVT38NwypiIxXUvwMlrLFZ62Wbf"
+echo "   - Webhook URL: ${DISCORD_WEBHOOK_URL:-'(環境変数DISCORD_WEBHOOK_URLを設定してください)'}"
 echo "   - Webhook の利用: 利用する"
 echo "   - 応答メッセージ: 無効"
 echo ""

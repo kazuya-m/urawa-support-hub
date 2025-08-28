@@ -1,8 +1,68 @@
 # Implementation Guide
 
 This document provides detailed technical implementation guidance for the urawa-support-hub system,
-including domain entities, repository patterns, infrastructure implementations, and testing
-strategies.
+including Clean Architecture layer implementations, domain entities, repository patterns,
+infrastructure implementations, and testing strategies.
+
+## Application Layer (Use Cases)
+
+### TicketCollectionUseCase
+
+The primary business workflow orchestrator for daily ticket collection operations:
+
+```typescript
+export class TicketCollectionUseCase {
+  constructor(
+    private scrapingService: ScrapingService,
+    private healthRepository: HealthRepository,
+  ) {}
+
+  async execute(): Promise<void> {
+    const startTime = Date.now();
+    let executionResult: HealthCheckResult;
+
+    try {
+      const tickets = await this.scrapingService.scrapeAwayTickets();
+      const executionDuration = Date.now() - startTime;
+
+      executionResult = {
+        executedAt: new Date(),
+        ticketsFound: tickets.length,
+        status: 'success',
+        executionDurationMs: executionDuration,
+      };
+
+      if (Deno.env.get('NODE_ENV') !== 'production') {
+        console.log(
+          `Daily execution completed successfully. Found ${tickets.length} tickets in ${executionDuration}ms`,
+        );
+      }
+    } catch (error) {
+      // Error handling and health recording
+      executionResult = {
+        executedAt: new Date(),
+        ticketsFound: 0,
+        status: 'error',
+        executionDurationMs: Date.now() - startTime,
+        errorDetails: {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      };
+    }
+
+    // Critical: Always record health to prevent Supabase auto-pause
+    await this.healthRepository.recordDailyExecution(executionResult);
+  }
+}
+```
+
+#### Key Responsibilities
+
+- Business workflow orchestration
+- Error handling and recovery
+- System health tracking
+- Supabase free tier auto-pause prevention
 
 ## Domain Entities
 
@@ -152,7 +212,94 @@ export interface NotificationRepository {
 }
 ```
 
-## Infrastructure Implementations
+## Infrastructure Layer
+
+### Repository Factory Pattern
+
+Centralized dependency management using the Factory pattern:
+
+```typescript
+export class RepositoryFactory {
+  private static ticketRepository: TicketRepository | null = null;
+  private static notificationRepository: NotificationRepository | null = null;
+  private static healthRepository: HealthRepository | null = null;
+
+  static getTicketRepository(): TicketRepository {
+    if (!this.ticketRepository) {
+      const client = getSupabaseClient();
+      this.ticketRepository = new TicketRepositoryImpl(client);
+    }
+    return this.ticketRepository;
+  }
+
+  static getHealthRepository(): HealthRepository {
+    if (!this.healthRepository) {
+      const client = getSupabaseClient();
+      this.healthRepository = new HealthRepositoryImpl(client);
+    }
+    return this.healthRepository;
+  }
+
+  static resetInstances(): void {
+    this.ticketRepository = null;
+    this.notificationRepository = null;
+    this.healthRepository = null;
+  }
+}
+```
+
+### Configuration Management
+
+Configuration is externalized and organized under `src/infrastructure/config/`:
+
+```typescript
+// src/infrastructure/config/scraping.ts
+export const URAWA_SCRAPING_CONFIG: ScrapingConfig = {
+  awayTabSelectors: ['.ticket-tab li:nth-child(2) span'],
+  selectors: {
+    ticketContainer: ['.game-list ul li'],
+    matchTitle: ['.vs-box-place .team-name'],
+    venue: ['.vs-box-place span'],
+    // ...
+  },
+  timeouts: {
+    pageLoad: 30000,
+    elementWait: 5000,
+    tabSwitch: 2000,
+  },
+};
+```
+
+### Scraping Service Architecture
+
+```typescript
+// Base ScrapingService (Infrastructure layer)
+export class ScrapingService {
+  constructor(
+    private config: ScrapingConfig,
+    private urlConfig: UrlConfig,
+  ) {}
+
+  async scrapeAwayTickets(): Promise<ScrapedTicketData[]> {
+    // Browser management and scraping logic
+  }
+}
+
+// Urawa-specific implementation
+export class UrawaScrapingService extends ScrapingService {
+  constructor() {
+    super(URAWA_SCRAPING_CONFIG, URAWA_URL_CONFIG);
+  }
+
+  async scrapeUrawaAwayTickets(): Promise<ScrapedTicketData[]> {
+    const tickets = await this.scrapeAwayTickets();
+    // Urawa-specific post-processing
+    return tickets;
+  }
+}
+```
+
+## Repository Implementations
 
 ### TicketRepositoryImpl
 
@@ -198,7 +345,7 @@ export class TicketRepositoryImpl implements TicketRepository {
         ticketId,
         notificationType: type,
         scheduledTime,
-        targetUrl: `${SUPABASE_URL}/functions/v1/send-notification`,
+        targetUrl: `${CLOUD_RUN_URL}/api/send-notification`,
       });
     }
   }
@@ -902,6 +1049,141 @@ export class InMemoryCacheService implements CacheService {
 }
 ```
 
+## Cloud Run API Implementation
+
+### HTTP Endpoints
+
+```typescript
+// src/main.ts
+import { Hono } from 'https://deno.land/x/hono@v3.11.7/mod.ts';
+import { TicketCollectionUseCase } from './application/usecases/TicketCollectionUseCase.ts';
+import { NotificationService } from './infrastructure/services/NotificationService.ts';
+
+const app = new Hono();
+const port = parseInt(Deno.env.get('PORT') ?? '8080');
+
+// Ticket collection endpoint (triggered by Cloud Scheduler)
+app.post('/api/collect-tickets', async (c) => {
+  try {
+    const ticketCollectionUseCase = new TicketCollectionUseCase(
+      scrapingService,
+      healthRepository,
+    );
+
+    await ticketCollectionUseCase.execute();
+
+    return c.json({
+      success: true,
+      message: 'Scraping completed successfully',
+    });
+  } catch (error) {
+    console.error('Scraping failed:', error);
+    return c.json({
+      success: false,
+      error: error.message,
+    }, 500);
+  }
+});
+
+// Notification endpoint (triggered by Cloud Tasks)
+app.post('/api/send-notification', async (c) => {
+  try {
+    const { ticketId, notificationType } = await c.req.json();
+
+    const notificationService = new NotificationService(
+      notificationRepository,
+      lineClient,
+      discordClient,
+    );
+
+    await notificationService.sendNotification(ticketId, notificationType);
+
+    return c.json({
+      success: true,
+      message: 'Notification sent successfully',
+    });
+  } catch (error) {
+    console.error('Notification failed:', error);
+    return c.json({
+      success: false,
+      error: error.message,
+    }, 500);
+  }
+});
+
+// Start server
+Deno.serve({ port }, app.fetch);
+console.log(`Server running on port ${port}`);
+```
+
+### LINE Notification Client
+
+```typescript
+// src/infrastructure/clients/LineClient.ts
+export class LineClient {
+  private readonly baseUrl = 'https://api.line.me/v2/bot';
+
+  constructor(
+    private readonly channelAccessToken: string,
+  ) {}
+
+  async broadcast(message: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/message/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.channelAccessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [{
+          type: 'text',
+          text: message,
+        }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`LINE API error: ${response.status}`);
+    }
+  }
+}
+```
+
+### Discord Alert Client
+
+```typescript
+// src/infrastructure/clients/DiscordClient.ts
+export class DiscordClient {
+  constructor(
+    private readonly webhookUrl: string,
+  ) {}
+
+  async sendAlert(message: string, isError: boolean = false): Promise<void> {
+    const response = await fetch(this.webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: message,
+        embeds: isError
+          ? [{
+            title: '⚠️ Error Alert',
+            description: message,
+            color: 0xff0000,
+            timestamp: new Date().toISOString(),
+          }]
+          : undefined,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Discord webhook error: ${response.status}`);
+    }
+  }
+}
+```
+
 ## Deployment Implementation
 
 ### Cloud Run Dockerfile
@@ -942,10 +1224,6 @@ gcloud run deploy urawa-scraper \
   --timeout 300 \
   --max-instances 10 \
   --set-env-vars "NODE_ENV=production"
-
-# Deploy Edge Functions
-supabase functions deploy send-notification
-supabase functions deploy system-health
 
 # Apply database migrations
 supabase db push

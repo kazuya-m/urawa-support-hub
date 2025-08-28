@@ -1,4 +1,4 @@
-import { ScrapingConfig } from '@/domain/entities/ScrapingConfig.ts';
+import { ScrapingConfig } from './types/ScrapingConfig.ts';
 
 /**
  * 浦和レッズ J-League チケットサイト用スクレイピング設定

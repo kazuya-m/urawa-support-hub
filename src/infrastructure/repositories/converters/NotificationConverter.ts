@@ -1,8 +1,5 @@
-import {
-  NotificationHistory,
-  NotificationInsert,
-  NotificationRow,
-} from '@/domain/entities/index.ts';
+import { NotificationHistory } from '@/domain/entities/index.ts';
+import { NotificationInsert, NotificationRow } from '@/infrastructure/types/database.ts';
 
 export class NotificationConverter {
   static toDomainEntity(data: NotificationRow): NotificationHistory {

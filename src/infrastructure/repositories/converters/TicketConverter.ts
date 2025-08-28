@@ -1,4 +1,5 @@
-import { Ticket, TicketInsert, TicketRow } from '@/domain/entities/index.ts';
+import { Ticket } from '@/domain/entities/index.ts';
+import { TicketInsert, TicketRow } from '@/infrastructure/types/database.ts';
 
 export class TicketConverter {
   static toDomainEntity(data: TicketRow): Ticket {

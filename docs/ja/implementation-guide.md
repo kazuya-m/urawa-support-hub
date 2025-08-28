@@ -196,7 +196,7 @@ export class TicketRepositoryImpl implements TicketRepository {
         ticketId,
         notificationType: type,
         scheduledTime,
-        targetUrl: `${SUPABASE_URL}/functions/v1/send-notification`,
+        targetUrl: `${CLOUD_RUN_URL}/api/send-notification`,
       });
     }
   }
@@ -940,10 +940,6 @@ gcloud run deploy urawa-scraper \
   --timeout 300 \
   --max-instances 10 \
   --set-env-vars "NODE_ENV=production"
-
-# Edge Functionsをデプロイ
-supabase functions deploy send-notification
-supabase functions deploy system-health
 
 # データベースマイグレーションを適用
 supabase db push

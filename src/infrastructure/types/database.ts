@@ -13,7 +13,7 @@ export interface TicketRow {
   updated_at: string;
 }
 
-import { NotificationType } from '@/domain/entities/NotificationConfig.ts';
+import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
 
 export interface NotificationRow {
   id: string;

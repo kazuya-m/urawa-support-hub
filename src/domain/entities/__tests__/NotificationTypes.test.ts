@@ -5,7 +5,7 @@ import {
   NOTIFICATION_TIMING_CONFIG,
   NotificationType,
   shouldSendNotificationAtTime,
-} from '@/domain/entities/NotificationConfig.ts';
+} from '../NotificationTypes.ts';
 
 Deno.test('NotificationConfig - day_before設定値テスト', () => {
   const saleStart = new Date('2025-03-15T10:00:00+09:00');

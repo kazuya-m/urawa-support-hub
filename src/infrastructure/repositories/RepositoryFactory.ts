@@ -1,21 +1,21 @@
 import { getSupabaseClient } from '@/infrastructure/config/supabase.ts';
-import { TicketRepository } from '@/domain/interfaces/TicketRepository.ts';
-import { NotificationRepository } from '@/domain/interfaces/NotificationRepository.ts';
 import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
 import { NotificationRepositoryImpl } from '@/infrastructure/repositories/NotificationRepositoryImpl.ts';
+import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
 
 /**
  * リポジトリファクトリー
  * 中央集権化されたSupabaseクライアントを使用してリポジトリインスタンスを作成
  */
 export class RepositoryFactory {
-  private static ticketRepository: TicketRepository | null = null;
-  private static notificationRepository: NotificationRepository | null = null;
+  private static ticketRepository: TicketRepositoryImpl | null = null;
+  private static notificationRepository: NotificationRepositoryImpl | null = null;
+  private static healthRepository: HealthRepositoryImpl | null = null;
 
   /**
    * TicketRepositoryのインスタンスを取得（シングルトン）
    */
-  static getTicketRepository(): TicketRepository {
+  static getTicketRepository(): TicketRepositoryImpl {
     if (!this.ticketRepository) {
       const client = getSupabaseClient();
       this.ticketRepository = new TicketRepositoryImpl(client);
@@ -26,7 +26,7 @@ export class RepositoryFactory {
   /**
    * NotificationRepositoryのインスタンスを取得（シングルトン）
    */
-  static getNotificationRepository(): NotificationRepository {
+  static getNotificationRepository(): NotificationRepositoryImpl {
     if (!this.notificationRepository) {
       const client = getSupabaseClient();
       this.notificationRepository = new NotificationRepositoryImpl(client);
@@ -35,10 +35,22 @@ export class RepositoryFactory {
   }
 
   /**
+   * HealthRepositoryのインスタンスを取得（シングルトン）
+   */
+  static getHealthRepository(): HealthRepositoryImpl {
+    if (!this.healthRepository) {
+      const client = getSupabaseClient();
+      this.healthRepository = new HealthRepositoryImpl(client);
+    }
+    return this.healthRepository;
+  }
+
+  /**
    * テスト用：全リポジトリインスタンスをリセット
    */
   static resetInstances(): void {
     this.ticketRepository = null;
     this.notificationRepository = null;
+    this.healthRepository = null;
   }
 }

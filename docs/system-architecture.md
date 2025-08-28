@@ -9,16 +9,15 @@ ticket sales begin.
 
 ## Technology Stack
 
-| Layer                       | Technology              | Purpose                               | Execution Frequency |
-| --------------------------- | ----------------------- | ------------------------------------- | ------------------- |
-| **Scraping Execution**      | Google Cloud Run        | Playwright execution, data extraction | Once daily          |
-| **Schedule Trigger**        | Google Cloud Scheduler  | Trigger daily scraping                | 12:00 JST daily     |
-| **Notification Scheduling** | Google Cloud Tasks      | Individual notification timing        | As scheduled        |
-| **Data Storage**            | Supabase PostgreSQL     | Ticket and notification history       | Real-time           |
-| **Data API**                | Supabase PostgREST      | CRUD operations                       | On-demand           |
-| **Notification Delivery**   | Supabase Edge Functions | LINE/Discord messaging                | When triggered      |
+| Layer                   | Technology             | Purpose                      | Execution Frequency |
+| ----------------------- | ---------------------- | ---------------------------- | ------------------- |
+| **Application Runtime** | Google Cloud Run       | All business logic execution | On-demand           |
+| **Schedule Trigger**    | Google Cloud Scheduler | Trigger daily scraping       | 12:00 JST daily     |
+| **Task Queue**          | Google Cloud Tasks     | Asynchronous task scheduling | As scheduled        |
+| **Data Storage**        | Supabase PostgreSQL    | Primary data persistence     | Real-time           |
+| **Data API**            | Supabase PostgREST     | Auto-generated REST API      | On-demand           |
 
-## Hybrid Architecture Implementation (GCP + Supabase)
+## Simplified Architecture (GCP + Supabase Database)
 
 ### High-Level Architecture
 
@@ -28,17 +27,21 @@ ticket sales begin.
 ├─────────────────────────────────────────────────────────┤
 │  Cloud Scheduler → Cloud Run → Cloud Tasks             │
 │       ↓              ↓            ↓                     │
-│   (12:00 JST)   (Scraping)   (Schedule)                │
+│   (12:00 JST)   (All Logic)   (Async Tasks)            │
+│                      ↓                                  │
+│                 API Endpoints:                          │
+│                 • /api/collect-tickets                  │
+│                 • /api/send-notification                │
 └─────────────────────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────┐
 │                      Supabase                          │
 ├─────────────────────────────────────────────────────────┤
-│  PostgreSQL ← PostgREST API → Edge Functions           │
-│      ↓           ↓                ↓                     │
-│   (Storage)   (CRUD API)    (Notifications)            │
+│         PostgreSQL ← PostgREST API                     │
+│            ↓             ↓                              │
+│      (Data Storage)  (CRUD API)                        │
 └─────────────────────────────────────────────────────────┘
-                                     ↓
+                         ↓
 ┌─────────────────────────────────────────────────────────┐
 │                  External Services                      │
 ├─────────────────────────────────────────────────────────┤
@@ -54,53 +57,54 @@ ticket sales begin.
 ┌─────────────────────────────────────┐
 │     Interface Layer                │  ← Cloud Run Service, Edge Functions
 ├─────────────────────────────────────┤
-│     Application Services           │  ← ScrapingService, NotificationService  
+│     Application Layer              │  ← UseCases: TicketCollectionUseCase
 ├─────────────────────────────────────┤
 │        Domain Layer               │  ← Entities: Ticket, NotificationHistory
-│                                   │    Interfaces: TicketRepository
+│                                   │    Interfaces: TicketRepository, HealthRepository
 ├─────────────────────────────────────┤
-│     Infrastructure Layer          │  ← RepositoryImpl, CloudTasks, Supabase
+│     Infrastructure Layer          │  ← Services: ScrapingService, UrawaScrapingService
+│                                   │    Repositories: TicketRepositoryImpl
+│                                   │    Config: notification.ts, scraping.ts
 └─────────────────────────────────────┘
 ```
 
 ### Layer Responsibilities
 
-#### 1. Interface Layer (Cloud Run + Edge Functions)
+#### 1. Interface Layer (Cloud Run)
 
-**Responsibility**: Handle external requests and trigger application workflows
+**Responsibility**: Handle all external requests and trigger application workflows
 
 **Components:**
 
-- **Cloud Run Service**: Web scraping execution environment
-  - `scrape`: Daily ticket extraction endpoint
-  - `health`: Service health monitoring endpoint
-- **Supabase Edge Functions**: Notification delivery and health monitoring
-  - `send-notification`: Process individual notification requests
-  - `system-health`: Monitor system status and performance
+- **Cloud Run Service**: Unified execution environment for all business logic
+  - `/api/collect-tickets`: Daily ticket extraction endpoint (triggered by Cloud Scheduler)
+  - `/api/send-notification`: LINE and Discord notification delivery (triggered by Cloud Tasks)
 
 **Key Features:**
 
 - HTTP endpoint handling
-- Authentication and authorization
+- Authentication and authorization via OIDC tokens
 - Request/response transformation
 - Error boundary implementation
+- Unified logging and monitoring
 
-#### 2. Application Layer (Services)
+#### 2. Application Layer (Use Cases)
 
 **Responsibility**: Orchestrate business operations and coordinate between layers
 
-**Service Components:**
+**UseCase Components:**
 
-- **ScrapingService**: Web scraping orchestration and data extraction
-- **NotificationService**: Multi-channel notification coordination
-- **CloudTasksService**: Event-driven notification scheduling
+- **TicketCollectionUseCase**: Daily ticket scraping workflow orchestration
+  - Coordinates scraping service execution
+  - Records system health metrics
+  - Handles error scenarios and recovery
 
 **Key Features:**
 
 - Business workflow orchestration
-- Cross-cutting concerns (logging, monitoring)
-- External service integration
-- Transaction management
+- Cross-cutting concerns (logging, health monitoring)
+- Clean separation of business logic from infrastructure
+- Dependency injection for testability
 
 #### 3. Domain Layer (Core Business Logic)
 
@@ -108,9 +112,10 @@ ticket sales begin.
 
 **Domain Components:**
 
-- **Business Entities**: Ticket, NotificationHistory, NotificationConfig
-- **Repository Interfaces**: TicketRepository, NotificationRepository
-- **Domain Services**: Business rule validation and processing
+- **Business Entities**: Ticket, NotificationHistory, SystemHealth
+- **Repository Interfaces**: TicketRepository, NotificationRepository, HealthRepository
+- **Business Logic**: Notification timing calculation, ticket validation
+- **Domain Services**: Configuration-driven notification rules
 
 **Key Principles:**
 
@@ -125,9 +130,13 @@ ticket sales begin.
 
 **Infrastructure Components:**
 
-- **Repository Implementations**: Data persistence layer
-- **External Service Clients**: Cloud Tasks, Playwright integration
-- **Technical Utilities**: Error handling, logging, configuration management
+- **Repository Implementations**: TicketRepositoryImpl, NotificationRepositoryImpl,
+  HealthRepositoryImpl
+- **Scraping Services**: ScrapingService (base class), UrawaScrapingService (Urawa-specific)
+- **External Service Clients**: Supabase client, Playwright integration
+- **Configuration Management**: notification.ts, scraping.ts, url.ts
+- **Technical Utilities**: Error handling, logging, type definitions
+- **Factory Pattern**: RepositoryFactory for dependency management
 
 ## System Components
 
@@ -159,15 +168,15 @@ ticket sales begin.
   - Retry policy: 3 attempts with exponential backoff
   - Rate limiting: 10 dispatches/second
 
-### Supabase Components
+### Supabase Components (Database Only)
 
 #### PostgreSQL Database
 
 - **Purpose**: Primary data storage with ACID compliance
 - **Features**:
   - Row Level Security (RLS)
-  - Automatic triggers for notification scheduling
-  - Real-time subscriptions capability
+  - Automatic backups and point-in-time recovery
+  - Real-time subscriptions capability (future extension)
 
 #### PostgREST API
 
@@ -176,13 +185,7 @@ ticket sales begin.
   - Type-safe database operations
   - Automatic API documentation
   - Built-in filtering and pagination
-
-#### Edge Functions
-
-- **Purpose**: Serverless notification delivery
-- **Functions**:
-  - `send-notification`: Process individual notification requests
-  - `system-health`: Monitor system status and performance
+  - Direct database access from Cloud Run
 
 ## Data Flow Architecture
 
@@ -204,7 +207,7 @@ graph TD
 
 ```mermaid
 graph TD
-    A[Google Cloud Tasks] --> B[Supabase Edge Functions]
+    A[Google Cloud Tasks] --> B[Google Cloud Run /api/send-notification]
     B --> C[NotificationService]
     C --> D{Check Due Notifications}
     D --> E[NotificationRepositoryImpl]
@@ -325,8 +328,8 @@ export class ErrorRecoveryService {
 const AUTH_FLOW = {
   'Cloud Scheduler → Cloud Run': 'OIDC Token (Service Account)',
   'Cloud Run → Supabase': 'Service Role Key (JWT)',
-  'Cloud Tasks → Edge Functions': 'Service Role Key (Authorization Header)',
-  'Edge Functions → External APIs': 'API Keys (Environment Variables)',
+  'Cloud Tasks → Cloud Run': 'OIDC Token (Service Account)',
+  'Cloud Run → External APIs': 'API Keys (Environment Variables)',
 };
 ```
 
@@ -380,8 +383,8 @@ const AUTH_FLOW = {
 ### Supabase (Monthly)
 
 - **Database**: < 500MB = Free
-- **Edge Functions**: ~300 invocations = Free
-- **API Calls**: Minimal = Free
+- **PostgREST API**: Unlimited calls = Free
+- **Automatic Backups**: Daily = Free
 
 **Total Monthly Cost**: $0 (completely within free tiers)
 
@@ -459,3 +462,64 @@ const ALERT_THRESHOLDS = {
 - **Maximum 3 retry attempts**
 - **Dead letter queue for persistent failures**
 - **Automated error alerting via Discord webhooks**
+
+## Current Directory Structure (Clean Architecture)
+
+### Project Layout
+
+```
+src/
+├── application/
+│   └── usecases/                     # Application Use Cases
+│       ├── TicketCollectionUseCase.ts
+│       └── __tests__/
+├── domain/
+│   └── entities/                     # Domain Entities
+│       ├── Ticket.ts
+│       ├── NotificationHistory.ts
+│       ├── NotificationTypes.ts
+│       ├── SystemHealth.ts
+│       ├── ErrorLog.ts
+│       ├── index.ts
+│       └── __tests__/
+└── infrastructure/
+    ├── config/                      # Configuration Management
+    │   ├── notification.ts
+    │   ├── scraping.ts
+    │   ├── url.ts
+    │   ├── supabase.ts
+    │   ├── types/
+    │   │   ├── ScrapingConfig.ts
+    │   │   └── UrlConfig.ts
+    │   └── __tests__/
+    ├── repositories/                # Repository Implementations
+    │   ├── TicketRepositoryImpl.ts
+    │   ├── NotificationRepositoryImpl.ts
+    │   ├── HealthRepositoryImpl.ts
+    │   ├── RepositoryFactory.ts
+    │   ├── converters/
+    │   │   ├── TicketConverter.ts
+    │   │   ├── NotificationConverter.ts
+    │   │   └── HealthConverter.ts
+    │   └── __tests__/
+    ├── services/
+    │   └── scraping/                # Scraping Services
+    │       ├── ScrapingService.ts
+    │       ├── UrawaScrapingService.ts
+    │       └── __tests__/
+    ├── types/
+    │   └── database.ts              # Database Type Definitions
+    └── utils/
+        ├── constants.ts
+        └── error-handler.ts
+```
+
+### Key Architectural Changes
+
+1. **Application Layer Introduction**: New `application/usecases/` layer for business workflow
+   orchestration
+2. **Infrastructure Reorganization**:
+   - Configuration moved from `src/config/` to `src/infrastructure/config/`
+   - Services organized under `src/infrastructure/services/`
+3. **Domain Layer Refinement**: Clear separation of entities and repository interfaces
+4. **Factory Pattern**: `RepositoryFactory` for centralized dependency management

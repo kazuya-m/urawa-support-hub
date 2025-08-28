@@ -1,7 +1,7 @@
 import { assertEquals, assertExists } from 'https://deno.land/std@0.208.0/assert/mod.ts';
 import { cleanupTestTable, createTestSupabaseClient } from '../utils/test-supabase.ts';
 import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
-import { DailyExecutionService } from '@/infrastructure/services/DailyExecutionService.ts';
+import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 // Import removed to avoid Playwright dependency in tests
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
@@ -40,10 +40,13 @@ Deno.test('System Health Integration Tests', async (t) => {
 
     const scrapingService = new TestScrapingService(mockTickets, false);
     // deno-lint-ignore no-explicit-any
-    const dailyService = new DailyExecutionService(scrapingService as any, healthRepository);
+    const ticketCollectionUseCase = new TicketCollectionUseCase(
+      scrapingService as any,
+      healthRepository,
+    );
 
     // Execute daily workflow
-    await dailyService.executeDaily();
+    await ticketCollectionUseCase.execute();
 
     // Verify health record was created in database
     const { data, error } = await supabase
@@ -65,11 +68,14 @@ Deno.test('System Health Integration Tests', async (t) => {
   await t.step('should handle scraping errors but still record health', async () => {
     const scrapingService = new TestScrapingService([], true);
     // deno-lint-ignore no-explicit-any
-    const dailyService = new DailyExecutionService(scrapingService as any, healthRepository);
+    const ticketCollectionUseCase = new TicketCollectionUseCase(
+      scrapingService as any,
+      healthRepository,
+    );
 
     let errorThrown = false;
     try {
-      await dailyService.executeDaily();
+      await ticketCollectionUseCase.execute();
     } catch (error) {
       errorThrown = true;
       assertEquals((error as Error).message, 'Mock scraping error');
@@ -100,19 +106,28 @@ Deno.test('System Health Integration Tests', async (t) => {
 
     const scrapingService = new TestScrapingService([], false);
     // deno-lint-ignore no-explicit-any
-    const dailyService = new DailyExecutionService(scrapingService as any, healthRepository);
+    const ticketCollectionUseCase = new TicketCollectionUseCase(
+      scrapingService as any,
+      healthRepository,
+    );
 
     // Execute multiple times
     for (let i = 0; i < 3; i++) {
-      await dailyService.executeDaily();
+      await ticketCollectionUseCase.execute();
       await new Promise((resolve) => setTimeout(resolve, 10)); // Small delay between executions
     }
 
-    // Check system health
-    const healthStatus = await dailyService.checkSystemHealth();
-    assertEquals(healthStatus.isHealthy, true);
-    assertExists(healthStatus.lastExecution);
-    assertEquals(typeof healthStatus.daysSinceLastExecution, 'number');
+    // Check system health directly via repository
+    const isHealthy = await healthRepository.isSystemHealthy();
+    const latestRecord = await healthRepository.getLatestHealthRecord();
+    const daysSince = latestRecord
+      ? Math.floor(
+        (Date.now() - latestRecord.executedAt.getTime()) / (1000 * 60 * 60 * 24),
+      )
+      : undefined;
+    assertEquals(isHealthy, true);
+    assertExists(latestRecord);
+    assertEquals(typeof daysSince, 'number');
 
     // Verify multiple records exist
     const { data } = await supabase
@@ -127,51 +142,19 @@ Deno.test('System Health Integration Tests', async (t) => {
     });
   });
 
-  await t.step('should cleanup old records while preserving recent ones', async () => {
-    // Insert test records with different ages
-    const now = new Date();
-    const oldResult: HealthCheckResult = {
-      executedAt: new Date(now.getTime() - 40 * 24 * 60 * 60 * 1000), // 40 days old
-      ticketsFound: 1,
-      status: 'success',
-    };
-
-    const recentResult: HealthCheckResult = {
-      executedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), // 5 days old
-      ticketsFound: 2,
-      status: 'success',
-    };
-
-    await healthRepository.recordDailyExecution(oldResult);
-    await healthRepository.recordDailyExecution(recentResult);
-
-    // Cleanup records older than 30 days
-    const scrapingService = new TestScrapingService([], false);
-    // deno-lint-ignore no-explicit-any
-    const dailyService = new DailyExecutionService(scrapingService as any, healthRepository);
-
-    const deletedCount = await dailyService.cleanupOldHealthRecords(30);
-    assertEquals(deletedCount >= 1, true); // At least the 40-day-old record should be deleted
-
-    // Verify recent records remain
-    const { data } = await supabase
-      .from(testTableName)
-      .select('*')
-      .gte('executed_at', new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString());
-
-    assertEquals((data?.length || 0) >= 1, true); // Recent record should remain
-  });
-
   await t.step('should prevent Supabase auto-pause through database activity', async () => {
     // This test verifies the core purpose: maintaining database activity
     await cleanupTestTable(supabase, testTableName);
 
     const scrapingService = new TestScrapingService([], false); // No tickets found (off-season scenario)
     // deno-lint-ignore no-explicit-any
-    const dailyService = new DailyExecutionService(scrapingService as any, healthRepository);
+    const ticketCollectionUseCase = new TicketCollectionUseCase(
+      scrapingService as any,
+      healthRepository,
+    );
 
     // Execute daily routine (simulating off-season when no tickets are available)
-    await dailyService.executeDaily();
+    await ticketCollectionUseCase.execute();
 
     // Verify database activity occurred even with no tickets
     const { data, error } = await supabase
@@ -187,17 +170,20 @@ Deno.test('System Health Integration Tests', async (t) => {
     assertEquals(new Date(record.executed_at) <= new Date(), true);
 
     // Verify system is considered healthy due to recent activity
-    const healthStatus = await dailyService.checkSystemHealth();
-    assertEquals(healthStatus.isHealthy, true);
+    const isSystemHealthy = await healthRepository.isSystemHealthy();
+    assertEquals(isSystemHealthy, true);
   });
 
   await t.step('should handle edge case with zero execution duration', async () => {
     // Test with very fast execution (could result in 0ms duration)
     const scrapingService = new TestScrapingService([], false);
     // deno-lint-ignore no-explicit-any
-    const dailyService = new DailyExecutionService(scrapingService as any, healthRepository);
+    const ticketCollectionUseCase = new TicketCollectionUseCase(
+      scrapingService as any,
+      healthRepository,
+    );
 
-    await dailyService.executeDaily();
+    await ticketCollectionUseCase.execute();
 
     const latest = await healthRepository.getLatestHealthRecord();
     assertExists(latest);

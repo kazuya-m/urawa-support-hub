@@ -1,6 +1,6 @@
 import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
-import { ScrapingConfig } from '@/domain/entities/ScrapingConfig.ts';
-import { UrlConfig } from '@/domain/entities/UrlConfig.ts';
+import { ScrapingConfig } from '@/infrastructure/config/types/ScrapingConfig.ts';
+import { UrlConfig } from '@/infrastructure/config/types/UrlConfig.ts';
 
 /**
  * テスト用モックスクレイピングサービス

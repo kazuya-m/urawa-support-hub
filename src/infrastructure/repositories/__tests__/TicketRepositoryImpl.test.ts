@@ -1,6 +1,7 @@
 import { assertEquals, assertRejects } from 'jsr:@std/assert';
 import { TicketRepositoryImpl } from '../TicketRepositoryImpl.ts';
-import { Ticket, TicketRow } from '@/domain/entities/index.ts';
+import { Ticket } from '@/domain/entities/index.ts';
+import { TicketRow } from '@/infrastructure/types/database.ts';
 import { createMockSupabaseClient } from './test-utils/SupabaseMock.ts';
 import { RepositoryError } from '../../utils/error-handler.ts';
 

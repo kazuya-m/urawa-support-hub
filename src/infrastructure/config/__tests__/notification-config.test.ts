@@ -2,7 +2,7 @@
  * 通知サービス設定のユニットテスト
  */
 
-import { assertEquals, assertThrows } from 'std/assert/mod.ts';
+import { assertEquals, assertThrows } from 'jsr:@std/assert';
 import {
   DISCORD_EMBED_TEMPLATES,
   type DiscordConfig,
@@ -10,7 +10,7 @@ import {
   LINE_MESSAGE_TEMPLATES,
   type LineConfig,
   type NotificationServiceConfig,
-} from '@/config/notification-config.ts';
+} from '../notification.ts';
 
 Deno.test('NotificationServiceConfig interfaces', async (t) => {
   await t.step('LineConfig should have required properties', () => {
