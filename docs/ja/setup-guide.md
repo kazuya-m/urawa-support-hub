@@ -46,23 +46,37 @@ gcloud services enable cloudtasks.googleapis.com
 
 #### 3. 環境変数
 
-`.env`ファイルを作成:
+##### ローカル開発
+
+テンプレートから`.env`ファイルを作成:
 
 ```bash
-# Supabase
-SUPABASE_URL=your-supabase-url
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# テンプレートをコピー
+cp .env.example .env
 
-# Google Cloud
-GOOGLE_CLOUD_PROJECT=your-project-id
-CLOUD_TASKS_LOCATION=asia-northeast1
-CLOUD_TASKS_QUEUE=notifications
-
-# 外部サービス
-LINE_CHANNEL_ACCESS_TOKEN=your-line-token
-DISCORD_WEBHOOK_URL=your-discord-webhook
+# 値を編集
+nano .env
 ```
+
+必要な環境変数:
+
+- **Supabase**: URL、Anonキー、サービスロールキー
+- **Google Cloud**: プロジェクトID、リージョン、サービス名
+- **LINE API**: チャンネルアクセストークン
+- **Discord**: Webhook URL
+
+詳細な説明付きの完全なリストは[`.env.example`](../../.env.example)を参照してください。
+
+##### 本番環境（GitHub Actions）
+
+CI/CDと本番デプロイメントでは、GitHub Secretsを設定:
+
+1. リポジトリ設定 → Secrets and variables → Actions に移動
+2. 必要なシークレットを追加（[GitHub Secrets設定ガイド](github-secrets-setup.md)を参照）
+3. GitHub Actionsワークフローでシークレットを検証
+
+⚠️ **セキュリティ注意**:
+`.env`ファイルやシークレットを絶対にバージョン管理にコミットしないでください
 
 ## 開発ワークフロー
 

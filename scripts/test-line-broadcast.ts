@@ -6,9 +6,13 @@
 
 import { load } from 'std/dotenv/mod.ts';
 
-// .envファイルの読み込み
+// .envファイルの読み込み（.env.exampleとの比較を無効化）
 try {
-  await load({ export: true });
+  await load({
+    export: true,
+    examplePath: null, // .env.exampleとの比較を無効化
+    allowEmptyValues: true, // 空の値も許可
+  });
 } catch {
   // .envファイル読み込みエラーは無視（環境変数が直接設定されている場合もある）
 }

@@ -10,10 +10,11 @@ This command executes the following processes sequentially and generates commit 
 2. Type check with `deno check`
 3. If security violations or type errors exist, stop processing and present issues
 4. Format code with `deno fmt`
-5. Split changed files into appropriate granularity
-6. Generate commit messages for each change
-7. Output `git add` and `git commit` commands that users can copy-paste
-8. **Update project roadmap** - Update issue status in docs/issue-priority-roadmap.md if exists
+5. Check current changes with `git status`
+6. Analyze and split changed files into appropriate granularity
+7. Generate commit messages for each change
+8. Update project roadmap if applicable
+9. **Output executable script file** - Generate `commit-commands.sh` with all git commands
 
 ## Execution Steps
 
@@ -96,49 +97,7 @@ git commit -m "add notification service configuration
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
-### 7. Output Commands for User Execution
-
-**⚠️ CRITICAL: Single-line format for copy-paste compatibility**
-
-All `git add` commands MUST be formatted as single lines to prevent copy-paste errors in terminal:
-
-```bash
-# Change group 1: Add type definitions
-git add src/domain/entities/NewType.ts src/domain/entities/index.ts
-git commit -m "add NewType entity with validation rules"
-
-# Change group 2: Add test files  
-git add src/domain/entities/__tests__/NewType.test.ts
-git commit -m "add unit tests for NewType entity"
-```
-
-**⚠️ CRITICAL Format Rules:**
-
-- **Single line requirement**: Keep all file paths on the same line separated by spaces
-- **Line break prohibition**: Never break `git add` commands across multiple lines
-- **Multiple files**: Use single line even for many files:
-  `git add file1.ts file2.ts file3.ts file4.ts`
-- **Copy-paste safety**: Line breaks in `git add` commands cause terminal execution failures
-
-**Example of INCORRECT formatting (will fail):**
-
-```bash
-# ❌ This WILL FAIL when copy-pasted to terminal
-git add docs/security/environment-variable-management.md \
-       docs/security/gcp-service-account-permissions.md \
-       docs/security/supabase-rls-settings.md
-```
-
-**Example of CORRECT formatting:**
-
-```bash
-# ✅ This is safe for copy-paste
-git add docs/security/environment-variable-management.md docs/security/gcp-service-account-permissions.md docs/security/supabase-rls-settings.md
-```
-
-### 8. Update Project Roadmap (Final Step)
-
-**⚠️ CRITICAL: Execute only AFTER all commits are ready**
+### 7. Update Project Roadmap (if applicable)
 
 If `docs/issue-priority-roadmap.md` exists, update issue statuses based on the commits being made:
 
@@ -154,22 +113,65 @@ If `docs/issue-priority-roadmap.md` exists, update issue statuses based on the c
 5. **Update dates**: Refresh "Updated" timestamp to current date
 6. **Next steps**: Reorder "Next Steps Priority" based on new status
 
-**Example Status Updates:**
+### 8. Output Commands for User Execution (Final Step)
+
+**🚨 CRITICAL: Generate executable script file for all git commands**
+
+Create a temporary shell script file `commit-commands.sh` that contains all the git add and git
+commit commands in appropriate granularity:
+
+**Script File Format:**
 
 ```bash
-# If implementing repository factory (#37):
-# Change: #37 | Supabase client and repositories | ⏳ IN PROGRESS → ✅ COMPLETED
+#!/bin/bash
 
-# If starting new cloud services work (#24):
-# Change: #24 | Google Cloud Run scraping service | ❌ Not Started → ⏳ IN PROGRESS
-```
+# Auto-generated commit commands
+# Generated at: [timestamp]
+# Issue: #[issue-number]
 
-**Roadmap Update Commands:**
+echo "📦 Starting commits for Issue #XX..."
 
-```bash
-# After roadmap updates, add to the commit sequence:
+# Group 1: [Description]
+git add file1.ts file2.ts
+git commit -m "commit message here"
+echo "✅ Group 1 committed"
+
+# Group 2: [Description]
+git add file3.ts file4.ts
+git commit -m "another commit message"
+echo "✅ Group 2 committed"
+
+# Roadmap update (if applicable)
 git add docs/issue-priority-roadmap.md
 git commit -m "プロジェクトロードマップを更新：課題 #XX の進捗を反映"
+echo "✅ Roadmap updated"
+
+echo "🎉 All commits completed!"
+```
+
+**⚠️ CRITICAL Format Rules:**
+
+- **Single line requirement**: Keep all file paths on the same line separated by spaces
+- **Line break prohibition**: Never break `git add` commands across multiple lines
+- **Script execution**: User can run with `bash commit-commands.sh` or
+  `chmod +x commit-commands.sh && ./commit-commands.sh`
+- **Progress feedback**: Include echo statements to show progress
+- **Error handling**: Script will stop on first error (bash default behavior)
+
+**Example of CORRECT formatting:**
+
+```bash
+# ✅ This is safe for copy-paste and script execution
+git add docs/security/environment-variable-management.md docs/security/gcp-service-account-permissions.md docs/security/supabase-rls-settings.md
+```
+
+**Example of INCORRECT formatting (will fail):**
+
+```bash
+# ❌ This WILL FAIL when executed
+git add docs/security/environment-variable-management.md \
+       docs/security/gcp-service-account-permissions.md \
+       docs/security/supabase-rls-settings.md
 ```
 
 ## Notes
@@ -179,6 +181,7 @@ git commit -m "プロジェクトロードマップを更新：課題 #XX の進
 - Claude has no commit permissions, so all commands must be copy-pasted by user
 - Split with appropriate granularity following CLAUDE.md commit granularity
 - Generate commit messages in Japanese (when needed)
+- **CRITICAL**: Always generate `commit-commands.sh` script file for batch execution
 - **CRITICAL**: Format all `git add` commands as single lines to prevent terminal copy-paste errors
-- **Line break failure**: Multi-line `git add` commands with line breaks will fail when copy-pasted
-  to terminal
+- **Line break failure**: Multi-line `git add` commands with line breaks will fail when executed
+- **Script execution**: User can run the generated script with `bash commit-commands.sh`
