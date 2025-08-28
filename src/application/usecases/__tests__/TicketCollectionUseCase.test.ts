@@ -121,7 +121,12 @@ Deno.test('TicketCollectionUseCase Tests', async (t) => {
       healthRepository as any,
     );
 
-    await ticketCollectionUseCase.execute();
+    // エラーがスローされることを期待
+    await assertRejects(
+      async () => await ticketCollectionUseCase.execute(),
+      Error,
+      'Scraping failed',
+    );
 
     const records = healthRepository.getRecords();
     assertEquals(records.length, 1);
