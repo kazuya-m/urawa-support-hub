@@ -90,12 +90,6 @@ deno fmt src/
 - **タイムアウト**: 300秒
 - **同時実行**: 1（順次処理）
 
-#### Edge Functions設定
-
-- **メモリ**: 512MB（通知用）
-- **タイムアウト**: 60秒
-- **ランタイム**: TypeScript付きDeno
-
 #### Cloud Tasks設定
 
 - **キュー**: notifications
@@ -120,14 +114,13 @@ deno test tests/integration/ --allow-env --allow-net=127.0.0.1
 ### クラウド統合テスト
 
 ```bash
-# Edge Functionsをローカルテスト
-supabase functions serve
+# Cloud Runをローカルテスト
+deno run --allow-net --allow-env src/main.ts
 
 # curlでテスト
-curl -X POST 'http://127.0.0.1:54321/functions/v1/send-notification' \
-  -H 'Authorization: Bearer your-anon-key' \
+curl -X POST 'http://localhost:8080/api/send-notification' \
   -H 'Content-Type: application/json' \
-  -d '{"test": true}'
+  -d '{"ticketId": "test-123", "notificationType": "day_before"}'
 ```
 
 ## デプロイ
@@ -137,9 +130,6 @@ curl -X POST 'http://127.0.0.1:54321/functions/v1/send-notification' \
 ```bash
 # データベーススキーマをデプロイ
 supabase db push
-
-# Edge Functionsをデプロイ
-supabase functions deploy
 ```
 
 ### Cloud Runデプロイ
@@ -189,14 +179,15 @@ gcloud auth login
 
 **メモリ問題**
 
-- Playwright操作にはCloud Run（2GB）を使用
-- 簡単な通知にはEdge Functions（512MB）を使用
-- Edge FunctionsでPlaywrightは絶対に実行しない
+- 通知を含むすべての操作にはCloud Run（2GB）を使用
+- SupabaseはデータベースとPostgREST APIのみ使用
+- すべてのビジネスロジックはCloud Runで実行
 
 ## アーキテクチャノート
 
-- **スクレイピング**: Playwright用十分メモリのCloud Runで実行
-- **通知**: コスト効率のためEdge Functionsで実行
+- **アプリケーション実行**: すべてのビジネスロジックはCloud Runで実行
+- **スクレイピング**: 十分なメモリ（2GB）でPlaywright実行
+- **通知**: Cloud Runエンドポイント経由でLINE/Discord配信
 - **スケジューリング**: 信頼性のためCloud Scheduler + Cloud Tasks
 - **データベース**: 自動API生成付きSupabase PostgreSQL
 - **コスト**: 無料枠制限内での運用設計

@@ -345,7 +345,7 @@ export class TicketRepositoryImpl implements TicketRepository {
         ticketId,
         notificationType: type,
         scheduledTime,
-        targetUrl: `${SUPABASE_URL}/functions/v1/send-notification`,
+        targetUrl: `${CLOUD_RUN_URL}/api/send-notification`,
       });
     }
   }
@@ -1049,6 +1049,141 @@ export class InMemoryCacheService implements CacheService {
 }
 ```
 
+## Cloud Run API Implementation
+
+### HTTP Endpoints
+
+```typescript
+// src/main.ts
+import { Hono } from 'https://deno.land/x/hono@v3.11.7/mod.ts';
+import { TicketCollectionUseCase } from './application/usecases/TicketCollectionUseCase.ts';
+import { NotificationService } from './infrastructure/services/NotificationService.ts';
+
+const app = new Hono();
+const port = parseInt(Deno.env.get('PORT') ?? '8080');
+
+// Ticket collection endpoint (triggered by Cloud Scheduler)
+app.post('/api/collect-tickets', async (c) => {
+  try {
+    const ticketCollectionUseCase = new TicketCollectionUseCase(
+      scrapingService,
+      healthRepository,
+    );
+
+    await ticketCollectionUseCase.execute();
+
+    return c.json({
+      success: true,
+      message: 'Scraping completed successfully',
+    });
+  } catch (error) {
+    console.error('Scraping failed:', error);
+    return c.json({
+      success: false,
+      error: error.message,
+    }, 500);
+  }
+});
+
+// Notification endpoint (triggered by Cloud Tasks)
+app.post('/api/send-notification', async (c) => {
+  try {
+    const { ticketId, notificationType } = await c.req.json();
+
+    const notificationService = new NotificationService(
+      notificationRepository,
+      lineClient,
+      discordClient,
+    );
+
+    await notificationService.sendNotification(ticketId, notificationType);
+
+    return c.json({
+      success: true,
+      message: 'Notification sent successfully',
+    });
+  } catch (error) {
+    console.error('Notification failed:', error);
+    return c.json({
+      success: false,
+      error: error.message,
+    }, 500);
+  }
+});
+
+// Start server
+Deno.serve({ port }, app.fetch);
+console.log(`Server running on port ${port}`);
+```
+
+### LINE Notification Client
+
+```typescript
+// src/infrastructure/clients/LineClient.ts
+export class LineClient {
+  private readonly baseUrl = 'https://api.line.me/v2/bot';
+
+  constructor(
+    private readonly channelAccessToken: string,
+  ) {}
+
+  async broadcast(message: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/message/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.channelAccessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [{
+          type: 'text',
+          text: message,
+        }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`LINE API error: ${response.status}`);
+    }
+  }
+}
+```
+
+### Discord Alert Client
+
+```typescript
+// src/infrastructure/clients/DiscordClient.ts
+export class DiscordClient {
+  constructor(
+    private readonly webhookUrl: string,
+  ) {}
+
+  async sendAlert(message: string, isError: boolean = false): Promise<void> {
+    const response = await fetch(this.webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: message,
+        embeds: isError
+          ? [{
+            title: '⚠️ Error Alert',
+            description: message,
+            color: 0xff0000,
+            timestamp: new Date().toISOString(),
+          }]
+          : undefined,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Discord webhook error: ${response.status}`);
+    }
+  }
+}
+```
+
 ## Deployment Implementation
 
 ### Cloud Run Dockerfile
@@ -1089,10 +1224,6 @@ gcloud run deploy urawa-scraper \
   --timeout 300 \
   --max-instances 10 \
   --set-env-vars "NODE_ENV=production"
-
-# Deploy Edge Functions
-supabase functions deploy send-notification
-supabase functions deploy system-health
 
 # Apply database migrations
 supabase db push

@@ -90,12 +90,6 @@ deno fmt src/
 - **Timeout**: 300 seconds
 - **Concurrency**: 1 (sequential processing)
 
-#### Edge Functions Configuration
-
-- **Memory**: 512MB (for notifications)
-- **Timeout**: 60 seconds
-- **Runtime**: Deno with TypeScript
-
 #### Cloud Tasks Configuration
 
 - **Queue**: notifications
@@ -120,14 +114,13 @@ deno test tests/integration/ --allow-env --allow-net=127.0.0.1
 ### Cloud Integration Testing
 
 ```bash
-# Test Edge Functions locally
-supabase functions serve
+# Test Cloud Run locally
+deno run --allow-net --allow-env src/main.ts
 
 # Test with curl
-curl -X POST 'http://127.0.0.1:54321/functions/v1/send-notification' \
-  -H 'Authorization: Bearer your-anon-key' \
+curl -X POST 'http://localhost:8080/api/send-notification' \
   -H 'Content-Type: application/json' \
-  -d '{"test": true}'
+  -d '{"ticketId": "test-123", "notificationType": "day_before"}'
 ```
 
 ## Deployment
@@ -137,9 +130,6 @@ curl -X POST 'http://127.0.0.1:54321/functions/v1/send-notification' \
 ```bash
 # Deploy database schema
 supabase db push
-
-# Deploy Edge Functions
-supabase functions deploy
 ```
 
 ### Cloud Run Deployment
@@ -189,14 +179,15 @@ gcloud auth login
 
 **Memory Issues**
 
-- Use Cloud Run (2GB) for Playwright operations
-- Use Edge Functions (512MB) for simple notifications
-- Never run Playwright in Edge Functions
+- Use Cloud Run (2GB) for all operations including notifications
+- Supabase is used only for database and PostgREST API
+- All business logic runs in Cloud Run
 
 ## Architecture Notes
 
-- **Scraping**: Runs in Cloud Run with adequate memory for Playwright
-- **Notifications**: Runs in Edge Functions for cost efficiency
+- **Application Runtime**: All business logic runs in Cloud Run
+- **Scraping**: Playwright execution with adequate memory (2GB)
+- **Notifications**: LINE/Discord delivery via Cloud Run endpoints
 - **Scheduling**: Cloud Scheduler + Cloud Tasks for reliability
 - **Database**: Supabase PostgreSQL with automatic API generation
 - **Cost**: Designed to operate within free tier limits
