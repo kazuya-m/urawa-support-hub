@@ -46,23 +46,36 @@ gcloud services enable cloudtasks.googleapis.com
 
 #### 3. Environment Variables
 
-Create `.env` file:
+##### Local Development
+
+Create `.env` file from template:
 
 ```bash
-# Supabase
-SUPABASE_URL=your-supabase-url
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# Copy template
+cp .env.example .env
 
-# Google Cloud
-GOOGLE_CLOUD_PROJECT=your-project-id
-CLOUD_TASKS_LOCATION=asia-northeast1
-CLOUD_TASKS_QUEUE=notifications
-
-# External Services
-LINE_CHANNEL_ACCESS_TOKEN=your-line-token
-DISCORD_WEBHOOK_URL=your-discord-webhook
+# Edit with your values
+nano .env
 ```
+
+Required environment variables:
+
+- **Supabase**: URL, Anon Key, Service Role Key
+- **Google Cloud**: Project ID, Region, Service Names
+- **LINE API**: Channel Access Token
+- **Discord**: Webhook URL
+
+See [`.env.example`](../.env.example) for complete list with descriptions.
+
+##### Production (GitHub Actions)
+
+For CI/CD and production deployments, configure GitHub Secrets:
+
+1. Go to Repository Settings → Secrets and variables → Actions
+2. Add required secrets (see [GitHub Secrets Setup Guide](github-secrets-setup.md))
+3. Verify secrets in GitHub Actions workflows
+
+⚠️ **Security Note**: Never commit `.env` files or secrets to version control
 
 ## Development Workflow
 
