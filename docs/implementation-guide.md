@@ -13,7 +13,7 @@ The primary business workflow orchestrator for daily ticket collection operation
 ```typescript
 export class TicketCollectionUseCase {
   constructor(
-    private scrapingService: ScrapingService,
+    private ticketCollectionService: TicketCollectionService,
     private healthRepository: HealthRepository,
   ) {}
 
@@ -22,19 +22,19 @@ export class TicketCollectionUseCase {
     let executionResult: HealthCheckResult;
 
     try {
-      const tickets = await this.scrapingService.scrapeAwayTickets();
+      const result = await this.ticketCollectionService.collectAllTickets();
       const executionDuration = Date.now() - startTime;
 
       executionResult = {
         executedAt: new Date(),
-        ticketsFound: tickets.length,
+        ticketsFound: result.totalTickets,
         status: 'success',
         executionDurationMs: executionDuration,
       };
 
       if (Deno.env.get('NODE_ENV') !== 'production') {
         console.log(
-          `Daily execution completed successfully. Found ${tickets.length} tickets in ${executionDuration}ms`,
+          `Daily execution completed successfully. Found ${result.totalTickets} tickets in ${executionDuration}ms`,
         );
       }
     } catch (error) {
@@ -273,28 +273,75 @@ export const URAWA_SCRAPING_CONFIG: ScrapingConfig = {
 ### Scraping Service Architecture
 
 ```typescript
-// Base ScrapingService (Infrastructure layer)
-export class ScrapingService {
-  constructor(
-    private config: ScrapingConfig,
-    private urlConfig: UrlConfig,
-  ) {}
+// Integration service for multiple ticket sources
+export class TicketCollectionService {
+  private jleagueScraper: JLeagueTicketScraper;
 
-  async scrapeAwayTickets(): Promise<ScrapedTicketData[]> {
-    // Browser management and scraping logic
+  constructor() {
+    this.jleagueScraper = new JLeagueTicketScraper();
+  }
+
+  async collectAllTickets(): Promise<TicketCollectionResult> {
+    const sourceResults: SourceResult[] = [];
+    const allTickets: ScrapedTicketData[] = [];
+    const errors: string[] = [];
+
+    // J-League ticket collection
+    try {
+      const jleagueTickets = await this.jleagueScraper.scrapeTickets();
+      sourceResults.push({
+        source: 'J-League Ticket',
+        ticketsFound: jleagueTickets.length,
+        success: true,
+      });
+      allTickets.push(...jleagueTickets);
+    } catch (error) {
+      sourceResults.push({
+        source: 'J-League Ticket',
+        ticketsFound: 0,
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      errors.push(`J-League: ${error}`);
+    }
+
+    // Remove duplicate tickets between sources
+    const uniqueTickets = this.removeDuplicateTickets(allTickets);
+
+    return {
+      success: sourceResults.some((result) => result.success),
+      totalTickets: uniqueTickets.length,
+      sourceResults,
+      errors,
+    };
   }
 }
 
-// Urawa-specific implementation
-export class UrawaScrapingService extends ScrapingService {
+// J-League specific scraper
+export class JLeagueTicketScraper {
+  private browserManager: BrowserManager;
+  private dataExtractor: TicketDataExtractor;
+
   constructor() {
-    super(URAWA_SCRAPING_CONFIG, URAWA_URL_CONFIG);
+    this.browserManager = new BrowserManager();
+    this.dataExtractor = new TicketDataExtractor({
+      selectors: J_LEAGUE_SCRAPING_CONFIG.selectors,
+      awayKeywords: J_LEAGUE_SCRAPING_CONFIG.awayKeywords,
+      specialKeywords: J_LEAGUE_SCRAPING_CONFIG.specialKeywords,
+    });
   }
 
-  async scrapeUrawaAwayTickets(): Promise<ScrapedTicketData[]> {
-    const tickets = await this.scrapeAwayTickets();
-    // Urawa-specific post-processing
-    return tickets;
+  async scrapeTickets(): Promise<ScrapedTicketData[]> {
+    // Playwright-based scraping with retry logic
+    await this.browserManager.launch(J_LEAGUE_SCRAPING_CONFIG.timeouts.pageLoad);
+    const page = await this.browserManager.createPage(
+      J_LEAGUE_SCRAPING_CONFIG.timeouts.elementWait,
+    );
+
+    const matchList = await this.dataExtractor.extractTickets(page);
+    const awayMatches = matchList.filter((match) => this.dataExtractor.isAwayTicket(match));
+
+    return awayMatches;
   }
 }
 ```
@@ -664,55 +711,71 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
 
 ## Application Services
 
-### ScrapingService
+### TicketCollectionService
 
 ```typescript
-export class ScrapingService {
-  constructor(
-    private playwrightClient: PlaywrightClient,
-    private ticketRepository: TicketRepository,
-  ) {}
+export class TicketCollectionService {
+  private jleagueScraper: JLeagueTicketScraper;
 
-  async executeDaily(): Promise<ScrapingResult> {
-    const startTime = new Date();
-    let processedCount = 0;
-    let errorCount = 0;
-    const errors: Error[] = [];
+  constructor() {
+    this.jleagueScraper = new JLeagueTicketScraper();
+  }
 
+  async collectAllTickets(): Promise<TicketCollectionResult> {
+    const sourceResults: SourceResult[] = [];
+    const allTickets: ScrapedTicketData[] = [];
+    const errors: string[] = [];
+
+    // J-League ticket collection
     try {
-      // Scrape tickets from J-League site
-      const scrapedData = await this.playwrightClient.scrapeTickets();
-
-      // Process each scraped ticket
-      for (const data of scrapedData) {
-        try {
-          const ticket = TicketConverter.fromScrapedData(data);
-          await this.ticketRepository.upsert(ticket);
-          await this.ticketRepository.scheduleNotifications(ticket.id);
-          processedCount++;
-        } catch (error) {
-          errorCount++;
-          errors.push(error as Error);
-          console.error('Failed to process ticket:', data, error);
-        }
-      }
-
-      return {
+      const jleagueTickets = await this.jleagueScraper.scrapeTickets();
+      sourceResults.push({
+        source: 'J-League Ticket',
+        ticketsFound: jleagueTickets.length,
         success: true,
-        processedCount,
-        errorCount,
-        duration: new Date().getTime() - startTime.getTime(),
-        errors: errors.map((e) => e.message),
-      };
+      });
+      allTickets.push(...jleagueTickets);
     } catch (error) {
-      return {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      sourceResults.push({
+        source: 'J-League Ticket',
+        ticketsFound: 0,
         success: false,
-        processedCount,
-        errorCount: errorCount + 1,
-        duration: new Date().getTime() - startTime.getTime(),
-        errors: [...errors.map((e) => e.message), (error as Error).message],
-      };
+        error: errorMessage,
+      });
+      errors.push(`J-League: ${errorMessage}`);
     }
+
+    // Remove duplicate tickets between sources
+    const uniqueTickets = this.removeDuplicateTickets(allTickets);
+    const totalTickets = uniqueTickets.length;
+    const overall_success = sourceResults.some((result) => result.success);
+
+    return {
+      success: overall_success,
+      totalTickets,
+      sourceResults,
+      errors,
+    };
+  }
+
+  private removeDuplicateTickets(tickets: ScrapedTicketData[]): ScrapedTicketData[] {
+    const uniqueMap = new Map<string, ScrapedTicketData>();
+
+    for (const ticket of tickets) {
+      const key = `${ticket.matchName.toLowerCase()}_${ticket.venue.toLowerCase()}`;
+      const existing = uniqueMap.get(key);
+
+      if (!existing) {
+        uniqueMap.set(key, ticket);
+      } else {
+        // Merge more detailed data
+        const merged = this.mergeTicketData(existing, ticket);
+        uniqueMap.set(key, merged);
+      }
+    }
+
+    return Array.from(uniqueMap.values());
   }
 }
 ```
@@ -944,7 +1007,7 @@ src/infrastructure/clients/__tests__/
 ├── PlaywrightClientImpl.test.ts
 
 src/application/services/__tests__/ 
-├── ScrapingService.test.ts
+├── TicketCollectionService.test.ts
 ├── NotificationService.test.ts
 
 tests/integration/
