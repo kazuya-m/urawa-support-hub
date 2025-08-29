@@ -10,7 +10,8 @@
  * 注意: アクセス過多を防ぐため、手動実行のみ推奨
  */
 
-import { UrawaTicketScraper } from '../src/infrastructure/services/scraping/UrawaTicketScraper.ts';
+import { JLeagueTicketScraper } from '../src/infrastructure/services/scraping/sources/jleague/JLeagueTicketScraper.ts';
+import { TicketCollectionService } from '../src/infrastructure/services/scraping/TicketCollectionService.ts';
 import { ScrapedTicketData } from '../src/domain/entities/Ticket.ts';
 
 // 環境変数チェック
@@ -29,24 +30,35 @@ console.log('🚀 スクレイピングテスト開始');
 console.log('='.repeat(50));
 
 async function testScraping() {
-  const scraper = new UrawaTicketScraper();
+  // 統合収集サービスのテスト
+  console.log('\n🔄 統合チケット収集サービステスト');
+  const collectionService = new TicketCollectionService();
 
   try {
     console.log('\n📋 浦和レッズアウェイチケット情報を取得中...');
     const startTime = Date.now();
 
-    const tickets = await scraper.scrapeTickets();
+    // 統合サービスでテスト
+    const result = await collectionService.collectAllTickets();
 
     const duration = Date.now() - startTime;
     console.log(`\n✅ 取得完了 (${duration}ms)`);
     console.log('='.repeat(50));
+    console.log(`\n📊 取得結果: ${result.totalTickets} 件のアウェイチケット`);
+    console.log('📋 ソース別結果:');
+    result.sourceResults.forEach((source) => {
+      console.log(
+        `  - ${source.source}: ${source.ticketsFound}件 (${source.success ? '成功' : '失敗'})`,
+      );
+    });
 
-    if (tickets.length === 0) {
+    if (result.totalTickets === 0) {
       console.log('⚠️  アウェイチケットが見つかりませんでした');
       return;
     }
 
-    console.log(`\n📊 取得結果: ${tickets.length} 件のアウェイチケット`);
+    // 詳細表示のため個別にJ-Leagueデータ取得
+    const tickets = await collectionService.collectFromJLeagueOnly();
     console.log('='.repeat(50));
 
     // チケット情報を詳細表示
