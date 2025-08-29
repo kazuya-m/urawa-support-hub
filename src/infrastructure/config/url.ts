@@ -13,16 +13,6 @@ export const URAWA_URL_CONFIG: UrlConfig = {
     lineApiInfo: 'https://api.line.me/v2/bot/info',
     sitemapUrl: 'https://www.jleague-ticket.jp/sitemap.xml',
   },
-
-  dynamicUrls: {
-    urawaAwayTabUrl: 'https://www.jleague-ticket.jp/club/ur/?tab=away',
-    fallbackUrls: [
-      'https://www.jleague-ticket.jp/club/ur/away',
-      'https://www.jleague-ticket.jp/urawa/away',
-      'https://www.jleague-ticket.jp/club/ur/#away',
-    ],
-  },
-
   environmentUrls: {
     debugUrl: 'http://localhost:3000/debug-scraping',
     webhookUrl: undefined, // 環境変数から取得

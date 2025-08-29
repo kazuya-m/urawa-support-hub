@@ -1,4 +1,4 @@
-import { ScrapingService } from '@/infrastructure/services/scraping/ScrapingService.ts';
+import { UrawaTicketScraper } from '@/infrastructure/services/scraping/UrawaTicketScraper.ts';
 import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
@@ -10,7 +10,7 @@ import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
  */
 export class TicketCollectionUseCase {
   constructor(
-    private scrapingService: ScrapingService,
+    private scraper: UrawaTicketScraper,
     private healthRepository: HealthRepositoryImpl,
   ) {}
 
@@ -25,7 +25,7 @@ export class TicketCollectionUseCase {
     let executionResult: HealthCheckResult;
 
     try {
-      const tickets = await this.scrapingService.scrapeAwayTickets();
+      const tickets = await this.scraper.scrapeTickets();
 
       const executionDuration = Date.now() - startTime;
 

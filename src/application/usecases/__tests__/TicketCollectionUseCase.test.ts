@@ -3,12 +3,8 @@ import { TicketCollectionUseCase } from '../TicketCollectionUseCase.ts';
 import { HealthCheckResult, SystemHealth } from '@/domain/entities/SystemHealth.ts';
 import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
 
-// Mock scraping service interface for testing (avoids Playwright dependencies)
-interface MockScrapingService {
-  scrapeAwayTickets(): Promise<ScrapedTicketData[]>;
-}
-
-class TestMockScrapingService implements MockScrapingService {
+// Mock scraper for testing (avoids Playwright dependencies)
+class MockUrawaTicketScraper {
   private mockTickets: ScrapedTicketData[] = [];
   private shouldThrow: boolean = false;
 
@@ -17,7 +13,7 @@ class TestMockScrapingService implements MockScrapingService {
     this.shouldThrow = shouldThrow;
   }
 
-  async scrapeAwayTickets() {
+  async scrapeTickets() {
     if (this.shouldThrow) {
       throw new Error('Scraping failed');
     }
@@ -57,12 +53,12 @@ Deno.test('TicketCollectionUseCase Tests', async (t) => {
   await t.step('should execute daily scraping successfully and record health', async () => {
     const mockTickets: ScrapedTicketData[] = [];
 
-    const scrapingService = new TestMockScrapingService(mockTickets, false);
+    const scraper = new MockUrawaTicketScraper(mockTickets, false);
     const healthRepository = new MockHealthRepository(false);
 
     const ticketCollectionUseCase = new TicketCollectionUseCase(
       // deno-lint-ignore no-explicit-any
-      scrapingService as any,
+      scraper as any,
       // deno-lint-ignore no-explicit-any
       healthRepository as any,
     );
@@ -90,12 +86,12 @@ Deno.test('TicketCollectionUseCase Tests', async (t) => {
       },
     ];
 
-    const scrapingService = new TestMockScrapingService(mockTickets, false);
+    const scraper = new MockUrawaTicketScraper(mockTickets, false);
     const healthRepository = new MockHealthRepository(false);
 
     const ticketCollectionUseCase = new TicketCollectionUseCase(
       // deno-lint-ignore no-explicit-any
-      scrapingService as any,
+      scraper as any,
       // deno-lint-ignore no-explicit-any
       healthRepository as any,
     );
@@ -111,12 +107,12 @@ Deno.test('TicketCollectionUseCase Tests', async (t) => {
   });
 
   await t.step('should handle scraping errors and record failure health', async () => {
-    const scrapingService = new TestMockScrapingService([], true);
+    const scraper = new MockUrawaTicketScraper([], true);
     const healthRepository = new MockHealthRepository(false);
 
     const ticketCollectionUseCase = new TicketCollectionUseCase(
       // deno-lint-ignore no-explicit-any
-      scrapingService as any,
+      scraper as any,
       // deno-lint-ignore no-explicit-any
       healthRepository as any,
     );
@@ -139,12 +135,12 @@ Deno.test('TicketCollectionUseCase Tests', async (t) => {
   });
 
   await t.step('should handle health recording errors gracefully', async () => {
-    const scrapingService = new TestMockScrapingService([], false);
+    const scraper = new MockUrawaTicketScraper([], false);
     const healthRepository = new MockHealthRepository(true);
 
     const ticketCollectionUseCase = new TicketCollectionUseCase(
       // deno-lint-ignore no-explicit-any
-      scrapingService as any,
+      scraper as any,
       // deno-lint-ignore no-explicit-any
       healthRepository as any,
     );
