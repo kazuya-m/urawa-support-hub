@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-08-28\
+**Updated**: 2025-08-29\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
@@ -32,13 +32,13 @@
 
 **Purpose**: Implement scraping and scheduling functionality
 
-| Issue | Title                                                     | Priority    | Status             | Reason                            |
-| ----- | --------------------------------------------------------- | ----------- | ------------------ | --------------------------------- |
-| #38   | Playwright scraping implementation                        | 🔴 Critical | ⏳ **IN PROGRESS** | Core data retrieval functionality |
-| #12   | Ticket management application service implementation      | 🔴 Critical | ✅ **COMPLETED**   | Core business logic               |
-| #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | ❌ Not Started     | Container deployment              |
-| #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started     | Automation requirements           |
-| #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started     | Notification timing control       |
+| Issue | Title                                                     | Priority    | Status           | Reason                            |
+| ----- | --------------------------------------------------------- | ----------- | ---------------- | --------------------------------- |
+| #38   | Playwright scraping implementation                        | 🔴 Critical | ✅ **COMPLETED** | Core data retrieval functionality |
+| #12   | Ticket management application service implementation      | 🔴 Critical | ✅ **COMPLETED** | Core business logic               |
+| #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | ❌ Not Started   | Container deployment              |
+| #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started   | Automation requirements           |
+| #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started   | Notification timing control       |
 
 ### Phase 3: Notification Services (2 days)
 
@@ -103,11 +103,11 @@ Each issue is considered complete when:
 
 - **Target**: Complete Google Cloud integration and production deployment
 - **Success Criteria**: Automated daily ticket monitoring with LINE/Discord notifications
-- **Remaining**: 4 issues (17% of total scope)
+- **Remaining**: 3 issues (12% of total scope)
 
 ## Current Status (2025-08-28)
 
-### ✅ Completed Issues: 20/24 (83%)
+### ✅ Completed Issues: 21/24 (88%)
 
 **Foundation & Infrastructure:**
 
@@ -129,6 +129,7 @@ Each issue is considered complete when:
 - #16 - System health monitoring Edge Function
 - #27 - LINE notification service implementation
 - #12 - Ticket management application service implementation
+- #38 - Playwright scraping implementation
 
 **Testing & Documentation:**
 
@@ -139,12 +140,11 @@ Each issue is considered complete when:
 - #32 - Database migration management
 - #34 - Security and permission detailed design
 
-### ⏳ In Progress: 3/24 (13%)
+### ⏳ In Progress: 2/24 (8%)
 
 - #13 - Notification management application service
 - #30 - Discord error notification implementation
 - #33 - Minimal CI/CD setup
-- #38 - Playwright scraping implementation
 
 ### ❌ Not Started: 3/24 (13%)
 

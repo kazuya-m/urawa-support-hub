@@ -3,11 +3,14 @@ import { cleanupTestTable, createTestSupabaseClient } from '../utils/test-supaba
 import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 // Import removed to avoid Playwright dependency in tests
-import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
+import {
+  TicketCollectionResult,
+  TicketCollectionService,
+} from '@/infrastructure/services/scraping/TicketCollectionService.ts';
 
-// Lightweight mock scraping service for testing (avoids Playwright dependency)
-class TestScrapingService {
+// Lightweight mock collection service for testing (avoids Playwright dependency)
+class TestTicketCollectionService {
   private mockTickets: ScrapedTicketData[];
   private shouldThrow: boolean;
 
@@ -16,11 +19,30 @@ class TestScrapingService {
     this.shouldThrow = shouldThrow;
   }
 
-  async scrapeAwayTickets(): Promise<ScrapedTicketData[]> {
+  async collectAllTickets(): Promise<TicketCollectionResult> {
     await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate some work
 
     if (this.shouldThrow) {
-      throw new Error('Mock scraping error');
+      throw new Error('Mock collection error');
+    }
+
+    return {
+      success: true,
+      totalTickets: this.mockTickets.length,
+      sourceResults: [{
+        source: 'J-League Ticket',
+        ticketsFound: this.mockTickets.length,
+        success: true,
+      }],
+      errors: [],
+    };
+  }
+
+  async collectFromJLeagueOnly(): Promise<ScrapedTicketData[]> {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    if (this.shouldThrow) {
+      throw new Error('Mock J-League scraping error');
     }
 
     return this.mockTickets;
@@ -38,10 +60,9 @@ Deno.test('System Health Integration Tests', async (t) => {
   await t.step('should complete full daily execution workflow successfully', async () => {
     const mockTickets: ScrapedTicketData[] = [];
 
-    const scrapingService = new TestScrapingService(mockTickets, false);
-    // deno-lint-ignore no-explicit-any
+    const collectionService = new TestTicketCollectionService(mockTickets, false);
     const ticketCollectionUseCase = new TicketCollectionUseCase(
-      scrapingService as any,
+      collectionService as unknown as TicketCollectionService,
       healthRepository,
     );
 
@@ -66,10 +87,9 @@ Deno.test('System Health Integration Tests', async (t) => {
   });
 
   await t.step('should handle scraping errors but still record health', async () => {
-    const scrapingService = new TestScrapingService([], true);
-    // deno-lint-ignore no-explicit-any
+    const collectionService = new TestTicketCollectionService([], true);
     const ticketCollectionUseCase = new TicketCollectionUseCase(
-      scrapingService as any,
+      collectionService as unknown as TicketCollectionService,
       healthRepository,
     );
 
@@ -78,7 +98,7 @@ Deno.test('System Health Integration Tests', async (t) => {
       await ticketCollectionUseCase.execute();
     } catch (error) {
       errorThrown = true;
-      assertEquals((error as Error).message, 'Mock scraping error');
+      assertEquals((error as Error).message, 'Mock collection error');
     }
 
     assertEquals(errorThrown, true);
@@ -97,17 +117,16 @@ Deno.test('System Health Integration Tests', async (t) => {
     const errorRecord = data![0];
     assertEquals(errorRecord.status, 'error');
     assertEquals(errorRecord.tickets_found, 0);
-    assertEquals(errorRecord.error_details.message, 'Mock scraping error');
+    assertEquals(errorRecord.error_details.message, 'Mock collection error');
   });
 
   await t.step('should maintain system health over multiple executions', async () => {
     // Clear previous test data
     await cleanupTestTable(supabase, testTableName);
 
-    const scrapingService = new TestScrapingService([], false);
-    // deno-lint-ignore no-explicit-any
+    const collectionService = new TestTicketCollectionService([], false);
     const ticketCollectionUseCase = new TicketCollectionUseCase(
-      scrapingService as any,
+      collectionService as unknown as TicketCollectionService,
       healthRepository,
     );
 
@@ -146,10 +165,9 @@ Deno.test('System Health Integration Tests', async (t) => {
     // This test verifies the core purpose: maintaining database activity
     await cleanupTestTable(supabase, testTableName);
 
-    const scrapingService = new TestScrapingService([], false); // No tickets found (off-season scenario)
-    // deno-lint-ignore no-explicit-any
+    const collectionService = new TestTicketCollectionService([], false); // No tickets found (off-season scenario)
     const ticketCollectionUseCase = new TicketCollectionUseCase(
-      scrapingService as any,
+      collectionService as unknown as TicketCollectionService,
       healthRepository,
     );
 
@@ -176,10 +194,9 @@ Deno.test('System Health Integration Tests', async (t) => {
 
   await t.step('should handle edge case with zero execution duration', async () => {
     // Test with very fast execution (could result in 0ms duration)
-    const scrapingService = new TestScrapingService([], false);
-    // deno-lint-ignore no-explicit-any
+    const collectionService = new TestTicketCollectionService([], false);
     const ticketCollectionUseCase = new TicketCollectionUseCase(
-      scrapingService as any,
+      collectionService as unknown as TicketCollectionService,
       healthRepository,
     );
 

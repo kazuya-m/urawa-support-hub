@@ -59,7 +59,7 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 ├─────────────────────────────────────┤
 │        Domain Layer               │  ← Entities: Ticket, NotificationHistory
 ├─────────────────────────────────────┤
-│     Infrastructure Layer          │  ← Services: ScrapingService, UrawaScrapingService
+│     Infrastructure Layer          │  ← Services: TicketCollectionService, JLeagueTicketScraper
 │                                   │    Repositories: TicketRepositoryImpl
 │                                   │    Config: notification.ts, scraping.ts
 └─────────────────────────────────────┘
@@ -106,7 +106,8 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 **インフラストラクチャコンポーネント:**
 
 - **リポジトリ実装**: TicketRepositoryImpl, NotificationRepositoryImpl, HealthRepositoryImpl
-- **スクレイピングサービス**: ScrapingService（基底クラス）, UrawaScrapingService（浦和固有）
+- **スクレイピングサービス**: TicketCollectionService（統合レイヤー）,
+  JLeagueTicketScraper（ソース固有）, BrowserManager（共有インフラ）
 - **外部サービスクライアント**: Supabaseクライアント、Playwright統合
 - **設定管理**: notification.ts, scraping.ts, url.ts
 - **技術ユーティリティ**: エラーハンドリング、ログ、型定義
@@ -116,7 +117,7 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 ┌─────────────────────────────────────┐
 │     インターフェースレイヤー         │  ← Cloud Run Service, Edge Functions
 ├─────────────────────────────────────┤
-│     アプリケーションサービス         │  ← ScrapingService, NotificationService  
+│     アプリケーションサービス         │  ← TicketCollectionService, NotificationService  
 ├─────────────────────────────────────┤
 │        ドメインレイヤー             │  ← エンティティ: Ticket, NotificationHistory
 ├─────────────────────────────────────┤
@@ -152,7 +153,7 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 
 **サービスコンポーネント:**
 
-- **ScrapingService**: ウェブスクレイピングオーケストレーションとデータ抽出
+- **TicketCollectionService**: 複数ソースからのチケット統合収集とデータ統合
 - **NotificationService**: マルチチャンネル通知調整
 - **CloudTasksService**: イベント駆動通知スケジューリング
 
@@ -251,7 +252,7 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 ```mermaid
 graph TD
     A[Google Cloud Scheduler] --> B[Google Cloud Run]
-    B --> C[ScrapingService]
+    B --> C[TicketCollectionService]
     C --> D[Jリーグチケットサイト]
     D --> E[チケットデータ抽出]
     E --> F[TicketRepositoryImpl]
@@ -327,7 +328,7 @@ export const NOTIFICATION_TIMING_CONFIG = {
 // Cloud Run が複数サービスをオーケストレート
 export class ScrapingOrchestrator {
   constructor(
-    private scrapingService: ScrapingService,
+    private ticketCollectionService: TicketCollectionService,
     private ticketRepository: TicketRepositoryImpl,
     private cloudTasksService: CloudTasksService,
   ) {}
@@ -561,8 +562,15 @@ src/
     │   └── __tests__/
     ├── services/
     │   └── scraping/                # スクレイピングサービス
-    │       ├── ScrapingService.ts
-    │       ├── UrawaScrapingService.ts
+    │       ├── TicketCollectionService.ts
+    │       ├── shared/
+    │       │   └── BrowserManager.ts
+    │       ├── sources/
+    │       │   └── jleague/
+    │       │       ├── JLeagueTicketScraper.ts
+    │       │       ├── TicketDataExtractor.ts
+    │       │       ├── JLeagueConfig.ts
+    │       │       └── __tests__/
     │       └── __tests__/
     ├── types/
     │   └── database.ts              # データベース型定義

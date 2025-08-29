@@ -124,8 +124,8 @@ export class Ticket {
 
 export interface ScrapedTicketData {
   matchName: string;
-  matchDate: string;
-  saleDate: string;
+  matchDate: string | null; // 試合日（取得できない場合はnull）
+  saleDate: string | null; // 販売開始日時（詳細ページから取得、取得できない場合はnull）
   ticketTypes: string[];
   ticketUrl: string;
   venue: string;

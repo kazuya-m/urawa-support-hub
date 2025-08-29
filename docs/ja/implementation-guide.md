@@ -515,10 +515,10 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
 
 ## アプリケーションサービス
 
-### ScrapingService
+### TicketCollectionService
 
 ```typescript
-export class ScrapingService {
+export class TicketCollectionService {
   constructor(
     private playwrightClient: PlaywrightClient,
     private ticketRepository: TicketRepository,
@@ -795,7 +795,7 @@ src/infrastructure/clients/__tests__/
 ├── PlaywrightClientImpl.test.ts
 
 src/application/services/__tests__/ 
-├── ScrapingService.test.ts
+├── TicketCollectionService.test.ts
 ├── NotificationService.test.ts
 
 tests/integration/

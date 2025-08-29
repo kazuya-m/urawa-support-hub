@@ -7,10 +7,6 @@ export interface UrlConfig {
     readonly lineApiInfo: string;
     readonly sitemapUrl: string;
   };
-  dynamicUrls: {
-    urawaAwayTabUrl: string;
-    fallbackUrls: string[];
-  };
   environmentUrls: {
     webhookUrl?: string;
     debugUrl?: string;

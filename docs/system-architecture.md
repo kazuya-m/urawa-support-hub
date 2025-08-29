@@ -62,9 +62,9 @@ ticket sales begin.
 │        Domain Layer               │  ← Entities: Ticket, NotificationHistory
 │                                   │    Interfaces: TicketRepository, HealthRepository
 ├─────────────────────────────────────┤
-│     Infrastructure Layer          │  ← Services: ScrapingService, UrawaScrapingService
+│     Infrastructure Layer          │  ← Services: TicketCollectionService, JLeagueTicketScraper
 │                                   │    Repositories: TicketRepositoryImpl
-│                                   │    Config: notification.ts, scraping.ts
+│                                   │    Config: notification.ts, url.ts
 └─────────────────────────────────────┘
 ```
 
@@ -132,7 +132,8 @@ ticket sales begin.
 
 - **Repository Implementations**: TicketRepositoryImpl, NotificationRepositoryImpl,
   HealthRepositoryImpl
-- **Scraping Services**: ScrapingService (base class), UrawaScrapingService (Urawa-specific)
+- **Scraping Services**: TicketCollectionService (integration layer), JLeagueTicketScraper
+  (source-specific), BrowserManager (shared infrastructure)
 - **External Service Clients**: Supabase client, Playwright integration
 - **Configuration Management**: notification.ts, scraping.ts, url.ts
 - **Technical Utilities**: Error handling, logging, type definitions
@@ -194,7 +195,7 @@ ticket sales begin.
 ```mermaid
 graph TD
     A[Google Cloud Scheduler] --> B[Google Cloud Run]
-    B --> C[ScrapingService]
+    B --> C[TicketCollectionService]
     C --> D[J-League Ticket Site]
     D --> E[Extract Ticket Data]
     E --> F[TicketRepositoryImpl]
@@ -270,13 +271,13 @@ export const NOTIFICATION_TIMING_CONFIG = {
 // Cloud Run orchestrates multiple services
 export class ScrapingOrchestrator {
   constructor(
-    private scrapingService: ScrapingService,
+    private ticketCollectionService: TicketCollectionService,
     private ticketRepository: TicketRepository,
     private cloudTasksService: CloudTasksService,
   ) {}
 
   async executeDaily(): Promise<void> {
-    const tickets = await this.scrapingService.scrapeTickets();
+    const result = await this.ticketCollectionService.collectAllTickets();
 
     for (const ticket of tickets) {
       await this.ticketRepository.save(ticket);
@@ -504,8 +505,15 @@ src/
     │   └── __tests__/
     ├── services/
     │   └── scraping/                # Scraping Services
-    │       ├── ScrapingService.ts
-    │       ├── UrawaScrapingService.ts
+    │       ├── TicketCollectionService.ts
+    │       ├── shared/
+    │       │   └── BrowserManager.ts
+    │       ├── sources/
+    │       │   └── jleague/
+    │       │       ├── JLeagueTicketScraper.ts
+    │       │       ├── TicketDataExtractor.ts
+    │       │       ├── JLeagueConfig.ts
+    │       │       └── __tests__/
     │       └── __tests__/
     ├── types/
     │   └── database.ts              # Database Type Definitions
