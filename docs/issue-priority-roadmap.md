@@ -32,13 +32,13 @@
 
 **Purpose**: Implement scraping and scheduling functionality
 
-| Issue | Title                                                     | Priority    | Status             | Reason                            |
-| ----- | --------------------------------------------------------- | ----------- | ------------------ | --------------------------------- |
-| #38   | Playwright scraping implementation                        | 🔴 Critical | ✅ **COMPLETED**   | Core data retrieval functionality |
-| #12   | Ticket management application service implementation      | 🔴 Critical | ✅ **COMPLETED**   | Core business logic               |
-| #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | ❌ Not Started     | Container deployment              |
-| #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started     | Automation requirements           |
-| #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started     | Notification timing control       |
+| Issue | Title                                                     | Priority    | Status           | Reason                            |
+| ----- | --------------------------------------------------------- | ----------- | ---------------- | --------------------------------- |
+| #38   | Playwright scraping implementation                        | 🔴 Critical | ✅ **COMPLETED** | Core data retrieval functionality |
+| #12   | Ticket management application service implementation      | 🔴 Critical | ✅ **COMPLETED** | Core business logic               |
+| #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | ❌ Not Started   | Container deployment              |
+| #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started   | Automation requirements           |
+| #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started   | Notification timing control       |
 
 ### Phase 3: Notification Services (2 days)
 
