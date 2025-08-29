@@ -1,4 +1,4 @@
-import { UrawaTicketScraper } from '@/infrastructure/services/scraping/UrawaTicketScraper.ts';
+import { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
 import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
@@ -10,7 +10,7 @@ import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
  */
 export class TicketCollectionUseCase {
   constructor(
-    private scraper: UrawaTicketScraper,
+    private ticketCollectionService: TicketCollectionService,
     private healthRepository: HealthRepositoryImpl,
   ) {}
 
@@ -25,21 +25,22 @@ export class TicketCollectionUseCase {
     let executionResult: HealthCheckResult;
 
     try {
-      const tickets = await this.scraper.scrapeTickets();
+      const collectionResult = await this.ticketCollectionService.collectAllTickets();
 
       const executionDuration = Date.now() - startTime;
 
       executionResult = {
         executedAt: new Date(),
-        ticketsFound: tickets.length,
+        ticketsFound: collectionResult.totalTickets,
         status: 'success',
         executionDurationMs: executionDuration,
       };
 
       if (Deno.env.get('NODE_ENV') !== 'production') {
         console.log(
-          `Daily execution completed successfully. Found ${tickets.length} tickets in ${executionDuration}ms`,
+          `Daily execution completed successfully. Found ${collectionResult.totalTickets} tickets in ${executionDuration}ms`,
         );
+        console.log(`Source results:`, collectionResult.sourceResults);
       }
     } catch (error) {
       const executionDuration = Date.now() - startTime;
