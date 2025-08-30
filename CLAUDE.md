@@ -233,23 +233,14 @@ system, not learn about its development history.
 
 ##### Test Implementation Requirements
 
-**🚨 重要原則**: 単体テストでは必ず依存関係をモック化すること
+- **Unit tests**: Create tests in `__tests__/` directory at same level as target file
+- **Direct Method Mocking**: Use small-scale project patterns for test isolation
+- **Mock Cleanup**: Ensure proper restoration of all mocks
+- **Integration tests**: Create executable tests in `tests/integration/`
+- **Test verification**: Confirm all test cases succeed
 
-- **Unit test creation**: Tests to verify individual function/method behavior (in `__tests__/`
-  directory at same level as target file)
-- **適切なモック化**: 各層で依存する下位層を必ずモック化
-  - **UseCase Test**: Infrastructure層（Service, Repository）をモック
-  - **Controller Test**: Application層（UseCase）をモック
-  - **Service Test**: Repository層と外部APIをモック
-- **Integration test script creation**: Executable tests to verify key functionality
-  (`tests/integration/`)
-- **Testing with actual data**: Use test data that matches actual constraints rather than dummy data
-- **Boundary value testing**: Verify behavior in normal, exceptional, and boundary value cases
-- **Mock testing**: Unit tests with mocked external dependencies
-- **Cleanup processing**: Complete tests including data deletion after testing
-- **Test result verification**: Confirm all test cases succeed
-
-**詳細**: docs/clean-architecture-guide.md の Testing Strategy を参照
+**📋 For comprehensive testing patterns and strategies, refer to:**
+**[Testing Guidelines](./docs/testing-guidelines.md)**
 
 #### 3. Pre-commit Checklist
 
