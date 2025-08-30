@@ -9,7 +9,8 @@
 
 - **Completed**: Foundation setup, external services, domain models, database schema, notification
   services, application layer
-- **In Progress**: Cloud Run deployment (#24), notification management (#13), Discord notifications (#30)
+- **In Progress**: Cloud Run deployment (#24), notification management (#13), Discord notifications
+  (#30)
 - **Not Started**: Google Cloud services integration, final deployment
 
 ## Implementation Phases Overview
@@ -32,13 +33,13 @@
 
 **Purpose**: Implement scraping and scheduling functionality
 
-| Issue | Title                                                     | Priority    | Status           | Reason                            |
-| ----- | --------------------------------------------------------- | ----------- | ---------------- | --------------------------------- |
-| #38   | Playwright scraping implementation                        | 🔴 Critical | ✅ **COMPLETED** | Core data retrieval functionality |
-| #12   | Ticket management application service implementation      | 🔴 Critical | ✅ **COMPLETED** | Core business logic               |
+| Issue | Title                                                     | Priority    | Status             | Reason                            |
+| ----- | --------------------------------------------------------- | ----------- | ------------------ | --------------------------------- |
+| #38   | Playwright scraping implementation                        | 🔴 Critical | ✅ **COMPLETED**   | Core data retrieval functionality |
+| #12   | Ticket management application service implementation      | 🔴 Critical | ✅ **COMPLETED**   | Core business logic               |
 | #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | ⏳ **IN PROGRESS** | Container deployment              |
-| #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started   | Automation requirements           |
-| #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started   | Notification timing control       |
+| #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started     | Automation requirements           |
+| #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started     | Notification timing control       |
 
 ### Phase 3: Notification Services (2 days)
 
