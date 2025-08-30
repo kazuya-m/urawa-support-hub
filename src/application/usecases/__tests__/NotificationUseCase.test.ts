@@ -1,56 +1,53 @@
 import { assertEquals } from 'std/assert/mod.ts';
-import { spy } from 'testing/mock.ts';
-import { NotificationExecutionInput, NotificationUseCase } from '../NotificationUseCase.ts';
+import { returnsNext, stub } from 'std/testing/mock.ts';
+import {
+  NotificationExecutionInput,
+  NotificationUseCase,
+} from '@/application/usecases/NotificationUseCase.ts';
 import { NOTIFICATION_TYPES } from '@/domain/entities/NotificationTypes.ts';
 
-Deno.test('NotificationUseCase', async (t) => {
-  await t.step(
-    'should call NotificationService.processScheduledNotification with correct input',
-    async () => {
-      const useCase = new NotificationUseCase();
+// テスト用環境変数を設定（Supabaseクライアント作成のため）
+Deno.env.set('SUPABASE_URL', 'http://test.supabase.co');
+Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-key');
 
-      // NotificationServiceのモック作成
-      let calledWith: NotificationExecutionInput | null = null;
-      const mockProcessScheduledNotification = spy((input: NotificationExecutionInput) => {
-        calledWith = input;
-        return Promise.resolve();
-      });
+Deno.test('NotificationUseCase should call NotificationService.processScheduledNotification with correct input', async () => {
+  const useCase = new NotificationUseCase();
 
-      // プライベートプロパティをモックに置き換え
-      Object.defineProperty(useCase, 'notificationService', {
-        value: {
-          processScheduledNotification: mockProcessScheduledNotification,
-        },
-        writable: true,
-      });
-
-      const input: NotificationExecutionInput = {
-        ticketId: 'test-ticket-123',
-        notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
-      };
-
-      await useCase.execute(input);
-
-      // モックが正しく呼び出されたことを検証
-      assertEquals(mockProcessScheduledNotification.calls.length, 1);
-      assertEquals(calledWith, input);
-    },
+  // processScheduledNotification メソッドをモック化
+  const mockMethod = stub(
+    useCase['notificationService'],
+    'processScheduledNotification',
+    returnsNext([Promise.resolve()]),
   );
 
-  await t.step('should handle NotificationService errors properly', async () => {
-    const useCase = new NotificationUseCase();
-    const testError = new Error('NotificationService failed');
+  try {
+    const input: NotificationExecutionInput = {
+      ticketId: 'test-ticket-123',
+      notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
+    };
 
-    // エラーを投げるモック作成
-    const mockProcessScheduledNotification = spy(() => Promise.reject(testError));
+    await useCase.execute(input);
 
-    Object.defineProperty(useCase, 'notificationService', {
-      value: {
-        processScheduledNotification: mockProcessScheduledNotification,
-      },
-      writable: true,
-    });
+    // モックが正しく呼び出されたことを検証
+    assertEquals(mockMethod.calls.length, 1);
+    assertEquals(mockMethod.calls[0].args[0], input);
+  } finally {
+    mockMethod.restore();
+  }
+});
 
+Deno.test('NotificationUseCase should handle NotificationService errors properly', async () => {
+  const useCase = new NotificationUseCase();
+  const testError = new Error('NotificationService failed');
+
+  // エラーを投げるモック
+  const mockMethod = stub(
+    useCase['notificationService'],
+    'processScheduledNotification',
+    returnsNext([Promise.reject(testError)]),
+  );
+
+  try {
     const input: NotificationExecutionInput = {
       ticketId: 'test-ticket-123',
       notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
@@ -65,28 +62,24 @@ Deno.test('NotificationUseCase', async (t) => {
 
     // エラーが適切に再スローされることを確認
     assertEquals(caughtError?.message.includes('NotificationService failed'), true);
-    assertEquals(mockProcessScheduledNotification.calls.length, 1);
-  });
+    assertEquals(mockMethod.calls.length, 1);
+  } finally {
+    mockMethod.restore();
+  }
+});
 
-  await t.step('should log execution time for successful operations', async () => {
-    const useCase = new NotificationUseCase();
+Deno.test('NotificationUseCase should log execution time for successful operations', async () => {
+  const useCase = new NotificationUseCase();
 
-    // console.logをスパイ
-    const originalConsoleLog = console.log;
-    let loggedMessage: string | null = null;
-    const logSpy = spy((message: string) => {
-      loggedMessage = message;
-    });
-    console.log = logSpy;
+  // console.logをスパイ
+  const consoleLogStub = stub(console, 'log');
+  const mockMethod = stub(
+    useCase['notificationService'],
+    'processScheduledNotification',
+    returnsNext([Promise.resolve()]),
+  );
 
-    const mockProcessScheduledNotification = spy(() => Promise.resolve());
-    Object.defineProperty(useCase, 'notificationService', {
-      value: {
-        processScheduledNotification: mockProcessScheduledNotification,
-      },
-      writable: true,
-    });
-
+  try {
     const input: NotificationExecutionInput = {
       ticketId: 'test-ticket-123',
       notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
@@ -95,10 +88,10 @@ Deno.test('NotificationUseCase', async (t) => {
     await useCase.execute(input);
 
     // ログ出力が行われたことを確認
-    assertEquals(logSpy.calls.length, 1);
-    assertEquals(loggedMessage, 'Scheduled notification completed successfully:');
-
-    // console.logを復元
-    console.log = originalConsoleLog;
-  });
+    assertEquals(consoleLogStub.calls.length, 1);
+    assertEquals(consoleLogStub.calls[0].args[0], 'Scheduled notification completed successfully:');
+  } finally {
+    consoleLogStub.restore();
+    mockMethod.restore();
+  }
 });

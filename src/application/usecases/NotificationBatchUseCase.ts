@@ -1,6 +1,10 @@
 import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
+export interface BatchExecutionInput {
+  operation: 'process_pending' | 'cleanup_expired';
+}
+
 export interface BatchProcessResult {
   processed: number;
   failed: number;
@@ -10,6 +14,8 @@ export interface CleanupResult {
   cleaned: number;
 }
 
+export type BatchExecutionResult = BatchProcessResult | CleanupResult;
+
 export class NotificationBatchUseCase {
   private notificationService: NotificationService;
 
@@ -17,7 +23,35 @@ export class NotificationBatchUseCase {
     this.notificationService = new NotificationService();
   }
 
-  async executePendingNotifications(): Promise<BatchProcessResult> {
+  async execute(input: BatchExecutionInput): Promise<BatchExecutionResult> {
+    const startTime = Date.now();
+
+    try {
+      switch (input.operation) {
+        case 'process_pending':
+          return await this.executePendingNotifications();
+        case 'cleanup_expired':
+          return await this.cleanupExpiredNotifications();
+        default:
+          throw new Error(`Unknown operation: ${input.operation}`);
+      }
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+      console.error('Batch notification operation failed:', {
+        operation: input.operation,
+        executionTimeMs: executionTime,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      if (error instanceof Error) {
+        handleSupabaseError(`execute batch operation: ${input.operation}`, error);
+      }
+
+      throw error;
+    }
+  }
+
+  private async executePendingNotifications(): Promise<BatchProcessResult> {
     const startTime = Date.now();
     let processed = 0;
     const failed = 0;
@@ -54,7 +88,7 @@ export class NotificationBatchUseCase {
     }
   }
 
-  cleanupExpiredNotifications(): Promise<CleanupResult> {
+  private cleanupExpiredNotifications(): Promise<CleanupResult> {
     const startTime = Date.now();
 
     try {
