@@ -12,10 +12,14 @@ The primary business workflow orchestrator for daily ticket collection operation
 
 ```typescript
 export class TicketCollectionUseCase {
-  constructor(
-    private ticketCollectionService: TicketCollectionService,
-    private healthRepository: HealthRepository,
-  ) {}
+  private ticketCollectionService: TicketCollectionService;
+  private healthRepository: HealthRepositoryImpl;
+
+  constructor() {
+    const supabaseClient = createSupabaseAdminClient();
+    this.ticketCollectionService = new TicketCollectionService();
+    this.healthRepository = new HealthRepositoryImpl(supabaseClient);
+  }
 
   async execute(): Promise<void> {
     const startTime = Date.now();
@@ -174,10 +178,17 @@ export class NotificationHistory {
 
 ## Repository Interfaces
 
-### TicketRepository Interface
+### TicketRepository Implementation
 
 ```typescript
-export interface TicketRepository {
+// Direct concrete class usage - small-scale project approach
+export class TicketRepositoryImpl {
+  private client: SupabaseClient;
+
+  constructor() {
+    this.client = createSupabaseAdminClient();
+  }
+
   save(ticket: Ticket): Promise<void>;
   findById(id: string): Promise<Ticket | null>;
   findByMatchDate(startDate: Date, endDate: Date): Promise<Ticket[]>;
@@ -192,10 +203,17 @@ export interface TicketRepository {
 }
 ```
 
-### NotificationRepository Interface
+### NotificationRepository Implementation
 
 ```typescript
-export interface NotificationRepository {
+// Direct concrete class usage - small-scale project approach
+export class NotificationRepositoryImpl {
+  private client: SupabaseClient;
+
+  constructor() {
+    this.client = createSupabaseAdminClient();
+  }
+
   save(history: NotificationHistory): Promise<void>;
   findByTicketId(ticketId: string): Promise<NotificationHistory[]>;
   findPendingNotifications(currentTime: Date): Promise<NotificationHistory[]>;
@@ -1128,10 +1146,7 @@ const port = parseInt(Deno.env.get('PORT') ?? '8080');
 // Ticket collection endpoint (triggered by Cloud Scheduler)
 app.post('/api/collect-tickets', async (c) => {
   try {
-    const ticketCollectionUseCase = new TicketCollectionUseCase(
-      scrapingService,
-      healthRepository,
-    );
+    const ticketCollectionUseCase = new TicketCollectionUseCase();
 
     await ticketCollectionUseCase.execute();
 

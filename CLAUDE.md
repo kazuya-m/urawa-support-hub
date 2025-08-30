@@ -55,12 +55,12 @@ supporters
 
    git checkout -b feature/implement-ticket-repository
    # Implement repository
-   git add . && git commit -m "implement TicketRepository interface and Supabase implementation"
+   git add . && git commit -m "implement TicketRepositoryImpl with internal dependency resolution"
    ```
 
 2. **Commit Units**: One commit per logical change
    - ✅ Good: "add Ticket type definition"
-   - ✅ Good: "implement SupabaseTicketRepository save method"
+   - ✅ Good: "implement TicketRepositoryImpl save method"
    - ❌ Bad: "implement everything for ticket management"
 
 3. **Pull Requests**: Merge to main or develop after feature completion
@@ -75,7 +75,7 @@ Phase 1: Foundation building and core feature implementation
 2. **Supabase Integration**: Database schema and Edge Functions setup
 3. **Scraping Service**: Playwright-based ticket extraction in Cloud Run
 4. **Notification System**: Event-driven notifications via Cloud Tasks
-5. **Repository Layer**: Data persistence with Supabase PostgreSQL
+5. **Data Persistence**: RepositoryImpl classes with internal dependency resolution
 6. **Error Handling**: Comprehensive monitoring with Discord alerts
 7. **Testing Strategy**: Unit and integration tests with proper permissions
 8. **Production Deployment**: Multi-stage deployment with monitoring
@@ -107,6 +107,26 @@ Phase 1: Foundation building and core feature implementation
 - **docs/tech-selection.md** - Technology selection rationale and alternatives
 - **docs/requirements.md** - Functional and non-functional requirements
 - **docs/setup-guide.md** - Environment setup and deployment guide
+
+### 📚 Documentation Reference Guide
+
+**🎯 Context-Specific Documentation Usage**:
+
+- **設計・アーキテクチャ検討時**: `docs/system-architecture.md` - Clean
+  Architecture層構造、依存関係原則、GCP+Supabase構成
+- **実装パターン参照時**: `docs/implementation-guide.md` -
+  UseCase/Service/Repository実装例、内部依存解決原則
+- **技術選択・制約確認時**: `docs/tech-selection.md` - GCP+Supabase構成rationale、制約事項
+- **セキュリティ実装時**: `docs/security/` - 認証・権限・RLS設定、環境変数管理
+- **テスト戦略策定時**: `docs/clean-architecture-guide.md` - 小規模プロジェクト向けテスト、Module
+  Mock戦略、Permission設定
+- **環境構築・デプロイ時**: `docs/setup-guide.md` - 環境セットアップ、デプロイ手順
+
+**📋 読み方の原則**:
+
+- **実装前**: 該当するcontext documentを必ず参照
+- **判断に迷った時**: 複数documentを横断参照
+- **新規機能時**: system-architecture.md → implementation-guide.md の順で参照
 
 ### Documentation Language Management
 
@@ -241,6 +261,14 @@ step after passing tests.
 
 ### 🎯 Mandatory Compliance Items
 
+#### 0. Small-Scale Project Design Principles
+
+**🚨 CRITICAL: Always follow documented design patterns in docs/ directory**
+
+- Refer to **docs/system-architecture.md** and **docs/implementation-guide.md** for design decisions
+- Follow **docs/clean-architecture-guide.md** for testing strategies and patterns
+- Maintain consistency between documented patterns and actual implementation
+
 #### 1. Technology Selection and Consistency Principles
 
 **🎯 Project Technology Stack Priority**:
@@ -276,11 +304,15 @@ export class LineNotificationService {
 #### 2. Naming Conventions
 
 ```typescript
-// ✅ Good: Technology independent
-export class TicketRepositoryImpl implements TicketRepository
+// ✅ Good: Direct concrete class usage (small-scale project)
+export class TicketRepositoryImpl {
+  constructor() {
+    this.client = createSupabaseAdminClient();
+  }
+}
 
-// ❌ Bad: External service dependent
-export class SupabaseTicketRepository implements TicketRepository
+// ❌ Bad: Interface-based abstraction (over-engineering)
+export class TicketRepositoryImpl implements TicketRepository
 ```
 
 #### 2. Unified Error Handling
@@ -319,7 +351,7 @@ src/features/
 
 ### 🎯 Next Session Check Items
 
-- [ ] Use `{Entity}RepositoryImpl` naming
+- [ ] Use `{Entity}RepositoryImpl` direct concrete class naming
 - [ ] Utilize common error handlers
 - [ ] Set minimum permissions
 - [ ] Confirm consistency with existing patterns

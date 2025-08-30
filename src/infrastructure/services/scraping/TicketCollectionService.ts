@@ -1,8 +1,3 @@
-/**
- * 複数ソースから浦和レッズアウェイチケット情報を統合収集するサービス
- * 現在はJ-Leagueチケットのみ対応、将来的にクラブ公式サイトも統合予定
- */
-
 import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
 import { JLeagueTicketScraper } from '@/infrastructure/services/scraping/sources/jleague/JLeagueTicketScraper.ts';
 
@@ -27,15 +22,11 @@ export class TicketCollectionService {
     this.jleagueScraper = new JLeagueTicketScraper();
   }
 
-  /**
-   * 全ソースから浦和レッズアウェイチケット情報を収集
-   */
   async collectAllTickets(): Promise<TicketCollectionResult> {
     const sourceResults: SourceResult[] = [];
     const allTickets: ScrapedTicketData[] = [];
     const errors: string[] = [];
 
-    // J-Leagueチケットから収集
     try {
       console.log('J-Leagueチケットサイトからスクレイピング開始...');
       const jleagueTickets = await this.jleagueScraper.scrapeTickets();
@@ -60,15 +51,6 @@ export class TicketCollectionService {
       console.error('J-Leagueチケットスクレイピングエラー:', error);
     }
 
-    // 将来拡張: クラブ公式サイトからも収集
-    // TODO: OfficialSiteScraper実装時に追加
-    // try {
-    //   const officialTickets = await this.officialScraper.scrapeTickets();
-    //   sourceResults.push({...});
-    //   allTickets.push(...officialTickets);
-    // } catch (error) { ... }
-
-    // 重複チケット除去
     const uniqueTickets = this.removeDuplicateTickets(allTickets);
     const totalTickets = uniqueTickets.length;
 
@@ -82,10 +64,6 @@ export class TicketCollectionService {
     };
   }
 
-  /**
-   * 複数ソース間でのチケット重複除去
-   * 同一試合・同一会場のチケットを統合
-   */
   private removeDuplicateTickets(tickets: ScrapedTicketData[]): ScrapedTicketData[] {
     const uniqueMap = new Map<string, ScrapedTicketData>();
 
@@ -96,7 +74,6 @@ export class TicketCollectionService {
       if (!existing) {
         uniqueMap.set(key, ticket);
       } else {
-        // より詳細なデータで上書き（チケットタイプや販売日情報がある方を優先）
         const merged = this.mergeTicketData(existing, ticket);
         uniqueMap.set(key, merged);
       }
@@ -106,7 +83,6 @@ export class TicketCollectionService {
   }
 
   private generateTicketKey(ticket: ScrapedTicketData): string {
-    // 試合名と会場の組み合わせで重複判定
     return `${ticket.matchName.toLowerCase()}_${ticket.venue.toLowerCase()}`;
   }
 
@@ -129,9 +105,6 @@ export class TicketCollectionService {
     };
   }
 
-  /**
-   * 特定ソースのみからチケット収集（テスト用）
-   */
   async collectFromJLeagueOnly(): Promise<ScrapedTicketData[]> {
     return await this.jleagueScraper.scrapeTickets();
   }

@@ -1,6 +1,71 @@
 # 実装ガイド
 
-このドキュメントは、urawa-support-hubシステムの詳細な技術実装ガイダンスを提供し、ドメインエンティティ、リポジトリパターン、インフラストラクチャ実装、およびテスト戦略を含みます。
+このドキュメントは、urawa-support-hubシステムの詳細な技術実装ガイダンスを提供し、Clean
+Architectureレイヤー実装、ドメインエンティティ、リポジトリパターン、インフラストラクチャ実装、およびテスト戦略を含みます。
+
+## Application Layer (Use Cases)
+
+### TicketCollectionUseCase
+
+日次チケット収集操作の主要なビジネスワークフローオーケストレーター:
+
+```typescript
+export class TicketCollectionUseCase {
+  private ticketCollectionService: TicketCollectionService;
+  private healthRepository: HealthRepositoryImpl;
+
+  constructor() {
+    const supabaseClient = createSupabaseAdminClient();
+    this.ticketCollectionService = new TicketCollectionService();
+    this.healthRepository = new HealthRepositoryImpl(supabaseClient);
+  }
+
+  async execute(): Promise<void> {
+    const startTime = Date.now();
+    let executionResult: HealthCheckResult;
+
+    try {
+      const result = await this.ticketCollectionService.collectAllTickets();
+      const executionDuration = Date.now() - startTime;
+
+      executionResult = {
+        executedAt: new Date(),
+        ticketsFound: result.totalTickets,
+        status: 'success',
+        executionDurationMs: executionDuration,
+      };
+
+      if (Deno.env.get('NODE_ENV') !== 'production') {
+        console.log(
+          `Daily execution completed successfully. Found ${result.totalTickets} tickets in ${executionDuration}ms`,
+        );
+      }
+    } catch (error) {
+      // エラーハンドリングとヘルス記録
+      executionResult = {
+        executedAt: new Date(),
+        ticketsFound: 0,
+        status: 'error',
+        executionDurationMs: Date.now() - startTime,
+        errorDetails: {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      };
+    }
+
+    // 重要: Supabase自動一時停止防止のため、常にヘルスを記録
+    await this.healthRepository.recordDailyExecution(executionResult);
+  }
+}
+```
+
+#### 主要責務
+
+- ビジネスワークフローオーケストレーション
+- エラーハンドリングと復旧
+- システムヘルス追跡
+- Supabase無料枠自動一時停止防止
 
 ## ドメインエンティティ
 
@@ -110,12 +175,19 @@ export class NotificationHistory {
 - 重複防止とエラー追跡
 - Cloud Tasksリトライメカニズムとの統合
 
-## リポジトリインターフェース
+## Repository Interfaces
 
-### TicketRepository インターフェース
+### TicketRepository実装
 
 ```typescript
-export interface TicketRepository {
+// 小規模プロジェクト向けの直接具象クラス使用
+export class TicketRepositoryImpl {
+  private client: SupabaseClient;
+
+  constructor() {
+    this.client = createSupabaseAdminClient();
+  }
+
   save(ticket: Ticket): Promise<void>;
   findById(id: string): Promise<Ticket | null>;
   findByMatchDate(startDate: Date, endDate: Date): Promise<Ticket[]>;
@@ -130,10 +202,17 @@ export interface TicketRepository {
 }
 ```
 
-### NotificationRepository インターフェース
+### NotificationRepository実装
 
 ```typescript
-export interface NotificationRepository {
+// 小規模プロジェクト向けの直接具象クラス使用
+export class NotificationRepositoryImpl {
+  private client: SupabaseClient;
+
+  constructor() {
+    this.client = createSupabaseAdminClient();
+  }
+
   save(history: NotificationHistory): Promise<void>;
   findByTicketId(ticketId: string): Promise<NotificationHistory[]>;
   findPendingNotifications(currentTime: Date): Promise<NotificationHistory[]>;
@@ -155,7 +234,7 @@ export interface NotificationRepository {
 ### TicketRepositoryImpl
 
 ```typescript
-export class TicketRepositoryImpl implements TicketRepository {
+export class TicketRepositoryImpl {
   constructor(
     private supabaseClient: SupabaseClient,
     private cloudTasksClient: CloudTasksClient,
@@ -519,51 +598,67 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
 
 ```typescript
 export class TicketCollectionService {
-  constructor(
-    private playwrightClient: PlaywrightClient,
-    private ticketRepository: TicketRepository,
-  ) {}
+  private jleagueScraper: JLeagueTicketScraper;
 
-  async executeDaily(): Promise<ScrapingResult> {
-    const startTime = new Date();
-    let processedCount = 0;
-    let errorCount = 0;
-    const errors: Error[] = [];
+  constructor() {
+    this.jleagueScraper = new JLeagueTicketScraper();
+  }
 
+  async collectAllTickets(): Promise<TicketCollectionResult> {
+    const sourceResults: SourceResult[] = [];
+    const allTickets: ScrapedTicketData[] = [];
+    const errors: string[] = [];
+
+    // J-Leagueチケット収集
     try {
-      // Jリーグサイトからチケットをスクレイピング
-      const scrapedData = await this.playwrightClient.scrapeTickets();
-
-      // スクレイピングされた各チケットを処理
-      for (const data of scrapedData) {
-        try {
-          const ticket = TicketConverter.fromScrapedData(data);
-          await this.ticketRepository.upsert(ticket);
-          await this.ticketRepository.scheduleNotifications(ticket.id);
-          processedCount++;
-        } catch (error) {
-          errorCount++;
-          errors.push(error as Error);
-          console.error('Failed to process ticket:', data, error);
-        }
-      }
-
-      return {
+      const jleagueTickets = await this.jleagueScraper.scrapeTickets();
+      sourceResults.push({
+        source: 'J-League Ticket',
+        ticketsFound: jleagueTickets.length,
         success: true,
-        processedCount,
-        errorCount,
-        duration: new Date().getTime() - startTime.getTime(),
-        errors: errors.map((e) => e.message),
-      };
+      });
+      allTickets.push(...jleagueTickets);
     } catch (error) {
-      return {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      sourceResults.push({
+        source: 'J-League Ticket',
+        ticketsFound: 0,
         success: false,
-        processedCount,
-        errorCount: errorCount + 1,
-        duration: new Date().getTime() - startTime.getTime(),
-        errors: [...errors.map((e) => e.message), (error as Error).message],
-      };
+        error: errorMessage,
+      });
+      errors.push(`J-League: ${errorMessage}`);
     }
+
+    // ソース間で重複チケットを削除
+    const uniqueTickets = this.removeDuplicateTickets(allTickets);
+    const totalTickets = uniqueTickets.length;
+    const overall_success = sourceResults.some((result) => result.success);
+
+    return {
+      success: overall_success,
+      totalTickets,
+      sourceResults,
+      errors,
+    };
+  }
+
+  private removeDuplicateTickets(tickets: ScrapedTicketData[]): ScrapedTicketData[] {
+    const uniqueMap = new Map<string, ScrapedTicketData>();
+
+    for (const ticket of tickets) {
+      const key = `${ticket.matchName.toLowerCase()}_${ticket.venue.toLowerCase()}`;
+      const existing = uniqueMap.get(key);
+
+      if (!existing) {
+        uniqueMap.set(key, ticket);
+      } else {
+        // より詳細なデータのマージ
+        const merged = this.mergeTicketData(existing, ticket);
+        uniqueMap.set(key, merged);
+      }
+    }
+
+    return Array.from(uniqueMap.values());
   }
 }
 ```

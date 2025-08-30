@@ -3,23 +3,15 @@ import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthReposi
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
-/**
- * Ticket Collection Use Case (DDD Application Service pattern)
- * Orchestrates away ticket collection workflow and health tracking
- * Following Clean Architecture layer structure
- */
 export class TicketCollectionUseCase {
-  constructor(
-    private ticketCollectionService: TicketCollectionService,
-    private healthRepository: HealthRepositoryImpl,
-  ) {}
+  private ticketCollectionService: TicketCollectionService;
+  private healthRepository: HealthRepositoryImpl;
 
-  /**
-   * Execute ticket collection workflow
-   * Business goal: Complete ticket information collection
-   * - Execute ticket scraping
-   * - Record execution result to system_health table (Supabase free tier auto-pause prevention)
-   */
+  constructor() {
+    this.ticketCollectionService = new TicketCollectionService();
+    this.healthRepository = new HealthRepositoryImpl();
+  }
+
   async execute(): Promise<void> {
     const startTime = Date.now();
     let executionResult: HealthCheckResult;
@@ -70,7 +62,6 @@ export class TicketCollectionUseCase {
         );
       }
     } catch (healthError) {
-      // Health recording failure is critical error
       console.error(
         'CRITICAL: Failed to record health check - Supabase may auto-pause:',
         healthError,

@@ -4,6 +4,7 @@ import { RepositoryFactory } from '../RepositoryFactory.ts';
 Deno.test('RepositoryFactory - setup environment', () => {
   Deno.env.set('SUPABASE_URL', 'https://test-project.supabase.co');
   Deno.env.set('SUPABASE_ANON_KEY', 'test-anon-key');
+  Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');
 });
 
 Deno.test({
@@ -55,5 +56,6 @@ Deno.test('RepositoryFactory - resetInstances should clear cached repositories',
 Deno.test('RepositoryFactory - cleanup environment', () => {
   Deno.env.delete('SUPABASE_URL');
   Deno.env.delete('SUPABASE_ANON_KEY');
+  Deno.env.delete('SUPABASE_SERVICE_ROLE_KEY');
   RepositoryFactory.resetInstances();
 });

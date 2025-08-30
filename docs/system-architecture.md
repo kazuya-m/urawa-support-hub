@@ -228,7 +228,12 @@ graph TD
 - **Enhanced**: Integrates with Cloud Tasks for scheduling
 
 ```typescript
-interface TicketRepository {
+// Direct concrete class usage for small-scale project
+export class TicketRepositoryImpl {
+  constructor() {
+    this.client = createSupabaseAdminClient();
+  }
+
   save(ticket: Ticket): Promise<void>;
   findByMatchDate(date: Date): Promise<Ticket[]>;
   // Event-driven notification scheduling
@@ -268,13 +273,13 @@ export const NOTIFICATION_TIMING_CONFIG = {
 ### Service Orchestration Pattern
 
 ```typescript
-// Cloud Run orchestrates multiple services
+// Cloud Run orchestrates multiple services - simplified approach
 export class ScrapingOrchestrator {
-  constructor(
-    private ticketCollectionService: TicketCollectionService,
-    private ticketRepository: TicketRepository,
-    private cloudTasksService: CloudTasksService,
-  ) {}
+  constructor() {
+    this.ticketCollectionService = new TicketCollectionService();
+    this.ticketRepository = new TicketRepositoryImpl();
+    this.cloudTasksService = new CloudTasksService();
+  }
 
   async executeDaily(): Promise<void> {
     const result = await this.ticketCollectionService.collectAllTickets();

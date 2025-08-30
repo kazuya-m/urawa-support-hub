@@ -216,14 +216,26 @@
 
 ### 🎯 必須遵守事項
 
+#### 0. 小規模プロジェクト設計原則
+
+**🚨 重要: docs/ディレクトリの設計パターンに従う**
+
+- **docs/system-architecture.md** と **docs/implementation-guide.md** の設計決定を参照
+- **docs/clean-architecture-guide.md** のテスト戦略とパターンに従う
+- ドキュメント化されたパターンと実装の一貫性を維持
+
 #### 1. 命名規則
 
 ```typescript
-// ✅ Good: 技術非依存
-export class TicketRepositoryImpl implements TicketRepository
+// ✅ Good: 具象クラス直接使用（小規模プロジェクト向け）
+export class TicketRepositoryImpl {
+  constructor() {
+    this.client = createSupabaseAdminClient();
+  }
+}
 
-// ❌ Bad: 外部サービス依存
-export class SupabaseTicketRepository implements TicketRepository
+// ❌ Bad: interface使用（過度な抽象化）
+export interface TicketRepository // interfaceそのものが不要
 ```
 
 #### 2. エラーハンドリング統一
@@ -238,9 +250,21 @@ if (error) throw new Error(`Failed to save ticket: ${error.message}`);
 
 #### 3. テスト設計
 
+- **Module Mock戦略**: `stub(instance, method)` from `testing/mock.ts` 使用
+- **環境変数不要**: Unit testは実際のDB接続を回避
 - **分割**: 個別テストケース作成（巨大統合テスト禁止）
-- **共通化**: `createTestSupabaseClient()`, `cleanupTestData()` 活用
 - **権限**: `--allow-env --allow-net=127.0.0.1` （`--allow-all` 禁止）
+
+```typescript
+// ✅ 正しい: Module Mock使用
+import { assertSpyCalls, stub } from 'testing/mock.ts';
+
+const repo = new TicketRepositoryImpl();
+const saveMock = stub(repo, 'save', () => Promise.resolve());
+
+// ❌ 間違い: 外部client注入
+const repo = new TicketRepositoryImpl(mockClient);
+```
 
 #### 4. ディレクトリ構造
 
@@ -260,7 +284,7 @@ src/features/
 
 ### 🎯 次回セッション時チェック項目
 
-- [ ] `{Entity}RepositoryImpl` 命名使用
+- [ ] `{Entity}RepositoryImpl` 具象クラス直接使用
 - [ ] 共通エラーハンドラー活用
 - [ ] 最小権限設定
 - [ ] 既存パターンとの一貫性確認

@@ -96,6 +96,7 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 **ドメインコンポーネント:**
 
 - **ビジネスエンティティ**: Ticket, NotificationHistory, SystemHealth
+- **Repository Interfaces**: TicketRepository, NotificationRepository, HealthRepository
 - **ビジネスロジック**: 通知タイミング計算、チケット検証
 - **ドメインサービス**: 設定駆動通知ルール
 
@@ -105,13 +106,13 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 
 **インフラストラクチャコンポーネント:**
 
-- **リポジトリ実装**: TicketRepositoryImpl, NotificationRepositoryImpl, HealthRepositoryImpl
-- **スクレイピングサービス**: TicketCollectionService（統合レイヤー）,
-  JLeagueTicketScraper（ソース固有）, BrowserManager（共有インフラ）
-- **外部サービスクライアント**: Supabaseクライアント、Playwright統合
+- **Repository実装**: TicketRepositoryImpl, NotificationRepositoryImpl, HealthRepositoryImpl
+- **スクレイピングサービス**: TicketCollectionService (統合レイヤー), JLeagueTicketScraper
+  (ソース固有), BrowserManager (共有インフラ)
+- **外部サービスクライアント**: Supabase client, Playwright統合
 - **設定管理**: notification.ts, scraping.ts, url.ts
 - **技術ユーティリティ**: エラーハンドリング、ログ、型定義
-- **ファクトリーパターン**: 依存性管理のためのRepositoryFactory
+- **Factory Pattern**: RepositoryFactory による依存性管理
 
 ```
 ┌─────────────────────────────────────┐
@@ -277,15 +278,20 @@ graph TD
 
 ## 設計パターン
 
-### リポジトリパターン（拡張版）
+### Repository Pattern (拡張版)
 
-- 具体的な実装クラスを直接使用し、小規模プロジェクトに適したシンプルな設計
-- テスト時はMockを使用して具象クラスをモック化
+- インターフェースではなく具象クラスを直接使用することでシンプル性を追求
+- テスト時には`stub(instance, method)`によるモジュールモック戦略を採用
 - ドメインロジックを永続化の関心事から分離
-- **拡張**: スケジューリング用Cloud Tasks統合
+- **拡張**: Cloud Tasksとの統合によるスケジューリング機能
 
 ```typescript
+// 小規模プロジェクト向けの直接具象クラス使用
 export class TicketRepositoryImpl {
+  constructor() {
+    this.client = createSupabaseAdminClient();
+  }
+
   save(ticket: Ticket): Promise<void>;
   findByMatchDate(date: Date): Promise<Ticket[]>;
   // イベント駆動通知スケジューリング
@@ -325,16 +331,16 @@ export const NOTIFICATION_TIMING_CONFIG = {
 ### サービスオーケストレーションパターン
 
 ```typescript
-// Cloud Run が複数サービスをオーケストレート
+// Cloud Run が複数サービスをオーケストレート - シンプル化アプローチ
 export class ScrapingOrchestrator {
-  constructor(
-    private ticketCollectionService: TicketCollectionService,
-    private ticketRepository: TicketRepositoryImpl,
-    private cloudTasksService: CloudTasksService,
-  ) {}
+  constructor() {
+    this.ticketCollectionService = new TicketCollectionService();
+    this.ticketRepository = new TicketRepositoryImpl();
+    this.cloudTasksService = new CloudTasksService();
+  }
 
   async executeDaily(): Promise<void> {
-    const tickets = await this.scrapingService.scrapeTickets();
+    const result = await this.ticketCollectionService.collectAllTickets();
 
     for (const ticket of tickets) {
       await this.ticketRepository.save(ticket);
@@ -586,6 +592,5 @@ src/
 2. **Infrastructure再編成**:
    - 設定を`src/config/`から`src/infrastructure/config/`に移動
    - サービスを`src/infrastructure/services/`下に整理
-3. **Domain層の簡素化**:
-   Repositoryインターフェースを削除し、小規模プロジェクトに適したシンプルな設計に変更
-4. **ファクトリーパターン**: 具象クラス管理のための`RepositoryFactory`（インターフェースなし）
+3. **Domain層の洗練**: エンティティとリポジトリインターフェースの明確な分離
+4. **Factory Pattern**: `RepositoryFactory`による集約的な依存性管理

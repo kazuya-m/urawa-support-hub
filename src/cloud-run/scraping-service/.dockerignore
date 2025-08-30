@@ -1,0 +1,30 @@
+# Build artifacts and caches
+node_modules/
+coverage/
+.deno/
+
+# Development files
+.env*
+.vscode/
+.git/
+.gitignore
+
+# Documentation
+docs/
+README.md
+*.md
+
+# Test files
+**/__tests__/
+**/*.test.ts
+
+# Supabase local development
+supabase/.temp/
+supabase/functions/_shared/
+
+# Other cloud services (not needed for scraping service)
+src/cloud-run/webhook-service/
+
+# OS files
+.DS_Store
+Thumbs.db

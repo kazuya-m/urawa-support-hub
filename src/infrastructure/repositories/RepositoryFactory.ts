@@ -1,4 +1,3 @@
-import { getSupabaseClient } from '@/infrastructure/config/supabase.ts';
 import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
 import { NotificationRepositoryImpl } from '@/infrastructure/repositories/NotificationRepositoryImpl.ts';
 import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
@@ -17,8 +16,7 @@ export class RepositoryFactory {
    */
   static getTicketRepository(): TicketRepositoryImpl {
     if (!this.ticketRepository) {
-      const client = getSupabaseClient();
-      this.ticketRepository = new TicketRepositoryImpl(client);
+      this.ticketRepository = new TicketRepositoryImpl();
     }
     return this.ticketRepository;
   }
@@ -28,8 +26,7 @@ export class RepositoryFactory {
    */
   static getNotificationRepository(): NotificationRepositoryImpl {
     if (!this.notificationRepository) {
-      const client = getSupabaseClient();
-      this.notificationRepository = new NotificationRepositoryImpl(client);
+      this.notificationRepository = new NotificationRepositoryImpl();
     }
     return this.notificationRepository;
   }
@@ -39,8 +36,7 @@ export class RepositoryFactory {
    */
   static getHealthRepository(): HealthRepositoryImpl {
     if (!this.healthRepository) {
-      const client = getSupabaseClient();
-      this.healthRepository = new HealthRepositoryImpl(client);
+      this.healthRepository = new HealthRepositoryImpl();
     }
     return this.healthRepository;
   }
