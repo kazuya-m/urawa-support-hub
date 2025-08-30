@@ -28,17 +28,19 @@
 | #39   | Minimal security configuration                      | 🔴 Critical | ✅ **COMPLETED** | Basic security requirements             |
 | #40   | Initial database schema creation                    | 🔴 Critical | ✅ **COMPLETED** | Database structure                      |
 
-### Phase 2: Core Feature Implementation (3 days)
+### Phase 2: Core Feature Implementation (4 days) - **UPDATED**
 
-**Purpose**: Implement scraping and scheduling functionality
+**Purpose**: Implement scraping, data integrity, and scheduling functionality
 
 | Issue | Title                                                     | Priority    | Status             | Reason                            |
 | ----- | --------------------------------------------------------- | ----------- | ------------------ | --------------------------------- |
 | #38   | Playwright scraping implementation                        | 🔴 Critical | ✅ **COMPLETED**   | Core data retrieval functionality |
 | #12   | Ticket management application service implementation      | 🔴 Critical | ✅ **COMPLETED**   | Core business logic               |
 | #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | ⏳ **IN PROGRESS** | Container deployment              |
-| #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started     | Automation requirements           |
+| #61   | **チケット重複処理・UPSERT機能実装** (**NEW**)            | 🔴 Critical | ❌ Not Started     | **#25の前提条件・重複防止**       |
+| #62   | **発売済みチケット状態管理・除外機能実装** (**NEW**)      | 🔴 Critical | ❌ Not Started     | **#25の前提条件・無駄処理防止**   |
 | #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started     | Notification timing control       |
+| #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started     | Automation requirements           |
 
 ### Phase 3: Notification Services (2 days)
 
@@ -103,11 +105,11 @@ Each issue is considered complete when:
 
 - **Target**: Complete Google Cloud integration and production deployment
 - **Success Criteria**: Automated daily ticket monitoring with LINE/Discord notifications
-- **Remaining**: 3 issues (12% of total scope)
+- **Remaining**: 5 issues (18% of total scope) - **UPDATED**
 
-## Current Status (2025-08-30)
+## Current Status (2025-08-30) - **UPDATED**
 
-### ✅ Completed Issues: 22/25 (88%)
+### ✅ Completed Issues: 22/27 (81%)
 
 **Foundation & Infrastructure:**
 
@@ -141,23 +143,27 @@ Each issue is considered complete when:
 - #32 - Database migration management
 - #34 - Security and permission detailed design
 
-### ⏳ In Progress: 3/25 (12%)
+### ⏳ In Progress: 3/27 (11%)
 
 - #30 - Discord error notification implementation
 - #33 - Minimal CI/CD setup
 - #24 - Google Cloud Run scraping service implementation
 
-### ❌ Not Started: 2/25 (8%)
+### ❌ Not Started: 4/27 (15%)
 
-- #25 - Google Cloud Tasks notification scheduling
+- **#61** - チケット重複処理・UPSERT機能実装 (**NEW**)
+- **#62** - 発売済みチケット状態管理・除外機能実装 (**NEW**)
+- #25 - Google Cloud Tasks notification scheduling (depends on #61, #62)
 - #26 - Cloud Scheduler daily execution setup
 - Manual testing
 
-## Next Steps Priority
+## Next Steps Priority (**UPDATED**)
 
-1. **#24** - Deploy scraping to Cloud Run (production deployment)
-2. **#25** - Setup Google Cloud Tasks notification scheduling
-3. **#26** - Setup Cloud Scheduler daily execution
+1. **#24** - Deploy scraping to Cloud Run (production deployment) - **継続**
+2. **#61** - UPSERT機能実装 (**NEW PRIORITY** - #25の前提条件)
+3. **#62** - 発売済み状態管理実装 (**NEW PRIORITY** - #25の前提条件)
+4. **#25** - Cloud Tasks notification scheduling (depends on #61, #62完了後)
+5. **#26** - Cloud Scheduler daily execution setup
 
 ## Progress Tracking
 
