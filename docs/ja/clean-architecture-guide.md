@@ -133,70 +133,23 @@ async function handleRequest(req: Request): Promise<Response> {
 }
 ```
 
-## Clean Architectureでのテスト戦略
+## テスト統合
 
-### 🎯 テスト分離原則
+このプロジェクト固有の包括的なテスト戦略とパターンについては、以下を参照してください：
 
-#### 1. ユニットテスト分離
+**📋 [テストガイドライン](./testing-guidelines.md)**
 
-```typescript
-import { assertSpyCalls, stub } from 'testing/mock.ts';
+テストガイドラインドキュメントでは以下をカバーしています：
 
-// ✅ モジュールモック戦略 - 既存クラス設計維持
-Deno.test('Controller test', async () => {
-  const useCase = new TicketCollectionUseCase();
-  const executeMock = stub(useCase, 'execute', () => Promise.resolve());
-  const controller = new TicketCollectionController(useCase);
+- 小規模プロジェクト向けテスト戦略
+- 直接メソッドモック化パターン
+- モッククリーンアップとリソース管理
+- 環境設定とテスト権限
+- レイヤー固有のテストアプローチ
+- よくあるテストの落とし穴と解決策
 
-  await controller.handleRequest(mockRequest);
-
-  assertSpyCalls(executeMock, 1);
-});
-
-// ✅ 複雑なモックデータが必要な場合はクラス維持
-export class MockJLeagueTicketScraper {
-  constructor(mockData: ScrapedTicketData[] = [], shouldThrow = false) {
-    // テストデータとエラーシミュレーション
-  }
-}
-```
-
-#### 2. テスト権限（最小権限）
-
-```bash
-# ✅ ユニットテスト - 最小権限
-deno test --allow-env --allow-net=127.0.0.1
-
-# ❌ 広範囲権限は回避
-deno test --allow-all  # 禁止
-deno test --allow-sys  # 可能な限り回避
-```
-
-#### 3. モックインターフェース準拠
-
-```typescript
-import { spy } from 'testing/mock';
-
-// テスト用UseCaseインターフェース
-interface ITicketCollectionUseCase {
-  execute(): Promise<void>;
-}
-```
-
-### テストファイル構成
-
-```
-src/adapters/controllers/
-├── TicketCollectionController.ts
-└── __tests__/
-    └── TicketCollectionController.test.ts  # モジュールモック使用
-
-src/application/usecases/
-├── TicketCollectionUseCase.ts
-└── __tests__/
-    ├── TicketCollectionUseCase.test.ts
-    └── MockTicketCollectionService.ts
-```
+この分離により、Clean
+Architectureガイドは純粋にアーキテクチャ原則に集中し、詳細なテストガイダンスは専用ドキュメントで維持できます。
 
 ### 🎯 モジュールモックテスト戦略
 
@@ -267,81 +220,7 @@ const useCase = new TicketCollectionUseCase();
 const executeMock = stub(useCase, 'execute', () => Promise.resolve());
 ```
 
-## Clean Architectureでのテスト戦略
-
-### 🎯 テスト分離の原則
-
-#### 1. 単体テスト分離
-
-**🚨 重要原則**: 各層の単体テストでは、依存する他の層をモック化する
-
-```typescript
-import { assertEquals } from 'std/assert/mod.ts';
-import { spy } from 'testing/mock.ts';
-
-// ✅ UseCase単体テスト - Infrastructure層をモック化
-Deno.test('NotificationUseCase should call NotificationService correctly', async () => {
-  const useCase = new NotificationUseCase();
-
-  // 依存するInfrastructure層（NotificationService）をモック化
-  const mockProcessScheduledNotification = spy(() => Promise.resolve());
-
-  Object.defineProperty(useCase, 'notificationService', {
-    value: { processScheduledNotification: mockProcessScheduledNotification },
-    writable: true,
-  });
-
-  const input = {
-    ticketId: 'test-123',
-    notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
-  };
-
-  await useCase.execute(input);
-
-  // モック呼び出しの検証
-  assertEquals(mockProcessScheduledNotification.calls.length, 1);
-  if (mockProcessScheduledNotification.calls.length > 0) {
-    assertEquals(mockProcessScheduledNotification.calls[0].args[0], input);
-  }
-});
-
-// ✅ Controller単体テスト - Application層をモック化
-Deno.test('NotificationController should call UseCase correctly', async () => {
-  const controller = new NotificationController();
-
-  const mockExecute = spy(() => Promise.resolve());
-
-  Object.defineProperty(controller, 'notificationUseCase', {
-    value: { execute: mockExecute },
-    writable: true,
-  });
-
-  const request = new Request('http://localhost/api/send-notification', {
-    method: 'POST',
-    body: JSON.stringify({ ticketId: 'test-123', notificationType: 'day_before' }),
-  });
-
-  await controller.handleSendNotification(request);
-
-  assertEquals(mockExecute.calls.length, 1);
-});
-```
-
-#### モック化の基本原則
-
-**✅ 正しいモック戦略**:
-
-- **UseCase Test**: Infrastructure層（Service, Repository）をモック
-- **Controller Test**: Application層（UseCase）をモック
-- **Service Test**: Repository層とExternal APIをモック
-
-**❌ 避けるべきパターン**:
-
-- 実際のDB接続を行う単体テスト
-- 環境変数に依存する単体テスト
-- 外部APIを呼び出す単体テスト
-
-## 適用ガイドライン
+## アーキテクチャ実施ガイドライン
 
 ### 1. プリコミット検証
 
@@ -369,6 +248,6 @@ Deno.test('NotificationController should call UseCase correctly', async () => {
 このガイドは以下の場合に参照すべきです：
 
 - **新機能実装前**: レイヤー責務確認
-- **テスト作成時**: モック戦略と権限設定
+- **テスト作成時**: [テストガイドライン](./testing-guidelines.md)を参照
 - **依存関係設計時**: DIパターン適用
 - **コードレビュー時**: アーキテクチャ違反確認

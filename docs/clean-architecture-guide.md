@@ -133,153 +133,23 @@ async function handleRequest(req: Request): Promise<Response> {
 }
 ```
 
-## Testing Strategy with Clean Architecture
+## Testing Integration
 
-### 🎯 Test Isolation Principles
+For comprehensive testing strategies and patterns specific to this project, refer to:
 
-#### 1. Unit Test Isolation
+**📋 [Testing Guidelines](./testing-guidelines.md)**
 
-**🚨 重要原則**: 各層の単体テストでは、依存する他の層をモック化する
+The Testing Guidelines document covers:
 
-```typescript
-import { assertEquals } from 'std/assert/mod.ts';
-import { spy } from 'testing/mock.ts';
+- Small-scale project testing strategies
+- Direct method mocking patterns
+- Mock cleanup and resource management
+- Environment setup and test permissions
+- Layer-specific testing approaches
+- Common testing pitfalls and solutions
 
-// ✅ UseCase Unit Test - Infrastructure層をモック化
-Deno.test('NotificationUseCase should call NotificationService correctly', async () => {
-  const useCase = new NotificationUseCase();
-
-  // 依存するInfrastructure層（NotificationService）をモック化
-  const mockProcessScheduledNotification = spy(() => Promise.resolve());
-
-  Object.defineProperty(useCase, 'notificationService', {
-    value: { processScheduledNotification: mockProcessScheduledNotification },
-    writable: true,
-  });
-
-  const input = {
-    ticketId: 'test-123',
-    notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
-  };
-
-  await useCase.execute(input);
-
-  // モック呼び出しの検証
-  assertEquals(mockProcessScheduledNotification.calls.length, 1);
-  if (mockProcessScheduledNotification.calls.length > 0) {
-    assertEquals(mockProcessScheduledNotification.calls[0].args[0], input);
-  }
-});
-
-// ✅ Controller Unit Test - Application層をモック化
-Deno.test('NotificationController should call UseCase correctly', async () => {
-  const controller = new NotificationController();
-
-  const mockExecute = spy(() => Promise.resolve());
-
-  Object.defineProperty(controller, 'notificationUseCase', {
-    value: { execute: mockExecute },
-    writable: true,
-  });
-
-  const request = new Request('http://localhost/api/send-notification', {
-    method: 'POST',
-    body: JSON.stringify({ ticketId: 'test-123', notificationType: 'day_before' }),
-  });
-
-  await controller.handleSendNotification(request);
-
-  assertEquals(mockExecute.calls.length, 1);
-});
-```
-
-#### モック化の基本原則
-
-**✅ 正しいモック戦略**:
-
-- **UseCase Test**: Infrastructure層（Service, Repository）をモック
-- **Controller Test**: Application層（UseCase）をモック
-- **Service Test**: Repository層とExternal APIをモック
-
-**❌ 避けるべきパターン**:
-
-- 実際のDB接続を行う単体テスト
-- 環境変数に依存する単体テスト
-- 外部APIを呼び出す単体テスト
-
-#### 2. Test Permissions (Minimum Privilege)
-
-```bash
-# ✅ Unit tests - minimum permissions
-deno test --allow-env --allow-net=127.0.0.1
-
-# ❌ Avoid broad permissions
-deno test --allow-all  # 禁止
-deno test --allow-sys  # 可能な限り回避
-```
-
-#### 3. Mock Interface Compliance
-
-```typescript
-import { spy } from 'testing/mock';
-
-// UseCase interface for testing
-interface ITicketCollectionUseCase {
-  execute(): Promise<void>;
-}
-
-### Test File Organization
-```
-
-src/adapters/controllers/ ├── TicketCollectionController.ts └── **tests**/ └──
-TicketCollectionController.test.ts # Module Mock使用
-
-src/application/usecases/\
-├── TicketCollectionUseCase.ts └── **tests**/ ├── TicketCollectionUseCase.test.ts └──
-MockTicketCollectionService.ts
-
-````
-### 🎯 Module Mock Testing Strategy\n\n```typescript\nimport { stub, assertSpyCalls, assertSpyCallArgs } from 'testing/mock.ts';\n\n// ✅ Repository Unit Test - Module Mock戦略（環境変数・DB接続不要）\nDeno.test('TicketRepository save test', async () => {\n  const repo = new TicketRepositoryImpl();\n  const saveMock = stub(repo, 'save', () => Promise.resolve());\n  \n  await repo.save(testTicket);\n  \n  assertSpyCalls(saveMock, 1);\n  assertSpyCallArgs(saveMock, 0, [testTicket]);\n});\n\n// ✅ UseCase Unit Test - Repository methodをmock\nDeno.test('TicketCollectionUseCase test', async () => {\n  const useCase = new TicketCollectionUseCase();\n  const executeMock = stub(useCase, 'execute', () => Promise.resolve());\n  \n  await useCase.execute();\n  \n  assertSpyCalls(executeMock, 1);\n});\n```\n\n## 🚨 Common Violations and Solutions
-
-### Problem: Layer Skipping
-
-```typescript
-// ❌ Problem: Controller calls Service directly
-class Controller {
-  constructor() {
-    this.service = new SomeService(); // Skip UseCase layer
-  }
-}
-
-// ✅ Solution: Follow layer hierarchy
-class Controller {
-  constructor(private useCase: IUseCase) {} // Proper layer dependency
-}
-````
-
-### Problem: Circular Dependencies
-
-```typescript
-// ❌ Problem: Circular import
-// ServiceA imports ServiceB
-// ServiceB imports ServiceA
-
-// ✅ Solution: Extract shared interface
-interface ISharedService {
-  commonMethod(): void;
-}
-```
-
-### Problem: Test Dependencies
-
-```typescript
-// ❌ Problem: Test imports Infrastructure
-import { TicketCollectionService } from '../../infrastructure/...'; // Playwright初期化
-
-// ✅ Solution: Use module mock strategy
-const useCase = new TicketCollectionUseCase();
-const executeMock = stub(useCase, 'execute', () => Promise.resolve());
-```
+This separation allows the Clean Architecture Guide to focus purely on architectural principles
+while maintaining detailed testing guidance in a dedicated document.
 
 ## Enforcement Guidelines
 
