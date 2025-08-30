@@ -210,9 +210,31 @@ Deno.test('future disposable test', async () => {
 });
 ```
 
-## 📊 Testing Layers
+## 📊 Testing Strategy Overview
 
-### UseCase Layer Testing
+### Testing Layers Architecture
+
+Our testing strategy implements a **two-tier approach** that balances speed and reliability:
+
+#### 🔸 Unit Tests (`src/**/__tests__/*.test.ts`)
+
+- **Purpose**: Business logic validation and component isolation
+- **Database**: Mock Supabase clients (`createMockSupabaseClient`)
+- **Network**: No external connections
+- **Speed**: Fast execution (< 2 seconds)
+- **Command**: `deno test --allow-env src/`
+
+#### 🔸 Integration Tests (`tests/integration/*.test.ts`)
+
+- **Purpose**: Database operations and external service validation
+- **Database**: Real Supabase connections (`createTestSupabaseClient`)
+- **Network**: Actual database CRUD operations
+- **Speed**: Slower execution with cleanup
+- **Command**: `deno test --allow-env --allow-net=127.0.0.1 tests/integration/`
+
+### Unit Test Patterns by Layer
+
+#### UseCase Layer Testing
 
 - **Target**: Application business logic
 - **Mock**: Infrastructure layer (Services, Repositories)
@@ -222,7 +244,7 @@ Deno.test('future disposable test', async () => {
 const mockService = stub(useCase['infrastructureService'], 'method');
 ```
 
-### Controller Layer Testing
+#### Controller Layer Testing
 
 - **Target**: HTTP request/response handling
 - **Mock**: Application layer (UseCases)
@@ -232,7 +254,7 @@ const mockService = stub(useCase['infrastructureService'], 'method');
 const mockUseCase = stub(controller['useCase'], 'execute');
 ```
 
-### Service Layer Testing
+#### Service Layer Testing
 
 - **Target**: External system integration
 - **Mock**: Repositories, external APIs
@@ -240,6 +262,183 @@ const mockUseCase = stub(controller['useCase'], 'execute');
 
 ```typescript
 const mockRepository = stub(service['repository'], 'save');
+```
+
+## 🔗 Integration Testing Patterns
+
+### 1. Repository Integration Testing
+
+Integration tests verify actual database operations and constraints:
+
+```typescript
+// tests/integration/repository.test.ts
+import { assertEquals } from 'jsr:@std/assert';
+import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
+import { cleanupTestData, createTestSupabaseClient } from '@/tests/utils/test-supabase.ts';
+
+const supabase = createTestSupabaseClient(); // Real Supabase connection
+const ticketRepo = new TicketRepositoryImpl(supabase);
+
+Deno.test('TicketRepository - save and findById', async () => {
+  const testTicket = createTestTicket();
+
+  try {
+    // Actual database operations
+    await ticketRepo.save(testTicket);
+    const result = await ticketRepo.findById(testTicket.id);
+
+    // Verify data persistence
+    assertEquals(result?.id, testTicket.id);
+    assertEquals(result?.matchName, testTicket.matchName);
+  } finally {
+    // Guaranteed cleanup
+    await cleanupTestData(supabase, 'tickets', testTicket.id);
+  }
+});
+```
+
+### 2. Database Constraint Testing
+
+```typescript
+Deno.test('TicketRepository - unique constraint validation', async () => {
+  const testTicket = createTestTicket();
+
+  try {
+    await ticketRepo.save(testTicket);
+
+    // Test database constraint enforcement
+    await assertRejects(
+      () => ticketRepo.save(testTicket), // Duplicate ID
+      RepositoryError,
+      'Unique constraint violation',
+    );
+  } finally {
+    await cleanupTestData(supabase, 'tickets', testTicket.id);
+  }
+});
+```
+
+### 3. Data Cleanup Strategies
+
+#### Individual Record Cleanup
+
+```typescript
+// For single record tests
+async function cleanupTicket(ticketId: string) {
+  await cleanupTestData(supabase, 'tickets', ticketId);
+}
+
+// Usage in tests
+try {
+  await ticketRepo.save(testTicket);
+  // Test operations
+} finally {
+  await cleanupTicket(testTicket.id); // Always executed
+}
+```
+
+#### Table-wide Cleanup
+
+```typescript
+// For comprehensive system tests
+Deno.test('System Health Integration Tests', async (t) => {
+  const testTableName = 'system_health';
+
+  // Clean slate before tests
+  await cleanupTestTable(supabase, testTableName);
+
+  await t.step('should complete full workflow', async () => {
+    // System-wide test operations
+  });
+
+  // Clean slate after tests
+  await cleanupTestTable(supabase, testTableName);
+});
+```
+
+### 4. Test Environment Setup
+
+Integration tests require actual Supabase configuration:
+
+```typescript
+// tests/utils/test-supabase.ts
+export function createTestSupabaseClient(): SupabaseClient {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'http://127.0.0.1:54321';
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'default-test-key';
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false, // Prevent test interference
+      persistSession: false, // Avoid session leaks
+    },
+  });
+}
+```
+
+## 🚀 Command Usage Guide
+
+### Development Workflow
+
+#### Fast Unit Testing (Development)
+
+```bash
+# Quick feedback during development
+deno test --allow-env src/
+# ✅ 66 tests in ~1 second
+# ✅ No network dependencies
+# ✅ Mock-based isolation
+```
+
+#### Complete Test Suite (Pre-commit)
+
+```bash
+# Full validation before commits
+deno test --allow-env --allow-net=127.0.0.1
+# ✅ Unit tests (fast)
+# ✅ Integration tests (requires Supabase)
+# ✅ End-to-end validation
+```
+
+#### Integration Tests Only (Database Validation)
+
+```bash
+# Focus on database operations
+deno test --allow-env --allow-net=127.0.0.1 tests/integration/
+# ✅ Actual CRUD operations
+# ✅ Constraint validation
+# ✅ Data cleanup verification
+```
+
+### CI/CD Pipeline Usage
+
+```yaml
+# Example GitHub Actions configuration
+- name: Run Unit Tests
+  run: deno test --allow-env src/
+
+- name: Run Integration Tests
+  run: deno test --allow-env --allow-net=127.0.0.1 tests/integration/
+  env:
+    SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+    SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+```
+
+### Permission Strategy
+
+#### Unit Tests: Minimal Permissions
+
+```bash
+--allow-env  # Environment variables only
+# ❌ No network access
+# ❌ No file system beyond temp
+```
+
+#### Integration Tests: Controlled Network Access
+
+```bash
+--allow-env --allow-net=127.0.0.1  # Local Supabase only
+# ✅ Database operations
+# ❌ External network calls
 ```
 
 ## ⚠️ Common Pitfalls and Solutions
@@ -355,3 +554,4 @@ Deno.test('working test', async () => {
 
 - **2025-01-30**: Initial version with direct method mocking patterns
 - **2025-01-30**: Added comprehensive error handling and cleanup strategies
+- **2025-01-30**: Added Integration Testing patterns and two-tier testing strategy documentation
