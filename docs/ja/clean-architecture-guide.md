@@ -267,6 +267,80 @@ const useCase = new TicketCollectionUseCase();
 const executeMock = stub(useCase, 'execute', () => Promise.resolve());
 ```
 
+## Clean Architectureでのテスト戦略
+
+### 🎯 テスト分離の原則
+
+#### 1. 単体テスト分離
+
+**🚨 重要原則**: 各層の単体テストでは、依存する他の層をモック化する
+
+```typescript
+import { assertEquals } from 'std/assert/mod.ts';
+import { spy } from 'testing/mock.ts';
+
+// ✅ UseCase単体テスト - Infrastructure層をモック化
+Deno.test('NotificationUseCase should call NotificationService correctly', async () => {
+  const useCase = new NotificationUseCase();
+
+  // 依存するInfrastructure層（NotificationService）をモック化
+  const mockProcessScheduledNotification = spy(() => Promise.resolve());
+
+  Object.defineProperty(useCase, 'notificationService', {
+    value: { processScheduledNotification: mockProcessScheduledNotification },
+    writable: true,
+  });
+
+  const input = {
+    ticketId: 'test-123',
+    notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
+  };
+
+  await useCase.execute(input);
+
+  // モック呼び出しの検証
+  assertEquals(mockProcessScheduledNotification.calls.length, 1);
+  if (mockProcessScheduledNotification.calls.length > 0) {
+    assertEquals(mockProcessScheduledNotification.calls[0].args[0], input);
+  }
+});
+
+// ✅ Controller単体テスト - Application層をモック化
+Deno.test('NotificationController should call UseCase correctly', async () => {
+  const controller = new NotificationController();
+
+  const mockExecute = spy(() => Promise.resolve());
+
+  Object.defineProperty(controller, 'notificationUseCase', {
+    value: { execute: mockExecute },
+    writable: true,
+  });
+
+  const request = new Request('http://localhost/api/send-notification', {
+    method: 'POST',
+    body: JSON.stringify({ ticketId: 'test-123', notificationType: 'day_before' }),
+  });
+
+  await controller.handleSendNotification(request);
+
+  assertEquals(mockExecute.calls.length, 1);
+});
+```
+
+#### モック化の基本原則
+
+**✅ 正しいモック戦略**:
+
+- **UseCase Test**: Infrastructure層（Service, Repository）をモック
+- **Controller Test**: Application層（UseCase）をモック
+- **Service Test**: Repository層とExternal APIをモック
+
+**❌ 避けるべきパターン**:
+
+- 実際のDB接続を行う単体テスト
+- 環境変数に依存する単体テスト
+- 外部APIを呼び出す単体テスト
+
 ## 適用ガイドライン
 
 ### 1. プリコミット検証

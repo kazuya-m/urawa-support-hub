@@ -139,27 +139,73 @@ async function handleRequest(req: Request): Promise<Response> {
 
 #### 1. Unit Test Isolation
 
+**🚨 重要原則**: 各層の単体テストでは、依存する他の層をモック化する
+
 ```typescript
-import { assertSpyCalls, stub } from 'testing/mock.ts';
+import { assertEquals } from 'std/assert/mod.ts';
+import { spy } from 'testing/mock.ts';
 
-// ✅ Module Mock Strategy - 既存クラス設計維持
-Deno.test('Controller test', async () => {
-  const useCase = new TicketCollectionUseCase();
-  const executeMock = stub(useCase, 'execute', () => Promise.resolve());
-  const controller = new TicketCollectionController(useCase);
+// ✅ UseCase Unit Test - Infrastructure層をモック化
+Deno.test('NotificationUseCase should call NotificationService correctly', async () => {
+  const useCase = new NotificationUseCase();
 
-  await controller.handleRequest(mockRequest);
+  // 依存するInfrastructure層（NotificationService）をモック化
+  const mockProcessScheduledNotification = spy(() => Promise.resolve());
 
-  assertSpyCalls(executeMock, 1);
+  Object.defineProperty(useCase, 'notificationService', {
+    value: { processScheduledNotification: mockProcessScheduledNotification },
+    writable: true,
+  });
+
+  const input = {
+    ticketId: 'test-123',
+    notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
+  };
+
+  await useCase.execute(input);
+
+  // モック呼び出しの検証
+  assertEquals(mockProcessScheduledNotification.calls.length, 1);
+  if (mockProcessScheduledNotification.calls.length > 0) {
+    assertEquals(mockProcessScheduledNotification.calls[0].args[0], input);
+  }
 });
 
-// ✅ 複雑なMockデータが必要な場合はクラス維持
-export class MockJLeagueTicketScraper {
-  constructor(mockData: ScrapedTicketData[] = [], shouldThrow = false) {
-    // テストデータとエラーシミュレーション
-  }
-}
+// ✅ Controller Unit Test - Application層をモック化
+Deno.test('NotificationController should call UseCase correctly', async () => {
+  const controller = new NotificationController();
+
+  const mockExecute = spy(() => Promise.resolve());
+
+  Object.defineProperty(controller, 'notificationUseCase', {
+    value: { execute: mockExecute },
+    writable: true,
+  });
+
+  const request = new Request('http://localhost/api/send-notification', {
+    method: 'POST',
+    body: JSON.stringify({ ticketId: 'test-123', notificationType: 'day_before' }),
+  });
+
+  await controller.handleSendNotification(request);
+
+  assertEquals(mockExecute.calls.length, 1);
+});
 ```
+
+#### モック化の基本原則
+
+**✅ 正しいモック戦略**:
+
+- **UseCase Test**: Infrastructure層（Service, Repository）をモック
+- **Controller Test**: Application層（UseCase）をモック
+- **Service Test**: Repository層とExternal APIをモック
+
+**❌ 避けるべきパターン**:
+
+- 実際のDB接続を行う単体テスト
+- 環境変数に依存する単体テスト
+- 外部APIを呼び出す単体テスト
 
 #### 2. Test Permissions (Minimum Privilege)
 

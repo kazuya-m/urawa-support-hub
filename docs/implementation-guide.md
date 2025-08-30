@@ -1009,6 +1009,81 @@ CREATE TRIGGER trigger_create_notifications
 
 ## Testing Strategy
 
+### 🎯 Unit Testing Design Principles
+
+**重要**: 各層の単体テストでは、依存する下位層を必ずモック化すること
+
+#### Application Layer (UseCases) Testing
+
+```typescript
+// ✅ 正しい単体テスト - Infrastructure層をモック化
+import { assertEquals } from 'std/assert/mod.ts';
+import { spy } from 'testing/mock.ts';
+
+Deno.test('NotificationUseCase should delegate to NotificationService', async () => {
+  const useCase = new NotificationUseCase();
+
+  // Infrastructure層（NotificationService）をモック化
+  const mockProcessScheduledNotification = spy(() => Promise.resolve());
+
+  Object.defineProperty(useCase, 'notificationService', {
+    value: { processScheduledNotification: mockProcessScheduledNotification },
+    writable: true,
+  });
+
+  const input = { ticketId: 'test-123', notificationType: 'day_before' };
+  await useCase.execute(input);
+
+  // モック呼び出しの検証
+  assertEquals(mockProcessScheduledNotification.calls.length, 1);
+  if (mockProcessScheduledNotification.calls.length > 0) {
+    assertEquals(mockProcessScheduledNotification.calls[0].args[0], input);
+  }
+});
+```
+
+#### Adapter Layer (Controllers) Testing
+
+```typescript
+// ✅ 正しい単体テスト - Application層をモック化
+Deno.test('NotificationController should delegate to UseCase', async () => {
+  const controller = new NotificationController();
+
+  // Application層（UseCase）をモック化
+  const mockExecute = spy(() => Promise.resolve());
+
+  Object.defineProperty(controller, 'notificationUseCase', {
+    value: { execute: mockExecute },
+    writable: true,
+  });
+
+  const request = new Request('http://localhost/api/send-notification', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer test-token' },
+    body: JSON.stringify({ ticketId: 'test-123', notificationType: 'day_before' }),
+  });
+
+  await controller.handleSendNotification(request);
+
+  assertEquals(mockExecute.calls.length, 1);
+});
+```
+
+#### ❌ 避けるべき単体テストパターン
+
+```typescript
+// ❌ 間違った単体テスト - 実際のDB接続を試行
+Deno.test('Should not do this', async () => {
+  const useCase = new NotificationUseCase(); // 内部でNotificationServiceが実際のDB接続を試行
+
+  try {
+    await useCase.execute(input); // これは統合テスト
+  } catch (error) {
+    // DB接続エラーは想定内... ← これは単体テストではない
+  }
+});
+```
+
 ### Test Organization
 
 ```
@@ -1016,22 +1091,25 @@ src/domain/entities/__tests__/
 ├── Ticket.test.ts
 ├── NotificationHistory.test.ts
 
+src/adapters/controllers/__tests__/
+├── NotificationController.test.ts          # Application層をモック化
+├── NotificationBatchController.test.ts     # Application層をモック化
+
+src/application/usecases/__tests__/
+├── NotificationUseCase.test.ts             # Infrastructure層をモック化
+├── NotificationBatchUseCase.test.ts        # Infrastructure層をモック化
+
 src/infrastructure/repositories/__tests__/
-├── TicketRepositoryImpl.test.ts
-├── NotificationRepositoryImpl.test.ts
+├── TicketRepositoryImpl.test.ts            # Supabaseクライアントをモック化
+├── NotificationRepositoryImpl.test.ts      # Supabaseクライアントをモック化
 
-src/infrastructure/clients/__tests__/ 
-├── CloudTasksClientImpl.test.ts
-├── PlaywrightClientImpl.test.ts
-
-src/application/services/__tests__/ 
-├── TicketCollectionService.test.ts
-├── NotificationService.test.ts
+src/infrastructure/services/__tests__/
+├── NotificationService.test.ts             # Repository層と外部APIをモック化
 
 tests/integration/
-├── repository.test.ts
-├── cloud-tasks.test.ts
-├── end-to-end.test.ts
+├── repository.test.ts                      # 実際のDB接続（統合テスト）
+├── cloud-tasks.test.ts                     # 実際のCloud Tasks（統合テスト）
+├── end-to-end.test.ts                      # 全体フロー（E2Eテスト）
 ```
 
 ### Mock Implementations
@@ -1164,7 +1242,19 @@ app.post('/api/collect-tickets', async (c) => {
 });
 
 // Notification endpoint (triggered by Cloud Tasks)
+// NotificationController integration
 app.post('/api/send-notification', async (c) => {
+  const controller = new NotificationController();
+  return await controller.handleSendNotification(c.req.raw);
+});
+
+app.post('/api/process-pending-notifications', async (c) => {
+  const controller = new NotificationController();
+  return await controller.handleProcessPendingNotifications(c.req.raw);
+});
+
+// Legacy example (for reference)
+app.post('/api/send-notification-legacy', async (c) => {
   try {
     const { ticketId, notificationType } = await c.req.json();
 

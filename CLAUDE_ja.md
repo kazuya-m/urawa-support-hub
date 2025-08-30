@@ -250,21 +250,11 @@ if (error) throw new Error(`Failed to save ticket: ${error.message}`);
 
 #### 3. テスト設計
 
-- **Module Mock戦略**: `stub(instance, method)` from `testing/mock.ts` 使用
-- **環境変数不要**: Unit testは実際のDB接続を回避
-- **分割**: 個別テストケース作成（巨大統合テスト禁止）
-- **権限**: `--allow-env --allow-net=127.0.0.1` （`--allow-all` 禁止）
+**詳細**: docs/ja/clean-architecture-guide.md の Testing Strategy を参照
 
-```typescript
-// ✅ 正しい: Module Mock使用
-import { assertSpyCalls, stub } from 'testing/mock.ts';
-
-const repo = new TicketRepositoryImpl();
-const saveMock = stub(repo, 'save', () => Promise.resolve());
-
-// ❌ 間違い: 外部client注入
-const repo = new TicketRepositoryImpl(mockClient);
-```
+- **Module Mock戦略**: 各層の依存関係を適切にモック化
+- **分離原則**: 単体テストでは他層の実装に依存しない
+- **権限最小化**: `--allow-env --allow-net=127.0.0.1` （`--allow-all` 禁止）
 
 #### 4. ディレクトリ構造
 
