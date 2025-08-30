@@ -209,9 +209,31 @@ Deno.test('future disposable test', async () => {
 });
 ```
 
-## 📊 レイヤー別テスト
+## 📊 テスト戦略概要
 
-### UseCaseレイヤーテスト
+### テストレイヤーアーキテクチャ
+
+テスト戦略は速度と信頼性のバランスを取る**二階層アプローチ**を実装しています：
+
+#### 🔸 単体テスト (`src/**/__tests__/*.test.ts`)
+
+- **目的**: ビジネスロジック検証とコンポーネント分離
+- **データベース**: モックSupabaseクライアント（`createMockSupabaseClient`）
+- **ネットワーク**: 外部接続なし
+- **速度**: 高速実行（< 2秒）
+- **コマンド**: `deno test --allow-env src/`
+
+#### 🔸 統合テスト (`tests/integration/*.test.ts`)
+
+- **目的**: データベース操作と外部サービス検証
+- **データベース**: 実際のSupabase接続（`createTestSupabaseClient`）
+- **ネットワーク**: 実際のデータベースCRUD操作
+- **速度**: クリーンアップありで低速実行
+- **コマンド**: `deno test --allow-env --allow-net=127.0.0.1 tests/integration/`
+
+### 単体テストのレイヤー別パターン
+
+#### UseCaseレイヤーテスト
 
 - **対象**: アプリケーションビジネスロジック
 - **モック**: インフラストラクチャレイヤー（Services、Repositories）
@@ -221,7 +243,7 @@ Deno.test('future disposable test', async () => {
 const mockService = stub(useCase['infrastructureService'], 'method');
 ```
 
-### Controllerレイヤーテスト
+#### Controllerレイヤーテスト
 
 - **対象**: HTTPリクエスト/レスポンス処理
 - **モック**: アプリケーションレイヤー（UseCases）
@@ -231,7 +253,7 @@ const mockService = stub(useCase['infrastructureService'], 'method');
 const mockUseCase = stub(controller['useCase'], 'execute');
 ```
 
-### Serviceレイヤーテスト
+#### Serviceレイヤーテスト
 
 - **対象**: 外部システム統合
 - **モック**: Repositories、外部API
@@ -239,6 +261,183 @@ const mockUseCase = stub(controller['useCase'], 'execute');
 
 ```typescript
 const mockRepository = stub(service['repository'], 'save');
+```
+
+## 🔗 統合テストパターン
+
+### 1. Repositoryの統合テスト
+
+統合テストは実際のデータベース操作と制約を検証します：
+
+```typescript
+// tests/integration/repository.test.ts
+import { assertEquals } from 'jsr:@std/assert';
+import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
+import { cleanupTestData, createTestSupabaseClient } from '@/tests/utils/test-supabase.ts';
+
+const supabase = createTestSupabaseClient(); // 実際のSupabase接続
+const ticketRepo = new TicketRepositoryImpl(supabase);
+
+Deno.test('TicketRepository - save and findById', async () => {
+  const testTicket = createTestTicket();
+
+  try {
+    // 実際のデータベース操作
+    await ticketRepo.save(testTicket);
+    const result = await ticketRepo.findById(testTicket.id);
+
+    // データ永続化の検証
+    assertEquals(result?.id, testTicket.id);
+    assertEquals(result?.matchName, testTicket.matchName);
+  } finally {
+    // 保証されたクリーンアップ
+    await cleanupTestData(supabase, 'tickets', testTicket.id);
+  }
+});
+```
+
+### 2. データベース制約テスト
+
+```typescript
+Deno.test('TicketRepository - ユニーク制約の検証', async () => {
+  const testTicket = createTestTicket();
+
+  try {
+    await ticketRepo.save(testTicket);
+
+    // データベース制約の強制をテスト
+    await assertRejects(
+      () => ticketRepo.save(testTicket), // 重複ID
+      RepositoryError,
+      'Unique constraint violation',
+    );
+  } finally {
+    await cleanupTestData(supabase, 'tickets', testTicket.id);
+  }
+});
+```
+
+### 3. データクリーンアップ戦略
+
+#### 個別レコードクリーンアップ
+
+```typescript
+// 単一レコードテスト用
+async function cleanupTicket(ticketId: string) {
+  await cleanupTestData(supabase, 'tickets', ticketId);
+}
+
+// テストでの使用法
+try {
+  await ticketRepo.save(testTicket);
+  // テスト操作
+} finally {
+  await cleanupTicket(testTicket.id); // 常に実行される
+}
+```
+
+#### テーブル全体のクリーンアップ
+
+```typescript
+// 包括的システムテスト用
+Deno.test('システムヘルス統合テスト', async (t) => {
+  const testTableName = 'system_health';
+
+  // テスト前にクリーンな状態に
+  await cleanupTestTable(supabase, testTableName);
+
+  await t.step('完全なワークフローを完了する', async () => {
+    // システム全体のテスト操作
+  });
+
+  // テスト後にクリーンな状態に
+  await cleanupTestTable(supabase, testTableName);
+});
+```
+
+### 4. テスト環境セットアップ
+
+統合テストには実際のSupabase設定が必要です：
+
+```typescript
+// tests/utils/test-supabase.ts
+export function createTestSupabaseClient(): SupabaseClient {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'http://127.0.0.1:54321';
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'default-test-key';
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false, // テスト干渉を防ぐ
+      persistSession: false, // セッションリークを避ける
+    },
+  });
+}
+```
+
+## 🚀 コマンド使用ガイド
+
+### 開発ワークフロー
+
+#### 高速単体テスト（開発時）
+
+```bash
+# 開発時の迅速なフィードバック
+deno test --allow-env src/
+# ✅ ~1秒で66テスト
+# ✅ ネットワーク依存なし
+# ✅ モックベースの分離
+```
+
+#### 完全テストスイート（コミット前）
+
+```bash
+# コミット前の完全検証
+deno test --allow-env --allow-net=127.0.0.1
+# ✅ 単体テスト（高速）
+# ✅ 統合テスト（Supabase必須）
+# ✅ エンドツーエンド検証
+```
+
+#### 統合テストのみ（データベース検証）
+
+```bash
+# データベース操作に重点
+deno test --allow-env --allow-net=127.0.0.1 tests/integration/
+# ✅ 実際のCRUD操作
+# ✅ 制約検証
+# ✅ データクリーンアップ検証
+```
+
+### CI/CDパイプライン使用法
+
+```yaml
+# GitHub Actions設定例
+- name: Run Unit Tests
+  run: deno test --allow-env src/
+
+- name: Run Integration Tests
+  run: deno test --allow-env --allow-net=127.0.0.1 tests/integration/
+  env:
+    SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+    SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+```
+
+### 権限戦略
+
+#### 単体テスト：最小権限
+
+```bash
+--allow-env  # 環境変数のみ
+# ❌ ネットワークアクセスなし
+# ❌ 一時ファイル以外のファイルシステムアクセスなし
+```
+
+#### 統合テスト：制御されたネットワークアクセス
+
+```bash
+--allow-env --allow-net=127.0.0.1  # ローカルSupabaseのみ
+# ✅ データベース操作
+# ❌ 外部ネットワーク呼び出しなし
 ```
 
 ## ⚠️ よくある落とし穴と解決策
@@ -353,3 +552,4 @@ Deno.test('working test', async () => {
 
 - **2025-01-30**: 直接メソッドモック化パターンによる初期版
 - **2025-01-30**: 包括的なエラーハンドリングとクリーンアップ戦略を追加
+- **2025-01-30**: 統合テストパターンと二階層テスト戦略ドキュメントを追加
