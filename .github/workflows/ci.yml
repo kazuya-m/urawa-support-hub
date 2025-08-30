@@ -36,17 +36,8 @@ jobs:
         run: deno check **/*.ts
 
       - name: Run tests
-        run: deno test --allow-env --allow-net=127.0.0.1 --coverage=coverage
+        run: deno test --allow-env --allow-net=127.0.0.1
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
-      - name: Generate coverage report
-        run: deno coverage coverage --lcov --output=coverage.lcov
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: coverage.lcov
-          fail_ci_if_error: false
