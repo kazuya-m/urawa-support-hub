@@ -2,19 +2,13 @@ import {
   NotificationExecutionInput,
   NotificationUseCase,
 } from '@/application/usecases/NotificationUseCase.ts';
+import { NotificationPresenter } from '@/adapters/presenters/NotificationPresenter.ts';
 import { isValidNotificationType, NotificationType } from '@/domain/entities/NotificationTypes.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
 interface CloudTaskRequestBody {
   ticketId: string;
   notificationType: string;
-}
-
-interface ErrorResponse {
-  error: string;
-  details?: unknown;
-  timestamp: string;
-  traceId?: string;
 }
 
 export class NotificationController {
@@ -25,42 +19,28 @@ export class NotificationController {
   }
 
   async handleSendNotification(req: Request): Promise<Response> {
-    const startTime = Date.now();
-
     try {
       const isAuthenticated = this.validateCloudTasksRequest(req);
       if (!isAuthenticated) {
-        return this.createErrorResponse(
-          'Unauthorized',
-          'Invalid or missing authentication for Cloud Tasks',
-          401,
-        );
+        return NotificationPresenter.toUnauthorizedResponse();
       }
 
       const requestBody = await this.parseRequestBody(req);
       if (!requestBody) {
-        return this.createErrorResponse(
-          'Bad Request',
-          'Invalid request body format',
-          400,
-        );
+        return NotificationPresenter.toBadRequestResponse('Invalid request body format');
       }
 
       const { ticketId, notificationType } = requestBody;
 
       if (!ticketId || typeof ticketId !== 'string') {
-        return this.createErrorResponse(
-          'Bad Request',
+        return NotificationPresenter.toBadRequestResponse(
           'ticketId is required and must be a string',
-          400,
         );
       }
 
       if (!isValidNotificationType(notificationType)) {
-        return this.createErrorResponse(
-          'Bad Request',
+        return NotificationPresenter.toBadRequestResponse(
           `Invalid notificationType: ${notificationType}`,
-          400,
         );
       }
 
@@ -69,30 +49,14 @@ export class NotificationController {
         notificationType: notificationType as NotificationType,
       };
 
-      await this.notificationUseCase.execute(inputData);
-
-      const executionTime = Date.now() - startTime;
-
-      return new Response(
-        JSON.stringify({
-          status: 'success',
-          message: 'Notification sent successfully',
-          ticketId,
-          notificationType,
-          executionTimeMs: executionTime,
-          timestamp: new Date().toISOString(),
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+      const result = await this.notificationUseCase.execute(inputData);
+      return NotificationPresenter.toSuccessResponse(result);
     } catch (error) {
       if (error instanceof Error) {
         handleSupabaseError('send notification', error);
       }
 
-      return this.createErrorResponse(
+      return NotificationPresenter.toErrorResponse(
         'Notification delivery failed',
         error instanceof Error ? error.message : String(error),
         500,
@@ -121,18 +85,5 @@ export class NotificationController {
     } catch {
       return null;
     }
-  }
-
-  private createErrorResponse(error: string, details: unknown, status: number): Response {
-    const errorResponse: ErrorResponse = {
-      error,
-      details,
-      timestamp: new Date().toISOString(),
-    };
-
-    return new Response(JSON.stringify(errorResponse), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    });
   }
 }

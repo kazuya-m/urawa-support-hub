@@ -2,14 +2,8 @@ import {
   BatchExecutionInput,
   NotificationBatchUseCase,
 } from '@/application/usecases/NotificationBatchUseCase.ts';
+import { NotificationBatchPresenter } from '@/adapters/presenters/NotificationBatchPresenter.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
-
-interface ErrorResponse {
-  error: string;
-  details?: unknown;
-  timestamp: string;
-  traceId?: string;
-}
 
 export class NotificationBatchController {
   private notificationBatchUseCase: NotificationBatchUseCase;
@@ -19,43 +13,21 @@ export class NotificationBatchController {
   }
 
   async handleProcessPendingNotifications(req: Request): Promise<Response> {
-    const startTime = Date.now();
-
     try {
       const isAuthenticated = this.validateCloudSchedulerRequest(req);
       if (!isAuthenticated) {
-        return this.createErrorResponse(
-          'Unauthorized',
-          'Invalid or missing OIDC token from Cloud Scheduler',
-          401,
-        );
+        return NotificationBatchPresenter.toUnauthorizedResponse();
       }
 
       const input: BatchExecutionInput = { operation: 'process_pending' };
       const result = await this.notificationBatchUseCase.execute(input);
-
-      const executionTime = Date.now() - startTime;
-
-      return new Response(
-        JSON.stringify({
-          status: 'success',
-          message: 'Pending notifications processed successfully',
-          processed: 'processed' in result ? result.processed : 0,
-          failed: 'failed' in result ? result.failed : 0,
-          executionTimeMs: executionTime,
-          timestamp: new Date().toISOString(),
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+      return NotificationBatchPresenter.toSuccessResponse(result);
     } catch (error) {
       if (error instanceof Error) {
         handleSupabaseError('process pending notifications', error);
       }
 
-      return this.createErrorResponse(
+      return NotificationBatchPresenter.toErrorResponse(
         'Pending notifications processing failed',
         error instanceof Error ? error.message : String(error),
         500,
@@ -64,42 +36,21 @@ export class NotificationBatchController {
   }
 
   async handleCleanupExpiredNotifications(req: Request): Promise<Response> {
-    const startTime = Date.now();
-
     try {
       const isAuthenticated = this.validateCloudSchedulerRequest(req);
       if (!isAuthenticated) {
-        return this.createErrorResponse(
-          'Unauthorized',
-          'Invalid or missing OIDC token from Cloud Scheduler',
-          401,
-        );
+        return NotificationBatchPresenter.toUnauthorizedResponse();
       }
 
       const input: BatchExecutionInput = { operation: 'cleanup_expired' };
       const result = await this.notificationBatchUseCase.execute(input);
-
-      const executionTime = Date.now() - startTime;
-
-      return new Response(
-        JSON.stringify({
-          status: 'success',
-          message: 'Expired notifications cleaned up successfully',
-          cleaned: 'cleaned' in result ? result.cleaned : 0,
-          executionTimeMs: executionTime,
-          timestamp: new Date().toISOString(),
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+      return NotificationBatchPresenter.toSuccessResponse(result);
     } catch (error) {
       if (error instanceof Error) {
         handleSupabaseError('cleanup expired notifications', error);
       }
 
-      return this.createErrorResponse(
+      return NotificationBatchPresenter.toErrorResponse(
         'Expired notifications cleanup failed',
         error instanceof Error ? error.message : String(error),
         500,
@@ -117,18 +68,5 @@ export class NotificationBatchController {
 
     // Cloud Scheduler uses OIDC token authentication
     return !!authHeader && authHeader.startsWith('Bearer ');
-  }
-
-  private createErrorResponse(error: string, details: unknown, status: number): Response {
-    const errorResponse: ErrorResponse = {
-      error,
-      details,
-      timestamp: new Date().toISOString(),
-    };
-
-    return new Response(JSON.stringify(errorResponse), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    });
   }
 }
