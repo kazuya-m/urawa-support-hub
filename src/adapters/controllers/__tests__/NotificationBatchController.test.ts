@@ -1,25 +1,23 @@
 import { assertEquals } from 'std/assert/mod.ts';
-import { NotificationBatchController } from '../NotificationBatchController.ts';
+import { returnsNext, stub } from 'testing/mock.ts';
+import { NotificationBatchController } from '@/adapters/controllers/NotificationBatchController.ts';
 
-Deno.test('NotificationBatchController', async (t) => {
-  const originalEnv = {
-    LINE_CHANNEL_ACCESS_TOKEN: Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN'),
-    DISCORD_WEBHOOK_URL: Deno.env.get('DISCORD_WEBHOOK_URL'),
-    NODE_ENV: Deno.env.get('NODE_ENV'),
-    SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
-    SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
-  };
+// テスト用環境変数を設定（Supabaseクライアント作成のため）
+Deno.env.set('SUPABASE_URL', 'http://test.supabase.co');
+Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-key');
+Deno.env.set('NODE_ENV', 'test'); // 認証スキップのため
 
-  // テスト用環境変数設定
-  Deno.env.set('LINE_CHANNEL_ACCESS_TOKEN', 'test-line-token');
-  Deno.env.set('DISCORD_WEBHOOK_URL', 'https://discord.com/api/webhooks/test');
-  Deno.env.set('NODE_ENV', 'test'); // 本番でない環境での認証スキップ
-  Deno.env.set('SUPABASE_URL', 'https://test.supabase.co');
-  Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');
+Deno.test('NotificationBatchController should handle pending notifications processing', async () => {
+  const controller = new NotificationBatchController();
 
-  await t.step('should handle pending notifications processing', async () => {
-    const controller = new NotificationBatchController();
+  // NotificationBatchUseCaseのexecuteメソッドをモック化
+  const mockExecute = stub(
+    controller['notificationBatchUseCase'],
+    'execute',
+    returnsNext([Promise.resolve({ processed: 5, failed: 0 })]),
+  );
 
+  try {
     const request = new Request('http://localhost/api/process-pending-notifications', {
       method: 'POST',
       headers: {
@@ -27,19 +25,35 @@ Deno.test('NotificationBatchController', async (t) => {
       },
     });
 
-    try {
-      const response = await controller.handleProcessPendingNotifications(request);
-      assertEquals(typeof response, 'object');
-      assertEquals(response instanceof Response, true);
-    } catch (error) {
-      // DB接続エラーは想定内（テスト環境）
-      assertEquals(typeof error, 'object');
-    }
-  });
+    const response = await controller.handleProcessPendingNotifications(request);
 
-  await t.step('should handle cleanup expired notifications', async () => {
-    const controller = new NotificationBatchController();
+    // レスポンスの検証
+    assertEquals(response.status, 200);
+    assertEquals(mockExecute.calls.length, 1);
 
+    const responseBody = await response.json();
+    assertEquals(responseBody.status, 'success');
+    assertEquals(responseBody.processed, 5);
+    assertEquals(responseBody.failed, 0);
+
+    // 正しい引数でUseCaseが呼ばれたことを確認
+    assertEquals(mockExecute.calls[0].args[0].operation, 'process_pending');
+  } finally {
+    mockExecute.restore();
+  }
+});
+
+Deno.test('NotificationBatchController should handle cleanup expired notifications', async () => {
+  const controller = new NotificationBatchController();
+
+  // NotificationBatchUseCaseのexecuteメソッドをモック化
+  const mockExecute = stub(
+    controller['notificationBatchUseCase'],
+    'execute',
+    returnsNext([Promise.resolve({ cleaned: 3 })]),
+  );
+
+  try {
     const request = new Request('http://localhost/api/cleanup-expired', {
       method: 'POST',
       headers: {
@@ -47,20 +61,72 @@ Deno.test('NotificationBatchController', async (t) => {
       },
     });
 
+    const response = await controller.handleCleanupExpiredNotifications(request);
+
+    // レスポンスの検証
+    assertEquals(response.status, 200);
+    assertEquals(mockExecute.calls.length, 1);
+
+    const responseBody = await response.json();
+    assertEquals(responseBody.status, 'success');
+    assertEquals(responseBody.cleaned, 3);
+
+    // 正しい引数でUseCaseが呼ばれたことを確認
+    assertEquals(mockExecute.calls[0].args[0].operation, 'cleanup_expired');
+  } finally {
+    mockExecute.restore();
+  }
+});
+
+Deno.test('NotificationBatchController should handle UseCase errors properly', async () => {
+  const controller = new NotificationBatchController();
+  const testError = new Error('UseCase execution failed');
+
+  // エラーを投げるモック
+  const mockExecute = stub(
+    controller['notificationBatchUseCase'],
+    'execute',
+    returnsNext([Promise.reject(testError)]),
+  );
+
+  try {
+    const request = new Request('http://localhost/api/process-pending-notifications', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer test-oidc-token',
+      },
+    });
+
+    let response: Response;
     try {
-      const response = await controller.handleCleanupExpiredNotifications(request);
-      assertEquals(typeof response, 'object');
-      assertEquals(response instanceof Response, true);
+      response = await controller.handleProcessPendingNotifications(request);
     } catch (error) {
-      // DB接続エラーは想定内（テスト環境）
-      assertEquals(typeof error, 'object');
+      // handleSupabaseErrorが投げるRepositoryErrorをキャッチ
+      // エラーが適切に処理されていることを確認
+      assertEquals(error instanceof Error, true);
+      const errorMessage = (error as Error).message;
+      assertEquals(errorMessage.includes('UseCase execution failed'), true);
+      assertEquals(mockExecute.calls.length, 1);
+      return; // テスト成功
     }
-  });
 
-  await t.step('should handle authentication in production mode', async () => {
-    // 本番環境での認証テスト
-    Deno.env.set('NODE_ENV', 'production');
+    // もしエラーがスローされずにレスポンスが返された場合
+    assertEquals(response.status, 500);
+    assertEquals(mockExecute.calls.length, 1);
 
+    const responseBody = await response.json();
+    assertEquals(responseBody.error, 'Pending notifications processing failed');
+  } finally {
+    mockExecute.restore();
+  }
+});
+
+Deno.test('NotificationBatchController should handle authentication in production mode', async () => {
+  // 本番環境での認証テスト
+  const originalNodeEnv = Deno.env.get('NODE_ENV');
+  Deno.env.set('NODE_ENV', 'production');
+
+  try {
     const controller = new NotificationBatchController();
 
     const request = new Request('http://localhost/api/process-pending-notifications', {
@@ -76,17 +142,12 @@ Deno.test('NotificationBatchController', async (t) => {
     assertEquals(response.status, 401);
     const responseBody = await response.json();
     assertEquals(responseBody.error, 'Unauthorized');
-
-    // 環境変数を戻す
-    Deno.env.set('NODE_ENV', 'test');
-  });
-
-  // 環境変数復元
-  Object.entries(originalEnv).forEach(([key, value]) => {
-    if (value === undefined) {
-      Deno.env.delete(key);
+  } finally {
+    // 環境変数を元に戻す
+    if (originalNodeEnv === undefined) {
+      Deno.env.delete('NODE_ENV');
     } else {
-      Deno.env.set(key, value);
+      Deno.env.set('NODE_ENV', originalNodeEnv);
     }
-  });
+  }
 });

@@ -1,4 +1,7 @@
-import { NotificationBatchUseCase } from '@/application/usecases/NotificationBatchUseCase.ts';
+import {
+  BatchExecutionInput,
+  NotificationBatchUseCase,
+} from '@/application/usecases/NotificationBatchUseCase.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
 interface ErrorResponse {
@@ -28,7 +31,8 @@ export class NotificationBatchController {
         );
       }
 
-      const result = await this.notificationBatchUseCase.executePendingNotifications();
+      const input: BatchExecutionInput = { operation: 'process_pending' };
+      const result = await this.notificationBatchUseCase.execute(input);
 
       const executionTime = Date.now() - startTime;
 
@@ -36,8 +40,8 @@ export class NotificationBatchController {
         JSON.stringify({
           status: 'success',
           message: 'Pending notifications processed successfully',
-          processed: result.processed,
-          failed: result.failed,
+          processed: 'processed' in result ? result.processed : 0,
+          failed: 'failed' in result ? result.failed : 0,
           executionTimeMs: executionTime,
           timestamp: new Date().toISOString(),
         }),
@@ -72,7 +76,8 @@ export class NotificationBatchController {
         );
       }
 
-      const result = await this.notificationBatchUseCase.cleanupExpiredNotifications();
+      const input: BatchExecutionInput = { operation: 'cleanup_expired' };
+      const result = await this.notificationBatchUseCase.execute(input);
 
       const executionTime = Date.now() - startTime;
 
@@ -80,7 +85,7 @@ export class NotificationBatchController {
         JSON.stringify({
           status: 'success',
           message: 'Expired notifications cleaned up successfully',
-          cleaned: result.cleaned,
+          cleaned: 'cleaned' in result ? result.cleaned : 0,
           executionTimeMs: executionTime,
           timestamp: new Date().toISOString(),
         }),
