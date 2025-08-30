@@ -1,6 +1,7 @@
 import { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
 import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
+import { TicketCollectionResult } from '@/application/types/UseCaseResults.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
 export class TicketCollectionUseCase {
@@ -12,7 +13,7 @@ export class TicketCollectionUseCase {
     this.healthRepository = new HealthRepositoryImpl();
   }
 
-  async execute(): Promise<void> {
+  async execute(): Promise<TicketCollectionResult> {
     const startTime = Date.now();
     let executionResult: HealthCheckResult;
 
@@ -34,6 +35,15 @@ export class TicketCollectionUseCase {
         );
         console.log(`Source results:`, collectionResult.sourceResults);
       }
+
+      await this.healthRepository.recordDailyExecution(executionResult);
+
+      return {
+        status: 'success',
+        ticketsFound: collectionResult.totalTickets,
+        executionDurationMs: executionDuration,
+        sourceResults: collectionResult.sourceResults,
+      };
     } catch (error) {
       const executionDuration = Date.now() - startTime;
 
@@ -51,26 +61,26 @@ export class TicketCollectionUseCase {
       if (Deno.env.get('NODE_ENV') !== 'production') {
         console.error(`Daily execution failed after ${executionDuration}ms:`, error);
       }
-    }
 
-    try {
-      await this.healthRepository.recordDailyExecution(executionResult);
-
-      if (Deno.env.get('NODE_ENV') !== 'production') {
-        console.log(
-          `Health check recorded: status=${executionResult.status}, tickets=${executionResult.ticketsFound}`,
+      try {
+        await this.healthRepository.recordDailyExecution(executionResult);
+      } catch (healthError) {
+        console.error(
+          'CRITICAL: Failed to record health check - Supabase may auto-pause:',
+          healthError,
         );
+        handleSupabaseError('record daily health check', healthError as Error);
       }
-    } catch (healthError) {
-      console.error(
-        'CRITICAL: Failed to record health check - Supabase may auto-pause:',
-        healthError,
-      );
-      handleSupabaseError('record daily health check', healthError as Error);
-    }
 
-    if (executionResult.status === 'error') {
-      throw new Error(executionResult.errorDetails?.message as string);
+      return {
+        status: 'error',
+        ticketsFound: 0,
+        executionDurationMs: executionDuration,
+        errorDetails: {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      };
     }
   }
 }

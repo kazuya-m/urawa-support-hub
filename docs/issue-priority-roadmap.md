@@ -9,8 +9,7 @@
 
 - **Completed**: Foundation setup, external services, domain models, database schema, notification
   services, application layer
-- **In Progress**: Cloud Run deployment (#24), notification management (#13), Discord notifications
-  (#30)
+- **In Progress**: Cloud Run deployment (#24), Discord notifications (#30)
 - **Not Started**: Google Cloud services integration, final deployment
 
 ## Implementation Phases Overview
@@ -49,7 +48,7 @@
 | ----- | ---------------------------------------------------------- | ----------- | ------------------ | -------------------------- |
 | #27   | LINE notification service implementation                   | 🔴 Critical | ✅ **COMPLETED**   | Main notification channel  |
 | #30   | Discord error notification implementation                  | 🟠 High     | ⏳ **IN PROGRESS** | Error alerts only          |
-| #13   | Notification management application service implementation | 🔴 Critical | ⏳ **IN PROGRESS** | Notification orchestration |
+| #13   | Notification management application service implementation | 🔴 Critical | ✅ **COMPLETED**   | Notification orchestration |
 
 ### Phase 4: Deployment (2 days)
 
@@ -108,7 +107,7 @@ Each issue is considered complete when:
 
 ## Current Status (2025-08-30)
 
-### ✅ Completed Issues: 21/25 (84%)
+### ✅ Completed Issues: 22/25 (88%)
 
 **Foundation & Infrastructure:**
 
@@ -131,6 +130,7 @@ Each issue is considered complete when:
 - #27 - LINE notification service implementation
 - #12 - Ticket management application service implementation
 - #38 - Playwright scraping implementation
+- #13 - Notification management application service implementation
 
 **Testing & Documentation:**
 
@@ -141,9 +141,8 @@ Each issue is considered complete when:
 - #32 - Database migration management
 - #34 - Security and permission detailed design
 
-### ⏳ In Progress: 4/25 (16%)
+### ⏳ In Progress: 3/25 (12%)
 
-- #13 - Notification management application service
 - #30 - Discord error notification implementation
 - #33 - Minimal CI/CD setup
 - #24 - Google Cloud Run scraping service implementation
@@ -156,10 +155,9 @@ Each issue is considered complete when:
 
 ## Next Steps Priority
 
-1. **#13** - Complete notification management application service (notification orchestration)
-2. **#24** - Deploy scraping to Cloud Run (production deployment)
-3. **#25** - Setup Google Cloud Tasks notification scheduling
-4. **#26** - Setup Cloud Scheduler daily execution
+1. **#24** - Deploy scraping to Cloud Run (production deployment)
+2. **#25** - Setup Google Cloud Tasks notification scheduling
+3. **#26** - Setup Cloud Scheduler daily execution
 
 ## Progress Tracking
 

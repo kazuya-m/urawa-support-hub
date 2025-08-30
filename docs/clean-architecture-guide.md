@@ -133,107 +133,23 @@ async function handleRequest(req: Request): Promise<Response> {
 }
 ```
 
-## Testing Strategy with Clean Architecture
+## Testing Integration
 
-### 🎯 Test Isolation Principles
+For comprehensive testing strategies and patterns specific to this project, refer to:
 
-#### 1. Unit Test Isolation
+**📋 [Testing Guidelines](./testing-guidelines.md)**
 
-```typescript
-import { assertSpyCalls, stub } from 'testing/mock.ts';
+The Testing Guidelines document covers:
 
-// ✅ Module Mock Strategy - 既存クラス設計維持
-Deno.test('Controller test', async () => {
-  const useCase = new TicketCollectionUseCase();
-  const executeMock = stub(useCase, 'execute', () => Promise.resolve());
-  const controller = new TicketCollectionController(useCase);
+- Small-scale project testing strategies
+- Direct method mocking patterns
+- Mock cleanup and resource management
+- Environment setup and test permissions
+- Layer-specific testing approaches
+- Common testing pitfalls and solutions
 
-  await controller.handleRequest(mockRequest);
-
-  assertSpyCalls(executeMock, 1);
-});
-
-// ✅ 複雑なMockデータが必要な場合はクラス維持
-export class MockJLeagueTicketScraper {
-  constructor(mockData: ScrapedTicketData[] = [], shouldThrow = false) {
-    // テストデータとエラーシミュレーション
-  }
-}
-```
-
-#### 2. Test Permissions (Minimum Privilege)
-
-```bash
-# ✅ Unit tests - minimum permissions
-deno test --allow-env --allow-net=127.0.0.1
-
-# ❌ Avoid broad permissions
-deno test --allow-all  # 禁止
-deno test --allow-sys  # 可能な限り回避
-```
-
-#### 3. Mock Interface Compliance
-
-```typescript
-import { spy } from 'testing/mock';
-
-// UseCase interface for testing
-interface ITicketCollectionUseCase {
-  execute(): Promise<void>;
-}
-
-### Test File Organization
-```
-
-src/adapters/controllers/ ├── TicketCollectionController.ts └── **tests**/ └──
-TicketCollectionController.test.ts # Module Mock使用
-
-src/application/usecases/\
-├── TicketCollectionUseCase.ts └── **tests**/ ├── TicketCollectionUseCase.test.ts └──
-MockTicketCollectionService.ts
-
-````
-### 🎯 Module Mock Testing Strategy\n\n```typescript\nimport { stub, assertSpyCalls, assertSpyCallArgs } from 'testing/mock.ts';\n\n// ✅ Repository Unit Test - Module Mock戦略（環境変数・DB接続不要）\nDeno.test('TicketRepository save test', async () => {\n  const repo = new TicketRepositoryImpl();\n  const saveMock = stub(repo, 'save', () => Promise.resolve());\n  \n  await repo.save(testTicket);\n  \n  assertSpyCalls(saveMock, 1);\n  assertSpyCallArgs(saveMock, 0, [testTicket]);\n});\n\n// ✅ UseCase Unit Test - Repository methodをmock\nDeno.test('TicketCollectionUseCase test', async () => {\n  const useCase = new TicketCollectionUseCase();\n  const executeMock = stub(useCase, 'execute', () => Promise.resolve());\n  \n  await useCase.execute();\n  \n  assertSpyCalls(executeMock, 1);\n});\n```\n\n## 🚨 Common Violations and Solutions
-
-### Problem: Layer Skipping
-
-```typescript
-// ❌ Problem: Controller calls Service directly
-class Controller {
-  constructor() {
-    this.service = new SomeService(); // Skip UseCase layer
-  }
-}
-
-// ✅ Solution: Follow layer hierarchy
-class Controller {
-  constructor(private useCase: IUseCase) {} // Proper layer dependency
-}
-````
-
-### Problem: Circular Dependencies
-
-```typescript
-// ❌ Problem: Circular import
-// ServiceA imports ServiceB
-// ServiceB imports ServiceA
-
-// ✅ Solution: Extract shared interface
-interface ISharedService {
-  commonMethod(): void;
-}
-```
-
-### Problem: Test Dependencies
-
-```typescript
-// ❌ Problem: Test imports Infrastructure
-import { TicketCollectionService } from '../../infrastructure/...'; // Playwright初期化
-
-// ✅ Solution: Use module mock strategy
-const useCase = new TicketCollectionUseCase();
-const executeMock = stub(useCase, 'execute', () => Promise.resolve());
-```
+This separation allows the Clean Architecture Guide to focus purely on architectural principles
+while maintaining detailed testing guidance in a dedicated document.
 
 ## Enforcement Guidelines
 

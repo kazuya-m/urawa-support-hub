@@ -1,4 +1,6 @@
 import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
+import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
+import { NotificationBatchController } from '@/adapters/controllers/NotificationBatchController.ts';
 import { handleHealthCheck } from '@/middleware/health.ts';
 
 async function handleRequest(req: Request): Promise<Response> {
@@ -7,6 +9,16 @@ async function handleRequest(req: Request): Promise<Response> {
   if (url.pathname === '/api/collect-tickets' && req.method === 'POST') {
     const ticketController = new TicketCollectionController();
     return await ticketController.handleCollectTickets(req);
+  }
+
+  if (url.pathname === '/api/send-notification' && req.method === 'POST') {
+    const notificationController = new NotificationController();
+    return await notificationController.handleSendNotification(req);
+  }
+
+  if (url.pathname === '/api/process-pending-notifications' && req.method === 'POST') {
+    const notificationBatchController = new NotificationBatchController();
+    return await notificationBatchController.handleProcessPendingNotifications(req);
   }
 
   if (url.pathname === '/health' && req.method === 'GET') {

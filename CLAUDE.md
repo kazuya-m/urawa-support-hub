@@ -233,15 +233,14 @@ system, not learn about its development history.
 
 ##### Test Implementation Requirements
 
-- **Unit test creation**: Tests to verify individual function/method behavior (in `__tests__/`
-  directory at same level as target file)
-- **Integration test script creation**: Executable tests to verify key functionality
-  (`tests/integration/`)
-- **Testing with actual data**: Use test data that matches actual constraints rather than dummy data
-- **Boundary value testing**: Verify behavior in normal, exceptional, and boundary value cases
-- **Mock testing**: Unit tests with mocked external dependencies
-- **Cleanup processing**: Complete tests including data deletion after testing
-- **Test result verification**: Confirm all test cases succeed
+- **Unit tests**: Create tests in `__tests__/` directory at same level as target file
+- **Direct Method Mocking**: Use small-scale project patterns for test isolation
+- **Mock Cleanup**: Ensure proper restoration of all mocks
+- **Integration tests**: Create executable tests in `tests/integration/`
+- **Test verification**: Confirm all test cases succeed
+
+**📋 For comprehensive testing patterns and strategies, refer to:**
+**[Testing Guidelines](./docs/testing-guidelines.md)**
 
 #### 3. Pre-commit Checklist
 

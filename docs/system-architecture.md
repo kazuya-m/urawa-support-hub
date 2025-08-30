@@ -78,7 +78,12 @@ ticket sales begin.
 
 - **Cloud Run Service**: Unified execution environment for all business logic
   - `/api/collect-tickets`: Daily ticket extraction endpoint (triggered by Cloud Scheduler)
+    - **Flow**: TicketCollectionController → TicketCollectionUseCase → TicketCollectionService
   - `/api/send-notification`: LINE and Discord notification delivery (triggered by Cloud Tasks)
+    - **Flow**: NotificationController → NotificationUseCase → NotificationService
+  - `/api/process-pending-notifications`: Manual pending notification processing (triggered by Cloud
+    Scheduler)
+    - **Flow**: NotificationController → NotificationUseCase → NotificationService
 
 **Key Features:**
 
@@ -98,6 +103,10 @@ ticket sales begin.
   - Coordinates scraping service execution
   - Records system health metrics
   - Handles error scenarios and recovery
+- **NotificationUseCase**: Notification delivery workflow orchestration
+  - Coordinates notification service execution
+  - Handles Cloud Tasks request processing
+  - Manages pending notification batch processing
 
 **Key Features:**
 

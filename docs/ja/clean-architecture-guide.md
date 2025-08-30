@@ -133,70 +133,23 @@ async function handleRequest(req: Request): Promise<Response> {
 }
 ```
 
-## Clean Architectureでのテスト戦略
+## テスト統合
 
-### 🎯 テスト分離原則
+このプロジェクト固有の包括的なテスト戦略とパターンについては、以下を参照してください：
 
-#### 1. ユニットテスト分離
+**📋 [テストガイドライン](./testing-guidelines.md)**
 
-```typescript
-import { assertSpyCalls, stub } from 'testing/mock.ts';
+テストガイドラインドキュメントでは以下をカバーしています：
 
-// ✅ モジュールモック戦略 - 既存クラス設計維持
-Deno.test('Controller test', async () => {
-  const useCase = new TicketCollectionUseCase();
-  const executeMock = stub(useCase, 'execute', () => Promise.resolve());
-  const controller = new TicketCollectionController(useCase);
+- 小規模プロジェクト向けテスト戦略
+- 直接メソッドモック化パターン
+- モッククリーンアップとリソース管理
+- 環境設定とテスト権限
+- レイヤー固有のテストアプローチ
+- よくあるテストの落とし穴と解決策
 
-  await controller.handleRequest(mockRequest);
-
-  assertSpyCalls(executeMock, 1);
-});
-
-// ✅ 複雑なモックデータが必要な場合はクラス維持
-export class MockJLeagueTicketScraper {
-  constructor(mockData: ScrapedTicketData[] = [], shouldThrow = false) {
-    // テストデータとエラーシミュレーション
-  }
-}
-```
-
-#### 2. テスト権限（最小権限）
-
-```bash
-# ✅ ユニットテスト - 最小権限
-deno test --allow-env --allow-net=127.0.0.1
-
-# ❌ 広範囲権限は回避
-deno test --allow-all  # 禁止
-deno test --allow-sys  # 可能な限り回避
-```
-
-#### 3. モックインターフェース準拠
-
-```typescript
-import { spy } from 'testing/mock';
-
-// テスト用UseCaseインターフェース
-interface ITicketCollectionUseCase {
-  execute(): Promise<void>;
-}
-```
-
-### テストファイル構成
-
-```
-src/adapters/controllers/
-├── TicketCollectionController.ts
-└── __tests__/
-    └── TicketCollectionController.test.ts  # モジュールモック使用
-
-src/application/usecases/
-├── TicketCollectionUseCase.ts
-└── __tests__/
-    ├── TicketCollectionUseCase.test.ts
-    └── MockTicketCollectionService.ts
-```
+この分離により、Clean
+Architectureガイドは純粋にアーキテクチャ原則に集中し、詳細なテストガイダンスは専用ドキュメントで維持できます。
 
 ### 🎯 モジュールモックテスト戦略
 
@@ -267,7 +220,7 @@ const useCase = new TicketCollectionUseCase();
 const executeMock = stub(useCase, 'execute', () => Promise.resolve());
 ```
 
-## 適用ガイドライン
+## アーキテクチャ実施ガイドライン
 
 ### 1. プリコミット検証
 
@@ -295,6 +248,6 @@ const executeMock = stub(useCase, 'execute', () => Promise.resolve());
 このガイドは以下の場合に参照すべきです：
 
 - **新機能実装前**: レイヤー責務確認
-- **テスト作成時**: モック戦略と権限設定
+- **テスト作成時**: [テストガイドライン](./testing-guidelines.md)を参照
 - **依存関係設計時**: DIパターン適用
 - **コードレビュー時**: アーキテクチャ違反確認
