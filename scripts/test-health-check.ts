@@ -52,7 +52,7 @@ async function testHealthCheck() {
   // テスト1: 成功シナリオ
   console.log('✅ テスト1: 正常動作（チケット発見）');
   const mockScrapingSuccess = new MockScrapingService('success');
-  const dailyService1 = new TicketCollectionUseCase(mockScrapingSuccess as any, healthRepository);
+  const dailyService1 = new TicketCollectionUseCase();
 
   try {
     await dailyService1.execute();
@@ -64,7 +64,7 @@ async function testHealthCheck() {
   // テスト2: 空結果シナリオ（オフシーズン想定）
   console.log('📭 テスト2: オフシーズン想定（チケットなし）');
   const mockScrapingEmpty = new MockScrapingService('empty');
-  const dailyService2 = new TicketCollectionUseCase(mockScrapingEmpty as any, healthRepository);
+  const dailyService2 = new TicketCollectionUseCase();
 
   try {
     await dailyService2.execute();
@@ -76,7 +76,7 @@ async function testHealthCheck() {
   // テスト3: エラーシナリオ
   console.log('⚠️ テスト3: スクレイピングエラー');
   const mockScrapingError = new MockScrapingService('error');
-  const dailyService3 = new TicketCollectionUseCase(mockScrapingError as any, healthRepository);
+  const dailyService3 = new TicketCollectionUseCase();
 
   try {
     await dailyService3.execute();
