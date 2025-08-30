@@ -13,7 +13,7 @@ Deno.test('SupabaseTicketRepository - findById with null handling', async () => 
     home_team: 'ホームチーム',
     away_team: 'アウェイチーム',
     sale_start_date: '2025-03-01T10:00:00+09:00',
-    sale_start_time: null, // null値のテスト
+    sale_start_time: null,
     venue: 'テストスタジアム',
     ticket_types: ['ビジター席'],
     ticket_url: 'https://example.com/test',
@@ -28,7 +28,7 @@ Deno.test('SupabaseTicketRepository - findById with null handling', async () => 
 
   assertEquals(result?.id, 'test-id');
   assertEquals(result?.matchName, 'テスト試合');
-  assertEquals(result?.saleStartTime, undefined); // null → undefined変換確認
+  assertEquals(result?.saleStartTime, undefined);
 });
 
 Deno.test('SupabaseTicketRepository - save error handling', async () => {
@@ -44,7 +44,7 @@ Deno.test('SupabaseTicketRepository - save error handling', async () => {
     matchDate: new Date(),
     homeTeam: 'ホーム',
     awayTeam: 'アウェイ',
-    saleStartDate: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1日前
+    saleStartDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
     venue: 'テストスタジアム',
     ticketTypes: ['test'],
     ticketUrl: 'https://example.com',

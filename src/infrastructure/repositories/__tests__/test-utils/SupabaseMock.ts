@@ -46,7 +46,11 @@ export interface TestSupabaseClient {
       lt: (
         column: string,
         value: unknown,
-      ) => Promise<{ error: { message: string; code?: string } | null }>;
+      ) => {
+        select: (
+          columns: string,
+        ) => Promise<{ data: unknown[]; error: { message: string; code?: string } | null }>;
+      };
     };
   };
 }
@@ -73,7 +77,7 @@ export function createMockSupabaseClient(
   const mockQuery = {
     single: () =>
       Promise.resolve({
-        data: shouldError ? null : mockData[0],
+        data: shouldError ? null : (mockData.length > 0 ? mockData[0] : null),
         error: mockError,
       }),
     order: () =>
@@ -83,40 +87,52 @@ export function createMockSupabaseClient(
       }),
   };
 
-  const testClient: TestSupabaseClient = {
-    from: () => ({
-      select: () => ({
-        eq: () => mockQuery,
-        gte: () => ({
-          lte: () => ({
-            order: () => mockQuery.order(),
-          }),
-        }),
-        lte: () => ({
-          order: () => mockQuery.order(),
-        }),
-        order: () => mockQuery.order(),
-      }),
-      insert: () =>
+  const mockSelectChain = {
+    eq: () => mockQuery,
+    gte: () => ({
+      limit: () =>
         Promise.resolve({
+          data: shouldError ? [] : mockData,
           error: mockError,
         }),
+      order: () => mockQuery.order(),
+      lte: () => ({
+        order: () => mockQuery.order(),
+      }),
+    }),
+    lte: () => ({
+      order: () => mockQuery.order(),
+    }),
+    order: () => ({
+      limit: () => ({
+        single: () => mockQuery.single(),
+      }),
+      ...mockQuery.order(),
+    }),
+    limit: () => ({
+      single: () => mockQuery.single(),
+    }),
+  };
+
+  const mockDeleteChain = {
+    eq: () => Promise.resolve({ error: mockError }),
+    lt: () => ({
+      select: () =>
+        Promise.resolve({
+          data: shouldError ? [] : mockData,
+          error: mockError,
+        }),
+    }),
+  };
+
+  const testClient: TestSupabaseClient = {
+    from: () => ({
+      select: () => mockSelectChain,
+      insert: () => Promise.resolve({ error: mockError }),
       update: () => ({
-        eq: () =>
-          Promise.resolve({
-            error: mockError,
-          }),
+        eq: () => Promise.resolve({ error: mockError }),
       }),
-      delete: () => ({
-        eq: () =>
-          Promise.resolve({
-            error: mockError,
-          }),
-        lt: () =>
-          Promise.resolve({
-            error: mockError,
-          }),
-      }),
+      delete: () => mockDeleteChain,
     }),
   };
 
