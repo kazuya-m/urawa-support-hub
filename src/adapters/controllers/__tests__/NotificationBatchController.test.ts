@@ -14,7 +14,13 @@ Deno.test('NotificationBatchController should handle pending notifications proce
   const mockExecute = stub(
     controller['notificationBatchUseCase'],
     'execute',
-    returnsNext([Promise.resolve({ processed: 5, failed: 0 })]),
+    returnsNext([Promise.resolve({
+      status: 'success' as const,
+      operation: 'process_pending' as const,
+      processed: 5,
+      failed: 0,
+      executionDurationMs: 1000,
+    })]),
   );
 
   try {
@@ -50,7 +56,12 @@ Deno.test('NotificationBatchController should handle cleanup expired notificatio
   const mockExecute = stub(
     controller['notificationBatchUseCase'],
     'execute',
-    returnsNext([Promise.resolve({ cleaned: 3 })]),
+    returnsNext([Promise.resolve({
+      status: 'success' as const,
+      operation: 'cleanup_expired' as const,
+      cleaned: 3,
+      executionDurationMs: 500,
+    })]),
   );
 
   try {

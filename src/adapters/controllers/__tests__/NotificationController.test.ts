@@ -1,4 +1,5 @@
 import { assertEquals } from 'std/assert/mod.ts';
+import { returnsNext, stub } from 'testing/mock.ts';
 import { NotificationController } from '../NotificationController.ts';
 import { NOTIFICATION_TYPES } from '@/domain/entities/NotificationTypes.ts';
 
@@ -21,28 +22,43 @@ Deno.test('NotificationController', async (t) => {
   await t.step('should handle valid send notification request', async () => {
     const controller = new NotificationController();
 
-    const requestBody = {
-      ticketId: 'test-ticket-123',
-      notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
-    };
-
-    const request = new Request('http://localhost/api/send-notification', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer test-token',
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // NotificationUseCaseのexecuteメソッドをモック化
+    const mockExecute = stub(
+      controller['notificationUseCase'],
+      'execute',
+      returnsNext([Promise.resolve({
+        status: 'success' as const,
+        ticketId: 'test-ticket-123',
+        notificationType: 'day_before',
+        executionDurationMs: 100,
+      })]),
+    );
 
     try {
+      const requestBody = {
+        ticketId: 'test-ticket-123',
+        notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
+      };
+
+      const request = new Request('http://localhost/api/send-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-token',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
       const response = await controller.handleSendNotification(request);
-      // レスポンスが生成されることを確認（実際のDB操作はモック環境では失敗する可能性）
-      assertEquals(typeof response, 'object');
-      assertEquals(response instanceof Response, true);
-    } catch (error) {
-      // DB接続エラーは想定内（テスト環境）
-      assertEquals(typeof error, 'object');
+
+      assertEquals(response.status, 200);
+      assertEquals(mockExecute.calls.length, 1);
+
+      const responseBody = await response.json();
+      assertEquals(responseBody.status, 'success');
+      assertEquals(responseBody.ticketId, 'test-ticket-123');
+    } finally {
+      mockExecute.restore();
     }
   });
 
