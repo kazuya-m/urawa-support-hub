@@ -1,20 +1,10 @@
 import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
+import { BatchProcessingResult } from '@/application/types/UseCaseResults.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
 export interface BatchExecutionInput {
   operation: 'process_pending' | 'cleanup_expired';
 }
-
-export interface BatchProcessResult {
-  processed: number;
-  failed: number;
-}
-
-export interface CleanupResult {
-  cleaned: number;
-}
-
-export type BatchExecutionResult = BatchProcessResult | CleanupResult;
 
 export class NotificationBatchUseCase {
   private notificationService: NotificationService;
@@ -23,15 +13,15 @@ export class NotificationBatchUseCase {
     this.notificationService = new NotificationService();
   }
 
-  async execute(input: BatchExecutionInput): Promise<BatchExecutionResult> {
+  async execute(input: BatchExecutionInput): Promise<BatchProcessingResult> {
     const startTime = Date.now();
 
     try {
       switch (input.operation) {
         case 'process_pending':
-          return await this.executePendingNotifications();
+          return await this.executePendingNotifications(startTime);
         case 'cleanup_expired':
-          return await this.cleanupExpiredNotifications();
+          return await this.cleanupExpiredNotifications(startTime);
         default:
           throw new Error(`Unknown operation: ${input.operation}`);
       }
@@ -51,8 +41,7 @@ export class NotificationBatchUseCase {
     }
   }
 
-  private async executePendingNotifications(): Promise<BatchProcessResult> {
-    const startTime = Date.now();
+  private async executePendingNotifications(startTime: number): Promise<BatchProcessingResult> {
     let processed = 0;
     const failed = 0;
 
@@ -72,7 +61,13 @@ export class NotificationBatchUseCase {
         executionTimeMs: executionTime,
       });
 
-      return { processed, failed };
+      return {
+        status: 'success',
+        operation: 'process_pending',
+        processed,
+        failed,
+        executionDurationMs: executionTime,
+      };
     } catch (error) {
       const executionTime = Date.now() - startTime;
       console.error('Batch notifications processing failed:', {
@@ -84,13 +79,18 @@ export class NotificationBatchUseCase {
         handleSupabaseError('execute batch notifications', error);
       }
 
-      throw error;
+      return {
+        status: 'error',
+        operation: 'process_pending',
+        processed: 0,
+        failed: 1,
+        executionDurationMs: executionTime,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 
-  private cleanupExpiredNotifications(): Promise<CleanupResult> {
-    const startTime = Date.now();
-
+  private cleanupExpiredNotifications(startTime: number): Promise<BatchProcessingResult> {
     try {
       // TODO: 期限切れ通知のクリーンアップロジック実装
       // 現時点では未実装のプレースホルダー
@@ -102,7 +102,12 @@ export class NotificationBatchUseCase {
         executionTimeMs: executionTime,
       });
 
-      return Promise.resolve({ cleaned });
+      return Promise.resolve({
+        status: 'success',
+        operation: 'cleanup_expired',
+        cleaned,
+        executionDurationMs: executionTime,
+      });
     } catch (error) {
       const executionTime = Date.now() - startTime;
       console.error('Expired notifications cleanup failed:', {
@@ -114,7 +119,13 @@ export class NotificationBatchUseCase {
         handleSupabaseError('cleanup expired notifications', error);
       }
 
-      return Promise.reject(error);
+      return Promise.resolve({
+        status: 'error',
+        operation: 'cleanup_expired',
+        cleaned: 0,
+        executionDurationMs: executionTime,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

@@ -1,4 +1,5 @@
 import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
+import { NotificationResult } from '@/application/types/UseCaseResults.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
 
@@ -14,7 +15,7 @@ export class NotificationUseCase {
     this.notificationService = new NotificationService();
   }
 
-  async execute(input: NotificationExecutionInput): Promise<void> {
+  async execute(input: NotificationExecutionInput): Promise<NotificationResult> {
     const startTime = Date.now();
 
     try {
@@ -26,6 +27,13 @@ export class NotificationUseCase {
         notificationType: input.notificationType,
         executionTimeMs: executionTime,
       });
+
+      return {
+        status: 'success',
+        ticketId: input.ticketId,
+        notificationType: input.notificationType,
+        executionDurationMs: executionTime,
+      };
     } catch (error) {
       const executionTime = Date.now() - startTime;
       console.error('Scheduled notification failed:', {
@@ -38,7 +46,14 @@ export class NotificationUseCase {
       if (error instanceof Error) {
         handleSupabaseError('execute scheduled notification', error);
       }
-      throw error;
+
+      return {
+        status: 'error',
+        ticketId: input.ticketId,
+        notificationType: input.notificationType,
+        executionDurationMs: executionTime,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 }
