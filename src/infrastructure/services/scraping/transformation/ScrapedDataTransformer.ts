@@ -1,8 +1,8 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { ScrapedTicketData } from './types/ScrapedTicketData.ts';
-import { ScrapedDataValidator } from './ScrapedDataValidator.ts';
-import { TicketDataExtractor } from './TicketDataExtractor.ts';
-import { TicketDataMapper } from './TicketDataMapper.ts';
+import { ScrapedTicketData } from '../types/ScrapedTicketData.ts';
+import { ScrapedDataValidator } from './components/ScrapedDataValidator.ts';
+import { TicketDataParser } from './components/TicketDataParser.ts';
+import { TicketDataMapper } from './components/TicketDataMapper.ts';
 
 export class ScrapedDataTransformer {
   static async convertToTicketEntities(scrapedData: ScrapedTicketData[]): Promise<Ticket[]> {
@@ -36,7 +36,7 @@ export class ScrapedDataTransformer {
           continue;
         }
 
-        const extractedTeams = TicketDataExtractor.extractTeamsFromMatchName(matchName);
+        const extractedTeams = TicketDataParser.extractTeamsFromMatchName(matchName);
         const homeTeam = data.homeTeam || extractedTeams.homeTeam;
         const awayTeam = data.awayTeam || extractedTeams.awayTeam;
 

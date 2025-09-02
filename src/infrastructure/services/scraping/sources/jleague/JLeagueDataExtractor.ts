@@ -14,7 +14,7 @@ interface ExtractorConfig {
   specialKeywords: string[];
 }
 
-export class TicketDataExtractor {
+export class JLeagueDataExtractor {
   private extractionWarnings: string[] = [];
 
   constructor(private config: ExtractorConfig) {}

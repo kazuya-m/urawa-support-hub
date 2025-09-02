@@ -1,6 +1,6 @@
-import { TeamInfo } from './types/ValidationResult.ts';
+import { TeamInfo } from '../../types/ValidationResult.ts';
 
-export class TicketDataExtractor {
+export class TicketDataParser {
   static extractTeamsFromMatchName(matchName: string): TeamInfo {
     if (!matchName) return {};
 

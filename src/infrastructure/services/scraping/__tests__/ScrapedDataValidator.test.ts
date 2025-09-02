@@ -1,5 +1,5 @@
 import { assertEquals } from 'jsr:@std/assert';
-import { ScrapedDataValidator } from '../ScrapedDataValidator.ts';
+import { ScrapedDataValidator } from '../transformation/components/ScrapedDataValidator.ts';
 import { ScrapedTicketData } from '../types/ScrapedTicketData.ts';
 
 Deno.test('ScrapedDataValidator - 必須データがすべて存在する場合', () => {

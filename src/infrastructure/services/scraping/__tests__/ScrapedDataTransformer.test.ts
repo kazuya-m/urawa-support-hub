@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from 'jsr:@std/assert';
-import { ScrapedDataTransformer } from '../ScrapedDataTransformer.ts';
+import { ScrapedDataTransformer } from '../transformation/ScrapedDataTransformer.ts';
 import { ScrapedTicketData } from '../types/ScrapedTicketData.ts';
 
 Deno.test('ScrapedDataTransformer - 正常なデータの変換', async () => {

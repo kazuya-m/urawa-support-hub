@@ -1,6 +1,6 @@
 import { ScrapedTicketData } from './types/ScrapedTicketData.ts';
 import { JLeagueTicketScraper } from './sources/jleague/JLeagueTicketScraper.ts';
-import { ScrapedDataTransformer } from './ScrapedDataTransformer.ts';
+import { ScrapedDataTransformer } from './transformation/ScrapedDataTransformer.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 
 export class TicketCollectionService {

@@ -1,5 +1,5 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { ValidatedTicketData } from './types/ValidationResult.ts';
+import { ValidatedTicketData } from '../../types/ValidationResult.ts';
 
 export class TicketDataMapper {
   static async createTicketEntity(

@@ -1,5 +1,5 @@
-import { ScrapedTicketData } from './types/ScrapedTicketData.ts';
-import { ValidationResult } from './types/ValidationResult.ts';
+import { ScrapedTicketData } from '../../types/ScrapedTicketData.ts';
+import { ValidationResult } from '../../types/ValidationResult.ts';
 
 export class ScrapedDataValidator {
   static validate(data: ScrapedTicketData): ValidationResult {

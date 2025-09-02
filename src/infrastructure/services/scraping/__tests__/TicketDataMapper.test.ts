@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from 'jsr:@std/assert';
-import { TicketDataMapper } from '../TicketDataMapper.ts';
+import { TicketDataMapper } from '../transformation/components/TicketDataMapper.ts';
 import { ValidatedTicketData } from '../types/ValidationResult.ts';
 
 Deno.test('TicketDataMapper - createTicketEntity: 基本的な変換', async () => {
