@@ -44,21 +44,16 @@ async function testScraping() {
     const duration = Date.now() - startTime;
     console.log(`\n✅ 取得完了 (${duration}ms)`);
     console.log('='.repeat(50));
-    console.log(`\n📊 取得結果: ${result.totalTickets} 件のアウェイチケット`);
-    console.log('📋 ソース別結果:');
-    result.sourceResults.forEach((source) => {
-      console.log(
-        `  - ${source.source}: ${source.ticketsFound}件 (${source.success ? '成功' : '失敗'})`,
-      );
-    });
+    console.log(`\n📊 取得結果: ${result.length} 件のアウェイチケット`);
 
-    if (result.totalTickets === 0) {
+    if (result.length === 0) {
       console.log('⚠️  アウェイチケットが見つかりませんでした');
       return;
     }
 
-    // 詳細表示のため個別にJ-Leagueデータ取得
-    const tickets = await collectionService.collectFromJLeagueOnly();
+    // 詳細表示のため個別にJ-LeagueのScrapedDataを取得
+    const jleagueScraper = new JLeagueTicketScraper();
+    const tickets = await jleagueScraper.scrapeTickets();
     console.log('='.repeat(50));
 
     // チケット情報を詳細表示
