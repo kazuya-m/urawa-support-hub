@@ -55,11 +55,6 @@ export class NotificationBatchUseCase {
       processed = 1; // 仮の値
 
       const executionTime = Date.now() - startTime;
-      console.log('Batch notifications processed successfully:', {
-        processed,
-        failed,
-        executionTimeMs: executionTime,
-      });
 
       return {
         status: 'success',
@@ -97,10 +92,6 @@ export class NotificationBatchUseCase {
       const cleaned = 0;
 
       const executionTime = Date.now() - startTime;
-      console.log('Expired notifications cleaned up successfully:', {
-        cleaned,
-        executionTimeMs: executionTime,
-      });
 
       return Promise.resolve({
         status: 'success',

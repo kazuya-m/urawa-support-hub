@@ -1,6 +1,17 @@
+import { Ticket } from '@/domain/entities/Ticket.ts';
+
+export interface TicketUpsertResult {
+  isNew: boolean;
+  hasChanged: boolean;
+  ticket: Ticket;
+}
+
 export interface TicketCollectionResult {
   status: 'success' | 'error';
   ticketsFound: number;
+  newTickets?: number;
+  updatedTickets?: number;
+  unchangedTickets?: number;
   executionDurationMs: number;
   errorDetails?: {
     message: string;
