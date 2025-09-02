@@ -114,7 +114,7 @@ Deno.test('NotificationService', async (t) => {
       createdAt,
     });
 
-    const ticket = new Ticket({
+    const ticket = Ticket.fromExisting({
       id: 'test-ticket-123',
       matchName: 'テスト試合',
       matchDate: new Date('2024-03-15T19:00:00'),

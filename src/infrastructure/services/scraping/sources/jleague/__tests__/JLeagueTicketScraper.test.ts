@@ -39,6 +39,8 @@ Deno.test('JLeagueTicketScraper Tests', async (t) => {
         venue: '味の素スタジアム',
         ticketUrl: 'https://example.com/ticket',
         ticketTypes: ['ビジター席'],
+        homeTeam: null,
+        awayTeam: null,
       },
     ];
 
