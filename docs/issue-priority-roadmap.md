@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-08-30\
+**Updated**: 2025-09-02\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
@@ -37,7 +37,7 @@
 | #38   | Playwright scraping implementation                        | 🔴 Critical | ✅ **COMPLETED**   | Core data retrieval functionality |
 | #12   | Ticket management application service implementation      | 🔴 Critical | ✅ **COMPLETED**   | Core business logic               |
 | #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | ⏳ **IN PROGRESS** | Container deployment              |
-| #61   | **チケット重複処理・UPSERT機能実装** (**NEW**)            | 🔴 Critical | ❌ Not Started     | **#25の前提条件・重複防止**       |
+| #61   | **チケット重複処理・UPSERT機能実装** (**NEW**)            | 🔴 Critical | ✅ **COMPLETED**   | **#25の前提条件・重複防止**       |
 | #62   | **発売済みチケット状態管理・除外機能実装** (**NEW**)      | 🔴 Critical | ❌ Not Started     | **#25の前提条件・無駄処理防止**   |
 | #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started     | Notification timing control       |
 | #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started     | Automation requirements           |
