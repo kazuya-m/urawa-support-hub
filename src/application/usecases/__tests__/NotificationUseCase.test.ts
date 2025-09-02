@@ -1,4 +1,4 @@
-import { assertEquals } from 'std/assert/mod.ts';
+import { assert, assertEquals } from 'std/assert/mod.ts';
 import { returnsNext, stub } from 'std/testing/mock.ts';
 import {
   NotificationExecutionInput,
@@ -68,11 +68,9 @@ Deno.test('NotificationUseCase should handle NotificationService errors properly
   }
 });
 
-Deno.test('NotificationUseCase should log execution time for successful operations', async () => {
+Deno.test('NotificationUseCase should return successful result with execution time', async () => {
   const useCase = new NotificationUseCase();
 
-  // console.logをスパイ
-  const consoleLogStub = stub(console, 'log');
   const mockMethod = stub(
     useCase['notificationService'],
     'processScheduledNotification',
@@ -85,13 +83,15 @@ Deno.test('NotificationUseCase should log execution time for successful operatio
       notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
     };
 
-    await useCase.execute(input);
+    const result = await useCase.execute(input);
 
-    // ログ出力が行われたことを確認
-    assertEquals(consoleLogStub.calls.length, 1);
-    assertEquals(consoleLogStub.calls[0].args[0], 'Scheduled notification completed successfully:');
+    // 戻り値の検証
+    assertEquals(result.status, 'success');
+    assertEquals(result.ticketId, 'test-ticket-123');
+    assertEquals(result.notificationType, 'day_before');
+    assert(typeof result.executionDurationMs === 'number');
+    assert(result.executionDurationMs >= 0);
   } finally {
-    consoleLogStub.restore();
     mockMethod.restore();
   }
 });
