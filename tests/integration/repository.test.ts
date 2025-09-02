@@ -8,7 +8,7 @@ const supabase = createTestSupabaseClient();
 const ticketRepo = new TicketRepositoryImpl(supabase);
 const notificationRepo = new NotificationRepositoryImpl(supabase);
 
-function createTestTicket(): Ticket {
+async function createTestTicket(): Promise<Ticket> {
   const now = new Date();
   const futureMatchDate = new Date(now);
   futureMatchDate.setMonth(futureMatchDate.getMonth() + 2);
@@ -16,8 +16,7 @@ function createTestTicket(): Ticket {
   const futureSaleDate = new Date(now);
   futureSaleDate.setMonth(futureSaleDate.getMonth() + 1);
 
-  return new Ticket({
-    id: crypto.randomUUID(),
+  return await Ticket.createNew({
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate: futureMatchDate,
     homeTeam: 'FC東京',
@@ -27,8 +26,6 @@ function createTestTicket(): Ticket {
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席', '一般販売'],
     ticketUrl: 'https://example.com/tickets/test',
-    createdAt: now,
-    updatedAt: now,
   });
 }
 
@@ -41,7 +38,7 @@ async function cleanupNotification(notificationId: string) {
 }
 
 Deno.test('TicketRepository - save and findById', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicket();
 
   try {
     await ticketRepo.save(testTicket);
@@ -55,12 +52,12 @@ Deno.test('TicketRepository - save and findById', async () => {
 });
 
 Deno.test('TicketRepository - update', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicket();
 
   try {
     await ticketRepo.save(testTicket);
 
-    const updatedTicket = new Ticket({
+    const updatedTicket = Ticket.fromExisting({
       ...testTicket.toPlainObject(),
       matchName: '更新済み試合名',
     });
@@ -74,7 +71,7 @@ Deno.test('TicketRepository - update', async () => {
 });
 
 Deno.test('TicketRepository - findAll', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicket();
 
   try {
     await ticketRepo.save(testTicket);
@@ -90,7 +87,7 @@ Deno.test('TicketRepository - findAll', async () => {
 });
 
 Deno.test('TicketRepository - findByDateRange', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicket();
 
   try {
     await ticketRepo.save(testTicket);
@@ -106,7 +103,7 @@ Deno.test('TicketRepository - findByDateRange', async () => {
 });
 
 Deno.test('TicketRepository - delete', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicket();
 
   await ticketRepo.save(testTicket);
   await ticketRepo.delete(testTicket.id);
@@ -116,7 +113,7 @@ Deno.test('TicketRepository - delete', async () => {
 });
 
 Deno.test('NotificationRepository - save and findById', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicket();
   const testNotification = new NotificationHistory({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
@@ -142,7 +139,7 @@ Deno.test('NotificationRepository - save and findById', async () => {
 });
 
 Deno.test('NotificationRepository - findByTicketId', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicket();
   const testNotification = new NotificationHistory({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
@@ -168,7 +165,7 @@ Deno.test('NotificationRepository - findByTicketId', async () => {
 });
 
 Deno.test('NotificationRepository - findByColumn', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicket();
   const testNotification = new NotificationHistory({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
@@ -194,7 +191,7 @@ Deno.test('NotificationRepository - findByColumn', async () => {
 });
 
 Deno.test('NotificationRepository - update', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicket();
   const testNotification = new NotificationHistory({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
