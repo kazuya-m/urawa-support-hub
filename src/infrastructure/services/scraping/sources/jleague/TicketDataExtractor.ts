@@ -1,5 +1,5 @@
 import { Page } from 'npm:playwright@1.40.0';
-import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
+import { ScrapedTicketData } from '@/infrastructure/services/scraping/types/ScrapedTicketData.ts';
 
 interface ExtractorConfig {
   selectors: {
@@ -94,7 +94,7 @@ export class TicketDataExtractor {
 
       if (!matchName || !venue || !ticketUrl) {
         const warning =
-          `必須情報が不足: matchName=${matchName}, venue=${venue}, ticketUrl=${ticketUrl}`;
+          `Missing required info: matchName=${matchName}, venue=${venue}, ticketUrl=${ticketUrl}`;
         console.warn(warning);
         this.extractionWarnings.push(warning);
         return null;
@@ -102,7 +102,7 @@ export class TicketDataExtractor {
 
       if (!matchDate || !matchTime) {
         const warning =
-          `${matchName}の一部情報が取得できませんでした: matchDate=${matchDate}, matchTime=${matchTime}`;
+          `Could not get some info for ${matchName}: matchDate=${matchDate}, matchTime=${matchTime}`;
         console.warn(warning);
         this.extractionWarnings.push(warning);
       }
@@ -114,6 +114,8 @@ export class TicketDataExtractor {
         venue,
         ticketUrl,
         ticketTypes: [],
+        homeTeam: null,
+        awayTeam: null,
       };
     } catch (error) {
       console.warn('Failed to extract single ticket data:', error);

@@ -12,7 +12,7 @@
 
 import { JLeagueTicketScraper } from '../src/infrastructure/services/scraping/sources/jleague/JLeagueTicketScraper.ts';
 import { TicketCollectionService } from '../src/infrastructure/services/scraping/TicketCollectionService.ts';
-import { ScrapedTicketData } from '../src/domain/entities/Ticket.ts';
+import { ScrapedTicketData } from '../src/infrastructure/services/scraping/types/ScrapedTicketData.ts';
 
 // 環境変数チェック
 const isLiveScrapingEnabled = Deno.env.get('ENABLE_LIVE_SCRAPING') === 'true';
