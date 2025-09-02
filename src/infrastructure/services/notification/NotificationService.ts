@@ -45,7 +45,6 @@ export class NotificationService {
       }
 
       if (history.status === 'sent') {
-        console.log('Notification already sent:', { ticketId, notificationType });
         return;
       }
 
@@ -95,7 +94,7 @@ export class NotificationService {
 
     while (retryCount < maxRetries) {
       try {
-        await this.performNotificationSend(history, ticket);
+        await this.performNotificationSend(ticket);
         const updatedHistory = history.markAsSent();
         await this.notificationRepository.update(updatedHistory);
         return;
@@ -105,20 +104,24 @@ export class NotificationService {
 
         if (retryCount < maxRetries) {
           const delayMs = Math.pow(2, retryCount - 1) * 1000; // 1s, 2s, 4s
-          console.log(`Retry ${retryCount}/${maxRetries} after ${delayMs}ms:`, {
-            notificationId: history.id,
-            error: lastError.message,
-          });
           await this.delay(delayMs);
         }
       }
     }
 
-    await this.handleFailedNotification(history, lastError!);
+    // 最後のエラーが確実に存在することを確認
+    if (lastError) {
+      await this.handleFailedNotification(history, lastError);
+    } else {
+      // 理論的には起こりえないが、型安全性のため
+      await this.handleFailedNotification(
+        history,
+        new Error('Unknown notification error after retries'),
+      );
+    }
   }
 
   private async performNotificationSend(
-    history: NotificationHistory,
     ticket: Ticket,
   ): Promise<void> {
     const config = getNotificationConfig();
@@ -163,12 +166,6 @@ export class NotificationService {
       }
       throw new Error(`Notification failed: ${errors.join(', ')}`);
     }
-
-    console.log('Notification sent successfully:', {
-      notificationId: history.id,
-      type: history.notificationType,
-      match: ticket.matchName,
-    });
   }
 
   private sendLineMessage(
