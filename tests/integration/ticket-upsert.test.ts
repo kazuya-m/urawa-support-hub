@@ -2,7 +2,11 @@ import { assertEquals } from 'jsr:@std/assert';
 import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketUpsertResult } from '@/application/types/UseCaseResults.ts';
-import { cleanupTestData, createTestSupabaseClient } from '../utils/test-supabase.ts';
+import {
+  cleanupTestData,
+  createTestSupabaseClient,
+  withTestCleanup,
+} from '../utils/test-supabase.ts';
 
 // 統合テスト - 実際のSupabaseクライアントを使用してUPSERT機能を検証
 Deno.test(
@@ -27,12 +31,16 @@ Deno.test(
       updatedAt: new Date('2025-01-01T00:00:00Z'),
     };
 
+    // テスト前にクリーンアップ
+    await cleanupTestData(client, 'tickets', `id = 'test-upsert-001'`);
+
     try {
       // 1. 新規チケット作成
       const newTicket = Ticket.fromExisting(baseTicket);
       const result1 = await repository.upsert(newTicket);
 
       assertEquals(result1.isNew, true);
+      // 新規作成時はhasChangedは常にfalse（前のデータがないため）
       assertEquals(result1.hasChanged, false);
       assertEquals(result1.ticket.matchName, 'ガンバ大阪 vs 浦和レッズ');
 
@@ -77,6 +85,9 @@ Deno.test(
   async () => {
     const client = createTestSupabaseClient();
     const repository = new TicketRepositoryImpl(client);
+
+    // テスト前にクリーンアップ
+    await cleanupTestData(client, 'tickets', `id = 'test-idempotent-001'`);
 
     const ticketData = {
       id: 'test-idempotent-001',
@@ -126,6 +137,9 @@ Deno.test('Ticket UPSERT - UNIQUE constraint test', {
   const client = createTestSupabaseClient();
   const repository = new TicketRepositoryImpl(client);
 
+  // テスト前にクリーンアップ
+  await cleanupTestData(client, 'tickets', `match_name = 'セレッソ大阪 vs 浦和レッズ'`);
+
   const baseData = {
     matchName: 'セレッソ大阪 vs 浦和レッズ',
     matchDate: new Date('2025-05-10T19:30:00+09:00'),
@@ -148,14 +162,13 @@ Deno.test('Ticket UPSERT - UNIQUE constraint test', {
     const result1 = await repository.upsert(ticket1);
     assertEquals(result1.isNew, true);
 
-    // 2つ目を作成 - UNIQUE制約により既存レコードが更新される
+    // 2つ目を作成 - 異なるIDなので新規作成される（UNIQUE制約を削除したため）
     const result2 = await repository.upsert(ticket2);
-    assertEquals(result2.isNew, false);
-    assertEquals(result2.hasChanged, false); // データが同じなので変更なし
+    assertEquals(result2.isNew, true);
 
-    // データベースに1件だけ存在することを確認
+    // データベースに2件存在することを確認（IDが異なるため）
     const allTickets = await repository.findByColumn('match_name', baseData.matchName);
-    assertEquals(allTickets.length, 1);
+    assertEquals(allTickets.length, 2);
   } finally {
     await cleanupTestData(client, 'tickets', `match_name = 'セレッソ大阪 vs 浦和レッズ'`);
   }
