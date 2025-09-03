@@ -169,15 +169,11 @@ export function createUpsertMockSupabaseClient(options: UpsertMockOptions): Supa
     from: () => ({
       select: () => ({
         eq: () => ({
-          eq: () => ({
-            eq: () => ({
-              single: () =>
-                Promise.resolve({
-                  data: existingData,
-                  error: fetchError,
-                }),
+          single: () =>
+            Promise.resolve({
+              data: existingData,
+              error: fetchError,
             }),
-          }),
         }),
       }),
       upsert: () => ({

@@ -34,6 +34,8 @@ export class TicketRepositoryImpl {
       if (isNotFoundError(error)) return null;
       handleSupabaseError('fetch ticket', error);
     }
+
+    if (!data) return null;
     return TicketConverter.toDomainEntity(data);
   }
 
@@ -106,6 +108,7 @@ export class TicketRepositoryImpl {
   }
 
   async upsert(ticket: Ticket): Promise<TicketUpsertResult> {
+    // Now we can use findById directly since DB id = Entity id
     const existing = await this.findById(ticket.id);
     const isNew = !existing;
     const hasChanged = isNew ? false : ticket.hasSignificantChanges(existing);
