@@ -197,7 +197,10 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     assertEquals(lineRequest.headers['Content-Type'], 'application/json');
 
     // リクエストボディの検証
-    const requestBody = JSON.parse(lineRequest.body!);
+    if (!lineRequest.body) {
+      throw new Error('LINE request body is missing');
+    }
+    const requestBody = JSON.parse(lineRequest.body);
     assertEquals(requestBody.messages[0].type, 'flex');
     assertEquals(requestBody.messages[0].altText, '【チケット通知】浦和レッズ vs FC東京');
   });
@@ -227,7 +230,10 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     assertEquals(discordRequest.headers['Content-Type'], 'application/json');
 
     // リクエストボディの検証
-    const requestBody = JSON.parse(discordRequest.body!);
+    if (!discordRequest.body) {
+      throw new Error('Discord request body is missing');
+    }
+    const requestBody = JSON.parse(discordRequest.body);
     assertEquals(requestBody.embeds.length, 1);
     assertEquals(requestBody.embeds[0].title, '🎫 浦和レッズ チケット販売通知');
     assertEquals(requestBody.embeds[0].color, 14431075); // 浦和レッズカラー
@@ -247,7 +253,10 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     const lineRequest = requests.find((r) => r.url.includes('api.line.me'));
 
     assertExists(lineRequest);
-    const requestBody = JSON.parse(lineRequest.body!);
+    if (!lineRequest.body) {
+      throw new Error('LINE request body is missing');
+    }
+    const requestBody = JSON.parse(lineRequest.body);
     assertEquals(requestBody.messages[0].type, 'text');
     assertEquals(requestBody.messages[0].text, 'テスト通知メッセージ');
   });
@@ -269,7 +278,10 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     const discordRequest = requests.find((r) => r.url.includes('discord.com'));
 
     assertExists(discordRequest);
-    const requestBody = JSON.parse(discordRequest.body!);
+    if (!discordRequest.body) {
+      throw new Error('Discord request body is missing');
+    }
+    const requestBody = JSON.parse(discordRequest.body);
     assertEquals(requestBody.embeds[0].title, 'システム起動');
     assertEquals(requestBody.embeds[0].description, 'スクレイピングサービスが正常に起動しました');
     assertEquals(requestBody.embeds[0].color, 65280); // 緑色
@@ -292,7 +304,10 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     const discordRequest = requests.find((r) => r.url.includes('discord.com'));
 
     assertExists(discordRequest);
-    const requestBody = JSON.parse(discordRequest.body!);
+    if (!discordRequest.body) {
+      throw new Error('Discord request body is missing');
+    }
+    const requestBody = JSON.parse(discordRequest.body);
     assertEquals(requestBody.embeds[0].title, '🚨 システムエラー');
     assertEquals(requestBody.embeds[0].description, 'スクレイピングエラー');
     assertEquals(requestBody.embeds[0].color, 16711680); // 赤色
@@ -368,8 +383,11 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     assertEquals(discordRequests.length, 1);
 
     // 両方のリクエストが同じチケット情報を含んでいることを確認
-    const lineBody = JSON.parse(lineRequests[0].body!);
-    const discordBody = JSON.parse(discordRequests[0].body!);
+    if (!lineRequests[0].body || !discordRequests[0].body) {
+      throw new Error('Request bodies are missing for comparison');
+    }
+    const lineBody = JSON.parse(lineRequests[0].body);
+    const discordBody = JSON.parse(discordRequests[0].body);
 
     assertEquals(lineBody.messages[0].altText, '【チケット通知】浦和レッズ vs ガンバ大阪');
     const matchField = discordBody.embeds[0].fields.find(

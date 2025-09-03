@@ -3,45 +3,37 @@ import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketReposi
 import { NotificationRepositoryImpl } from '@/infrastructure/repositories/NotificationRepositoryImpl.ts';
 import { NotificationHistory, Ticket } from '@/domain/entities/index.ts';
 import { cleanupTestData, createTestSupabaseClient } from '@/tests/utils/test-supabase.ts';
+import { createDynamicTestTicket } from '@/tests/utils/test-fixtures.ts';
 
 const supabase = createTestSupabaseClient();
 const ticketRepo = new TicketRepositoryImpl(supabase);
 const notificationRepo = new NotificationRepositoryImpl(supabase);
 
-function createTestTicket(): Ticket {
-  const now = new Date();
-  const futureMatchDate = new Date(now);
-  futureMatchDate.setMonth(futureMatchDate.getMonth() + 2);
-
-  const futureSaleDate = new Date(now);
-  futureSaleDate.setMonth(futureSaleDate.getMonth() + 1);
-
-  return new Ticket({
-    id: crypto.randomUUID(),
-    matchName: 'FC東京 vs 浦和レッズ',
-    matchDate: futureMatchDate,
-    homeTeam: 'FC東京',
-    awayTeam: '浦和レッズ',
-    saleStartDate: futureSaleDate,
-    saleStartTime: '10:00',
-    venue: '味の素スタジアム',
-    ticketTypes: ['ビジター席', '一般販売'],
-    ticketUrl: 'https://example.com/tickets/test',
-    createdAt: now,
-    updatedAt: now,
-  });
+// 各テストで一意なIDを持つテストチケットを生成する関数
+// test-fixtures.ts の createDynamicTestTicket を使用
+function createTestTicketForIntegration(suffix = ''): Promise<Ticket> {
+  return createDynamicTestTicket({ suffix });
 }
 
 async function cleanupTicket(ticketId: string) {
-  await cleanupTestData(supabase, 'tickets', ticketId);
+  try {
+    // cleanupTestDataById を使用するか、条件文字列形式で呼び出し
+    await cleanupTestData(supabase, 'tickets', `id = '${ticketId}'`);
+  } catch (error) {
+    console.warn(`Failed to cleanup ticket ${ticketId}:`, error);
+  }
 }
 
 async function cleanupNotification(notificationId: string) {
-  await cleanupTestData(supabase, 'notification_history', notificationId);
+  try {
+    await cleanupTestData(supabase, 'notification_history', `id = '${notificationId}'`);
+  } catch (error) {
+    console.warn(`Failed to cleanup notification ${notificationId}:`, error);
+  }
 }
 
 Deno.test('TicketRepository - save and findById', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicketForIntegration('save-findById');
 
   try {
     await ticketRepo.save(testTicket);
@@ -55,12 +47,12 @@ Deno.test('TicketRepository - save and findById', async () => {
 });
 
 Deno.test('TicketRepository - update', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicketForIntegration('update');
 
   try {
     await ticketRepo.save(testTicket);
 
-    const updatedTicket = new Ticket({
+    const updatedTicket = Ticket.fromExisting({
       ...testTicket.toPlainObject(),
       matchName: '更新済み試合名',
     });
@@ -74,7 +66,7 @@ Deno.test('TicketRepository - update', async () => {
 });
 
 Deno.test('TicketRepository - findAll', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicketForIntegration('findAll');
 
   try {
     await ticketRepo.save(testTicket);
@@ -90,7 +82,7 @@ Deno.test('TicketRepository - findAll', async () => {
 });
 
 Deno.test('TicketRepository - findByDateRange', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicketForIntegration('findByDateRange');
 
   try {
     await ticketRepo.save(testTicket);
@@ -106,7 +98,7 @@ Deno.test('TicketRepository - findByDateRange', async () => {
 });
 
 Deno.test('TicketRepository - delete', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicketForIntegration('delete');
 
   await ticketRepo.save(testTicket);
   await ticketRepo.delete(testTicket.id);
@@ -116,7 +108,7 @@ Deno.test('TicketRepository - delete', async () => {
 });
 
 Deno.test('NotificationRepository - save and findById', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicketForIntegration('notification-save');
   const testNotification = new NotificationHistory({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
@@ -142,7 +134,7 @@ Deno.test('NotificationRepository - save and findById', async () => {
 });
 
 Deno.test('NotificationRepository - findByTicketId', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicketForIntegration('notification-findByTicket');
   const testNotification = new NotificationHistory({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
@@ -168,7 +160,7 @@ Deno.test('NotificationRepository - findByTicketId', async () => {
 });
 
 Deno.test('NotificationRepository - findByColumn', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicketForIntegration('notification-findByColumn');
   const testNotification = new NotificationHistory({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
@@ -194,7 +186,7 @@ Deno.test('NotificationRepository - findByColumn', async () => {
 });
 
 Deno.test('NotificationRepository - update', async () => {
-  const testTicket = createTestTicket();
+  const testTicket = await createTestTicketForIntegration('notification-update');
   const testNotification = new NotificationHistory({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,

@@ -2,8 +2,8 @@ export interface TicketRow {
   id: string;
   match_name: string;
   match_date: string;
-  home_team: string;
-  away_team: string;
+  home_team: string | null;
+  away_team: string | null;
   sale_start_date: string;
   sale_start_time: string | null;
   venue: string;
@@ -30,10 +30,10 @@ export interface TicketInsert {
   id: string;
   match_name: string;
   match_date: string;
-  home_team: string;
-  away_team: string;
+  home_team?: string | null;
+  away_team?: string | null;
   sale_start_date: string;
-  sale_start_time?: string;
+  sale_start_time?: string | null;
   venue: string;
   ticket_types: string[];
   ticket_url: string;

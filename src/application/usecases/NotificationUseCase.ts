@@ -22,11 +22,6 @@ export class NotificationUseCase {
       await this.notificationService.processScheduledNotification(input);
 
       const executionTime = Date.now() - startTime;
-      console.log('Scheduled notification completed successfully:', {
-        ticketId: input.ticketId,
-        notificationType: input.notificationType,
-        executionTimeMs: executionTime,
-      });
 
       return {
         status: 'success',

@@ -26,19 +26,25 @@ export function getNotificationConfig(): NotificationServiceConfig {
     'DISCORD_WEBHOOK_URL',
   ];
 
-  // 必須環境変数のチェック
   for (const envVar of requiredEnvVars) {
     if (!Deno.env.get(envVar)) {
       throw new Error(`Environment variable ${envVar} is required`);
     }
   }
 
+  const lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+  const discordUrl = Deno.env.get('DISCORD_WEBHOOK_URL');
+
+  if (!lineToken || !discordUrl) {
+    throw new Error('Required environment variables are not set');
+  }
+
   return {
     line: {
-      channelAccessToken: Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')!,
+      channelAccessToken: lineToken,
     },
     discord: {
-      webhookUrl: Deno.env.get('DISCORD_WEBHOOK_URL')!,
+      webhookUrl: discordUrl,
       channelId: Deno.env.get('DISCORD_CHANNEL_ID'),
     },
   };

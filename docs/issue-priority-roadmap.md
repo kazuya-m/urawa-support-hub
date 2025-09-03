@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-08-30\
+**Updated**: 2025-09-03\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
@@ -37,7 +37,7 @@
 | #38   | Playwright scraping implementation                        | 🔴 Critical | ✅ **COMPLETED**   | Core data retrieval functionality |
 | #12   | Ticket management application service implementation      | 🔴 Critical | ✅ **COMPLETED**   | Core business logic               |
 | #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | ⏳ **IN PROGRESS** | Container deployment              |
-| #61   | **チケット重複処理・UPSERT機能実装** (**NEW**)            | 🔴 Critical | ❌ Not Started     | **#25の前提条件・重複防止**       |
+| #61   | **チケット重複処理・UPSERT機能実装** (**NEW**)            | 🔴 Critical | ✅ **COMPLETED**   | **#25の前提条件・重複防止**       |
 | #62   | **発売済みチケット状態管理・除外機能実装** (**NEW**)      | 🔴 Critical | ❌ Not Started     | **#25の前提条件・無駄処理防止**   |
 | #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started     | Notification timing control       |
 | #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started     | Automation requirements           |
@@ -109,7 +109,7 @@ Each issue is considered complete when:
 
 ## Current Status (2025-08-30) - **UPDATED**
 
-### ✅ Completed Issues: 22/27 (81%)
+### ✅ Completed Issues: 23/27 (85%)
 
 **Foundation & Infrastructure:**
 
@@ -133,6 +133,7 @@ Each issue is considered complete when:
 - #12 - Ticket management application service implementation
 - #38 - Playwright scraping implementation
 - #13 - Notification management application service implementation
+- #61 - チケット重複処理・UPSERT機能実装
 
 **Testing & Documentation:**
 
@@ -149,9 +150,8 @@ Each issue is considered complete when:
 - #33 - Minimal CI/CD setup
 - #24 - Google Cloud Run scraping service implementation
 
-### ❌ Not Started: 4/27 (15%)
+### ❌ Not Started: 3/27 (11%)
 
-- **#61** - チケット重複処理・UPSERT機能実装 (**NEW**)
 - **#62** - 発売済みチケット状態管理・除外機能実装 (**NEW**)
 - #25 - Google Cloud Tasks notification scheduling (depends on #61, #62)
 - #26 - Cloud Scheduler daily execution setup
@@ -160,10 +160,9 @@ Each issue is considered complete when:
 ## Next Steps Priority (**UPDATED**)
 
 1. **#24** - Deploy scraping to Cloud Run (production deployment) - **継続**
-2. **#61** - UPSERT機能実装 (**NEW PRIORITY** - #25の前提条件)
-3. **#62** - 発売済み状態管理実装 (**NEW PRIORITY** - #25の前提条件)
-4. **#25** - Cloud Tasks notification scheduling (depends on #61, #62完了後)
-5. **#26** - Cloud Scheduler daily execution setup
+2. **#62** - 発売済み状態管理実装 (**NEW PRIORITY** - #25の前提条件)
+3. **#25** - Cloud Tasks notification scheduling (depends on #62完了後)
+4. **#26** - Cloud Scheduler daily execution setup
 
 ## Progress Tracking
 

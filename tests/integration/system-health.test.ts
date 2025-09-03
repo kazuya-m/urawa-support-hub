@@ -1,39 +1,29 @@
 import { assertEquals, assertExists } from 'std/assert/mod.ts';
 import { cleanupTestTable, createTestSupabaseClient } from '../utils/test-supabase.ts';
 import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
-import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
-import { TicketCollectionResult } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
+import { Ticket } from '@/domain/entities/Ticket.ts';
 
 // Lightweight mock collection service for testing (avoids Playwright dependency)
 class TestTicketCollectionService {
-  private mockTickets: ScrapedTicketData[];
+  private mockTickets: Ticket[];
   private shouldThrow: boolean;
 
-  constructor(mockTickets: ScrapedTicketData[] = [], shouldThrow: boolean = false) {
+  constructor(mockTickets: Ticket[] = [], shouldThrow: boolean = false) {
     this.mockTickets = mockTickets;
     this.shouldThrow = shouldThrow;
   }
 
-  async collectAllTickets(): Promise<TicketCollectionResult> {
+  async collectAllTickets(): Promise<Ticket[]> {
     await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate some work
 
     if (this.shouldThrow) {
       throw new Error('Mock collection error');
     }
 
-    return {
-      success: true,
-      totalTickets: this.mockTickets.length,
-      sourceResults: [{
-        source: 'J-League Ticket',
-        ticketsFound: this.mockTickets.length,
-        success: true,
-      }],
-      errors: [],
-    };
+    return this.mockTickets;
   }
 
-  async collectFromJLeagueOnly(): Promise<ScrapedTicketData[]> {
+  async collectFromJLeagueOnly(): Promise<Ticket[]> {
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     if (this.shouldThrow) {
@@ -53,7 +43,7 @@ Deno.test('System Health Integration Tests', async (t) => {
   await cleanupTestTable(supabase, testTableName);
 
   await t.step('should complete full daily execution workflow successfully', async () => {
-    const mockTickets: ScrapedTicketData[] = [];
+    const mockTickets: Ticket[] = [];
 
     const collectionService = new TestTicketCollectionService(mockTickets, false);
     // Execute daily workflow using real UseCase with mock service
@@ -65,7 +55,7 @@ Deno.test('System Health Integration Tests', async (t) => {
 
     const mockResult = {
       executedAt: new Date(),
-      ticketsFound: collectionResult.totalTickets,
+      ticketsFound: collectionResult.length,
       status: 'success' as const,
       executionDurationMs: executionDuration,
     };
@@ -81,7 +71,10 @@ Deno.test('System Health Integration Tests', async (t) => {
     assertEquals(error, null);
     assertEquals(data?.length, 1);
 
-    const healthRecord = data![0];
+    if (!data || data.length === 0) {
+      throw new Error('Health record not found in database');
+    }
+    const healthRecord = data[0];
     assertEquals(healthRecord.status, 'success');
     assertEquals(healthRecord.tickets_found, 0);
     assertEquals(typeof healthRecord.execution_duration_ms, 'number');
@@ -126,7 +119,10 @@ Deno.test('System Health Integration Tests', async (t) => {
     assertEquals(error, null);
     assertEquals(data?.length, 1);
 
-    const errorRecord = data![0];
+    if (!data || data.length === 0) {
+      throw new Error('Error health record not found in database');
+    }
+    const errorRecord = data[0];
     assertEquals(errorRecord.status, 'error');
     assertEquals(errorRecord.tickets_found, 0);
     assertEquals(errorRecord.error_details.message, 'Mock collection error');
@@ -146,7 +142,7 @@ Deno.test('System Health Integration Tests', async (t) => {
 
       const mockResult = {
         executedAt: new Date(),
-        ticketsFound: collectionResult.totalTickets,
+        ticketsFound: collectionResult.length,
         status: 'success' as const,
         executionDurationMs: executionDuration,
       };
@@ -192,7 +188,7 @@ Deno.test('System Health Integration Tests', async (t) => {
 
     const mockResult = {
       executedAt: new Date(),
-      ticketsFound: collectionResult.totalTickets,
+      ticketsFound: collectionResult.length,
       status: 'success' as const,
       executionDurationMs: executionDuration,
     };
@@ -206,7 +202,10 @@ Deno.test('System Health Integration Tests', async (t) => {
     assertEquals(error, null);
     assertEquals(data?.length, 1);
 
-    const record = data![0];
+    if (!data || data.length === 0) {
+      throw new Error('Health record not found in database');
+    }
+    const record = data[0];
     assertEquals(record.status, 'success');
     assertEquals(record.tickets_found, 0); // No tickets found, but execution was recorded
     assertEquals(new Date(record.executed_at) <= new Date(), true);
@@ -226,7 +225,7 @@ Deno.test('System Health Integration Tests', async (t) => {
 
     const mockResult = {
       executedAt: new Date(),
-      ticketsFound: collectionResult.totalTickets,
+      ticketsFound: collectionResult.length,
       status: 'success' as const,
       executionDurationMs: executionDuration,
     };
@@ -236,7 +235,10 @@ Deno.test('System Health Integration Tests', async (t) => {
     assertExists(latest);
     assertEquals(latest.status, 'success');
     assertEquals(typeof latest.executionDurationMs, 'number');
-    assertEquals(latest.executionDurationMs! >= 0, true);
+    assertEquals(
+      latest.executionDurationMs !== undefined && latest.executionDurationMs >= 0,
+      true,
+    );
   });
 
   // Cleanup after all tests

@@ -1,4 +1,4 @@
-import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
+import { ScrapedTicketData } from '@/infrastructure/services/scraping/types/ScrapedTicketData.ts';
 
 /**
  * テスト用モックJ-Leagueチケットスクレイパー
@@ -36,6 +36,8 @@ export class MockJLeagueTicketScraper {
         venue: 'IAIスタジアム日本平',
         ticketUrl: 'https://www.jleague-ticket.jp/sales/perform/2528632/001',
         ticketTypes: ['ビジター１F指定席', 'ビジター２F自由席'],
+        homeTeam: '清水エスパルス',
+        awayTeam: '浦和レッズ',
       },
       {
         matchName: 'ガンバ大阪',
@@ -44,6 +46,8 @@ export class MockJLeagueTicketScraper {
         venue: 'パナソニック　スタジアム　吹田',
         ticketUrl: 'https://www.jleague-ticket.jp/sales/perform/2527755/001',
         ticketTypes: ['アウェイ指定席', 'アウェイ自由席'],
+        homeTeam: 'ガンバ大阪',
+        awayTeam: '浦和レッズ',
       },
       {
         matchName: '横浜F・マリノス',
@@ -52,6 +56,8 @@ export class MockJLeagueTicketScraper {
         venue: '日産スタジアム',
         ticketUrl: 'https://www.jleague-ticket.jp/sales/perform/2529547/001',
         ticketTypes: ['ビジターゴール裏', 'ビジター指定席'],
+        homeTeam: '横浜F・マリノス',
+        awayTeam: '浦和レッズ',
       },
     ];
   }

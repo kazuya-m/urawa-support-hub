@@ -1,31 +1,23 @@
-/**
- * J-Leagueチケットサイト専用スクレイパー
- * J-Leagueチケットサイトから浦和レッズのアウェイ試合チケット情報を取得する
- */
-
 import { Page } from 'npm:playwright@1.40.0';
-import { ScrapedTicketData } from '@/domain/entities/Ticket.ts';
+import { ScrapedTicketData } from '@/infrastructure/services/scraping/types/ScrapedTicketData.ts';
 import { URAWA_URL_CONFIG } from '@/infrastructure/config/url.ts';
 import { BrowserManager } from '../../shared/BrowserManager.ts';
-import { TicketDataExtractor } from './TicketDataExtractor.ts';
+import { JLeagueDataExtractor } from './JLeagueDataExtractor.ts';
 import { J_LEAGUE_SCRAPING_CONFIG } from './JLeagueConfig.ts';
 
 export class JLeagueTicketScraper {
   private browserManager: BrowserManager;
-  private dataExtractor: TicketDataExtractor;
+  private dataExtractor: JLeagueDataExtractor;
 
   constructor() {
     this.browserManager = new BrowserManager();
-    this.dataExtractor = new TicketDataExtractor({
+    this.dataExtractor = new JLeagueDataExtractor({
       selectors: J_LEAGUE_SCRAPING_CONFIG.selectors,
       awayKeywords: J_LEAGUE_SCRAPING_CONFIG.awayKeywords,
       specialKeywords: J_LEAGUE_SCRAPING_CONFIG.specialKeywords,
     });
   }
 
-  /**
-   * J-Leagueチケットサイトから浦和レッズのアウェイチケット情報を取得
-   */
   async scrapeTickets(): Promise<ScrapedTicketData[]> {
     let retryCount = 0;
 
@@ -52,7 +44,7 @@ export class JLeagueTicketScraper {
         const awayTickets: ScrapedTicketData[] = [];
         for (const match of awayMatches) {
           if (!match.ticketUrl) {
-            console.warn(`⚠️ ${match.matchName}: チケットURLが見つかりません`);
+            console.warn(`⚠️ ${match.matchName}: Ticket URL not found`);
             continue;
           }
 

@@ -3,6 +3,8 @@ import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketConverter } from './converters/TicketConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
 import { createSupabaseAdminClient } from '../config/supabase.ts';
+import { TicketRow } from '../types/database.ts';
+import { TicketUpsertResult } from '@/application/types/UseCaseResults.ts';
 
 export class TicketRepositoryImpl {
   private client: SupabaseClient;
@@ -32,6 +34,8 @@ export class TicketRepositoryImpl {
       if (isNotFoundError(error)) return null;
       handleSupabaseError('fetch ticket', error);
     }
+
+    if (!data) return null;
     return TicketConverter.toDomainEntity(data);
   }
 
@@ -101,5 +105,44 @@ export class TicketRepositoryImpl {
       .lt(column, beforeDate.toISOString());
 
     if (error) handleSupabaseError('delete tickets by date', error);
+  }
+
+  async upsert(ticket: Ticket): Promise<TicketUpsertResult> {
+    // Now we can use findById directly since DB id = Entity id
+    const existing = await this.findById(ticket.id);
+    const isNew = !existing;
+    const hasChanged = isNew ? false : ticket.hasSignificantChanges(existing);
+
+    if (isNew || hasChanged) {
+      const row = TicketConverter.toDatabaseRow(ticket);
+
+      const { data: upsertedData, error: upsertError } = await this.client
+        .from('tickets')
+        .upsert({
+          ...row,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (upsertError) handleSupabaseError('upsert ticket', upsertError);
+
+      if (!upsertedData) {
+        throw new Error('Upsert operation did not return data');
+      }
+
+      const savedTicket = TicketConverter.toDomainEntity(upsertedData as TicketRow);
+      return {
+        isNew,
+        hasChanged,
+        ticket: savedTicket,
+      };
+    }
+
+    return {
+      isNew: false,
+      hasChanged: false,
+      ticket: existing,
+    };
   }
 }

@@ -38,6 +38,11 @@ export interface TestSupabaseClient {
         value: unknown,
       ) => Promise<{ error: { message: string; code?: string } | null }>;
     };
+    upsert: (data: unknown) => {
+      select: () => {
+        single: () => Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
+      };
+    };
     delete: () => {
       eq: (
         column: string,
@@ -59,6 +64,13 @@ export interface MockOptions {
   shouldError?: boolean;
   errorMessage?: string;
   errorCode?: string;
+}
+
+export interface UpsertMockOptions {
+  existingData?: unknown;
+  upsertData?: unknown;
+  fetchError?: { code: string; message: string } | null;
+  upsertError?: { code: string; message: string } | null;
 }
 
 // 共通のSupabaseクライアントモック作成関数
@@ -132,9 +144,49 @@ export function createMockSupabaseClient(
       update: () => ({
         eq: () => Promise.resolve({ error: mockError }),
       }),
+      upsert: () => ({
+        select: () => ({
+          single: () => mockQuery.single(),
+        }),
+      }),
       delete: () => mockDeleteChain,
     }),
   };
 
   return testClient as unknown as SupabaseClient;
+}
+
+// upsert用の特別なモッククライアント作成関数
+export function createUpsertMockSupabaseClient(options: UpsertMockOptions): SupabaseClient {
+  const {
+    existingData = null,
+    upsertData = null,
+    fetchError = null,
+    upsertError = null,
+  } = options;
+
+  const client = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: () =>
+            Promise.resolve({
+              data: existingData,
+              error: fetchError,
+            }),
+        }),
+      }),
+      upsert: () => ({
+        select: () => ({
+          single: () =>
+            Promise.resolve({
+              data: upsertData,
+              error: upsertError,
+            }),
+        }),
+      }),
+    }),
+  };
+
+  return client as unknown as SupabaseClient;
 }

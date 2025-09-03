@@ -3,12 +3,12 @@ import { TicketInsert, TicketRow } from '@/infrastructure/types/database.ts';
 
 export class TicketConverter {
   static toDomainEntity(data: TicketRow): Ticket {
-    return new Ticket({
+    return Ticket.fromExisting({
       id: data.id,
       matchName: data.match_name,
       matchDate: new Date(data.match_date),
-      homeTeam: data.home_team,
-      awayTeam: data.away_team,
+      homeTeam: data.home_team ?? undefined,
+      awayTeam: data.away_team ?? undefined,
       saleStartDate: new Date(data.sale_start_date),
       saleStartTime: data.sale_start_time ?? undefined,
       venue: data.venue,
@@ -25,10 +25,10 @@ export class TicketConverter {
       id: plainObject.id,
       match_name: plainObject.matchName,
       match_date: plainObject.matchDate.toISOString(),
-      home_team: plainObject.homeTeam,
-      away_team: plainObject.awayTeam,
+      home_team: plainObject.homeTeam ?? null,
+      away_team: plainObject.awayTeam ?? null,
       sale_start_date: plainObject.saleStartDate.toISOString(),
-      sale_start_time: plainObject.saleStartTime,
+      sale_start_time: plainObject.saleStartTime ?? null,
       venue: plainObject.venue,
       ticket_types: plainObject.ticketTypes,
       ticket_url: plainObject.ticketUrl,
