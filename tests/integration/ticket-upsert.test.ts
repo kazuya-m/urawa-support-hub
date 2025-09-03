@@ -53,9 +53,10 @@ Deno.test(
       assertEquals(result2.ticket.id, baseTicket.id);
 
       // 3. データを変更してUPSERT（更新）
+      const updatedSaleStartDate = new Date('2025-03-01T11:00:00+09:00');
       const updatedTicketData = {
         ...baseTicket,
-        saleStartDate: new Date('2025-03-01T11:00:00+09:00'), // 時刻変更
+        saleStartDate: updatedSaleStartDate, // 時刻変更
         ticketTypes: ['ビジター席', '追加席種'], // 席種追加
         updatedAt: new Date(),
       };
@@ -65,12 +66,16 @@ Deno.test(
 
       assertEquals(result3.isNew, false);
       assertEquals(result3.hasChanged, true);
-      assertEquals(result3.ticket.saleStartDate.getHours(), 11);
+      // タイムゾーン環境の差異を回避するため、ISO文字列で比較
+      assertEquals(result3.ticket.saleStartDate.toISOString(), updatedSaleStartDate.toISOString());
       assertEquals(result3.ticket.ticketTypes.length, 2);
 
       // 4. データベースから直接取得して確認
       const retrievedTicket = await repository.findById(baseTicket.id);
-      assertEquals(retrievedTicket?.saleStartDate.getHours(), 11);
+      assertEquals(
+        retrievedTicket?.saleStartDate.toISOString(),
+        updatedSaleStartDate.toISOString(),
+      );
       assertEquals(retrievedTicket?.ticketTypes.length, 2);
     } finally {
       // テストデータのクリーンアップ
