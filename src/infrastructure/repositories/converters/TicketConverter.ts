@@ -9,13 +9,17 @@ export class TicketConverter {
       matchDate: new Date(data.match_date),
       homeTeam: data.home_team ?? undefined,
       awayTeam: data.away_team ?? undefined,
-      saleStartDate: new Date(data.sale_start_date),
+      saleStartDate: data.sale_start_date ? new Date(data.sale_start_date) : null,
       saleStartTime: data.sale_start_time ?? undefined,
-      venue: data.venue,
+      saleEndDate: data.sale_end_date ? new Date(data.sale_end_date) : undefined,
+      venue: data.venue ?? undefined,
       ticketTypes: data.ticket_types,
-      ticketUrl: data.ticket_url,
+      ticketUrl: data.ticket_url ?? undefined,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
+      scrapedAt: new Date(data.scraped_at),
+      saleStatus: data.sale_status,
+      notificationScheduled: data.notification_scheduled ?? false,
     });
   }
 
@@ -27,11 +31,15 @@ export class TicketConverter {
       match_date: plainObject.matchDate.toISOString(),
       home_team: plainObject.homeTeam ?? null,
       away_team: plainObject.awayTeam ?? null,
-      sale_start_date: plainObject.saleStartDate.toISOString(),
+      sale_start_date: plainObject.saleStartDate?.toISOString() ?? null,
       sale_start_time: plainObject.saleStartTime ?? null,
-      venue: plainObject.venue,
-      ticket_types: plainObject.ticketTypes,
-      ticket_url: plainObject.ticketUrl,
+      sale_end_date: plainObject.saleEndDate?.toISOString() ?? null,
+      venue: plainObject.venue ?? null,
+      ticket_types: plainObject.ticketTypes ?? [],
+      ticket_url: plainObject.ticketUrl ?? null,
+      scraped_at: plainObject.scrapedAt.toISOString(),
+      sale_status: plainObject.saleStatus,
+      notification_scheduled: plainObject.notificationScheduled ?? false,
     };
   }
 }
