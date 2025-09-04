@@ -1,75 +1,74 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { ScrapedTicketData } from '../types/ScrapedTicketData.ts';
-import { ScrapedDataValidator } from './components/ScrapedDataValidator.ts';
 import { TicketDataParser } from './components/TicketDataParser.ts';
 import { TicketDataMapper } from './components/TicketDataMapper.ts';
 
+export interface SkippedTicket {
+  rawData: ScrapedTicketData;
+  reason: string;
+  matchName: string;
+}
+
+export interface TransformResult {
+  tickets: Ticket[];
+  skippedTickets: SkippedTicket[];
+  warningCount: number;
+}
+
 export class ScrapedDataTransformer {
-  static async convertToTicketEntities(scrapedData: ScrapedTicketData[]): Promise<Ticket[]> {
+  static async transform(scrapedData: ScrapedTicketData[]): Promise<TransformResult> {
     const tickets: Ticket[] = [];
+    const skippedTickets: SkippedTicket[] = [];
+    let totalWarnings = 0;
 
-    for (const data of scrapedData) {
-      try {
-        const validationResult = ScrapedDataValidator.validate(data);
-        if (!validationResult.isValid) {
-          // 不完全データを除外（ログ出力なし）
-          continue;
+    for (const rawTicket of scrapedData) {
+      const parseResult = TicketDataParser.parseAndValidate(rawTicket);
+
+      if (parseResult.success) {
+        try {
+          // マッパー呼び出し（構造化データ → エンティティ）
+          const ticket = await TicketDataMapper.toEntity(parseResult.data!);
+          tickets.push(ticket);
+          totalWarnings += parseResult.warnings.length;
+
+          // 警告がある場合はログ出力
+          if (parseResult.warnings.length > 0) {
+            console.log(
+              `[WARNINGS] Ticket processed with ${parseResult.warnings.length} warnings:`,
+              parseResult.warnings,
+            );
+          }
+        } catch (error) {
+          // マッピングエラーもスキップ対象として処理
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          skippedTickets.push({
+            rawData: rawTicket,
+            reason: `Mapping failed: ${errorMessage}`,
+            matchName: rawTicket.matchName || 'Unknown',
+          });
+          console.error(`[SKIP] Ticket mapping failed: ${errorMessage}`);
         }
-
-        // オプショナルデータ不足は許容（ログ出力なし）
-
-        const matchName = data.matchName!;
-        const matchDateStr = data.matchDate!;
-        const saleDateStr = data.saleDate!;
-
-        const venue = data.venue || '';
-        const ticketUrl = data.ticketUrl || '';
-
-        if (!matchName || !matchDateStr || !saleDateStr) {
-          // 必須データ欠落
-          continue;
-        }
-
-        const dateValidation = ScrapedDataValidator.validateDateFormats(matchDateStr, saleDateStr);
-        if (!dateValidation.isValid || !dateValidation.matchDate || !dateValidation.saleStartDate) {
-          // 不正な日付フォーマット
-          continue;
-        }
-
-        const extractedTeams = TicketDataParser.extractTeamsFromMatchName(matchName);
-        const homeTeam = data.homeTeam || extractedTeams.homeTeam;
-        const awayTeam = data.awayTeam || extractedTeams.awayTeam;
-
-        const validatedData = {
-          matchName,
-          matchDate: matchDateStr,
-          saleDate: saleDateStr,
-          venue,
-          ticketUrl,
-          homeTeam: data.homeTeam,
-          awayTeam: data.awayTeam,
-          ticketTypes: data.ticketTypes,
-        };
-
-        const ticket = await TicketDataMapper.createTicketEntity(
-          validatedData,
-          dateValidation.matchDate,
-          dateValidation.saleStartDate,
-          homeTeam,
-          awayTeam,
-        );
-
-        // チケット作成成功（品質レベルによらず統一処理）
-
-        tickets.push(ticket);
-      } catch (error) {
-        console.error(
-          'Entity conversion failed:',
-          error instanceof Error ? error.message : String(error),
-        );
+      } else {
+        skippedTickets.push({
+          rawData: rawTicket,
+          reason: parseResult.skipReason!,
+          matchName: rawTicket.matchName || 'Unknown',
+        });
+        console.error(`[SKIP] Ticket skipped: ${parseResult.skipReason}`);
       }
     }
 
-    return tickets;
+    // 集計ログ
+    console.log(
+      `[SUMMARY] Processed ${tickets.length} tickets, ` +
+        `skipped ${skippedTickets.length}, ` +
+        `total warnings: ${totalWarnings}`,
+    );
+
+    return {
+      tickets,
+      skippedTickets,
+      warningCount: totalWarnings,
+    };
   }
 }

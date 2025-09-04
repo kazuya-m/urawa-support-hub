@@ -6,6 +6,7 @@ export interface JLeagueScrapingConfig {
     matchTime: string[];
     venue: string[];
     ticketLink: string[];
+    awayTab: string[];
   };
   awayKeywords: string[];
   specialKeywords: string[];
@@ -37,10 +38,39 @@ export const J_LEAGUE_SCRAPING_CONFIG: JLeagueScrapingConfig = {
       '.vs-box-vs-place > span',
     ],
     ticketLink: ['.vs-box-ticket .ticket-status'],
+    awayTab: [
+      '.js-ticket-tab li:nth-child(2) span',
+      '.ticket-tab li:nth-child(2) span',
+      '.js-ticket-tab li:nth-child(2)',
+      '.ticket-tab li:nth-child(2)',
+    ],
   },
 
   awayKeywords: ['アウェイ', 'ビジター', 'ミックス', 'away', 'visitor', 'mix'],
-  specialKeywords: ['駐車券', '駐車', '企画チケット', '車椅子', '障がい者', 'parking'],
+  specialKeywords: [
+    '駐車券',
+    '駐車',
+    'parking',
+    '企画チケット',
+    '企画席',
+    '車椅子',
+    '車いす',
+    '障がい者',
+    '障害者',
+    '招待',
+    '招待券',
+    'VIP',
+    'vip',
+    'プレミアム',
+    'premium',
+    'ピッチサイド',
+    'pitchside',
+    'プレミアムシート',
+    'プレミアム席',
+    'スイート',
+    'suite',
+    'バックステージ',
+  ],
 
   timeouts: {
     pageLoad: 45000,

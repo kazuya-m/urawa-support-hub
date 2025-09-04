@@ -20,11 +20,6 @@ class MockTicketCollectionService {
     return this.mockTickets;
   }
 
-  async collectFromJLeagueOnly(): Promise<Ticket[]> {
-    await this.ensureMockTickets();
-    return this.mockTickets;
-  }
-
   private async getDefaultMockData(): Promise<Ticket[]> {
     return [
       await Ticket.createNew({
@@ -36,30 +31,24 @@ class MockTicketCollectionService {
         venue: 'IAIスタジアム日本平',
         ticketTypes: ['ビジター１F指定席'],
         ticketUrl: 'https://www.jleague-ticket.jp/sales/perform/2528632/001',
+        scrapedAt: new Date(),
+        saleStatus: 'before_sale',
+        notificationScheduled: false,
       }),
     ];
   }
 }
 
 Deno.test('TicketCollectionService Tests', async (t) => {
-  await t.step('should collect tickets from J-League successfully', async () => {
-    const mockService = new MockTicketCollectionService();
-    const result = await mockService.collectFromJLeagueOnly();
-
-    assertEquals(Array.isArray(result), true);
-    assertEquals(result.length, 1);
-    assertEquals(result[0].matchName, '清水エスパルス');
-    assertEquals(result[0].homeTeam, '清水エスパルス');
-    assertEquals(result[0].awayTeam, '浦和レッズ');
-  });
-
-  await t.step('should collect all tickets successfully', async () => {
+  await t.step('should collect tickets successfully', async () => {
     const mockService = new MockTicketCollectionService();
     const result = await mockService.collectAllTickets();
 
     assertEquals(Array.isArray(result), true);
     assertEquals(result.length, 1);
     assertEquals(result[0].matchName, '清水エスパルス');
+    assertEquals(result[0].homeTeam, '清水エスパルス');
+    assertEquals(result[0].awayTeam, '浦和レッズ');
   });
 
   await t.step('should handle multiple tickets', async () => {
@@ -73,6 +62,9 @@ Deno.test('TicketCollectionService Tests', async (t) => {
         venue: '味の素スタジアム',
         ticketTypes: ['ビジター席'],
         ticketUrl: 'https://example.com/ticket1',
+        scrapedAt: new Date(),
+        saleStatus: 'before_sale',
+        notificationScheduled: false,
       }),
       await Ticket.createNew({
         matchName: 'ガンバ大阪',
@@ -83,6 +75,9 @@ Deno.test('TicketCollectionService Tests', async (t) => {
         venue: 'パナソニックスタジアム吹田',
         ticketTypes: ['ビジター指定席'],
         ticketUrl: 'https://example.com/ticket2',
+        scrapedAt: new Date(),
+        saleStatus: 'before_sale',
+        notificationScheduled: false,
       }),
     ];
 

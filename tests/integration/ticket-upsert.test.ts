@@ -11,7 +11,6 @@ import {
 // 統合テスト - 実際のSupabaseクライアントを使用してUPSERT機能を検証
 Deno.test(
   'Ticket UPSERT - end to end flow',
-  { permissions: { env: true, net: ['127.0.0.1'] } },
   async () => {
     const client = createTestSupabaseClient();
     const repository = new TicketRepositoryImpl(client);
@@ -29,6 +28,8 @@ Deno.test(
       ticketUrl: 'https://example.com/test-upsert',
       createdAt: new Date('2025-01-01T00:00:00Z'),
       updatedAt: new Date('2025-01-01T00:00:00Z'),
+      scrapedAt: new Date(),
+      saleStatus: 'before_sale' as const,
     };
 
     // テスト前にクリーンアップ
@@ -67,13 +68,13 @@ Deno.test(
       assertEquals(result3.isNew, false);
       assertEquals(result3.hasChanged, true);
       // タイムゾーン環境の差異を回避するため、ISO文字列で比較
-      assertEquals(result3.ticket.saleStartDate.toISOString(), updatedSaleStartDate.toISOString());
+      assertEquals(result3.ticket.saleStartDate?.toISOString(), updatedSaleStartDate.toISOString());
       assertEquals(result3.ticket.ticketTypes.length, 2);
 
       // 4. データベースから直接取得して確認
       const retrievedTicket = await repository.findById(baseTicket.id);
       assertEquals(
-        retrievedTicket?.saleStartDate.toISOString(),
+        retrievedTicket?.saleStartDate?.toISOString(),
         updatedSaleStartDate.toISOString(),
       );
       assertEquals(retrievedTicket?.ticketTypes.length, 2);
@@ -86,7 +87,6 @@ Deno.test(
 
 Deno.test(
   'Ticket UPSERT - idempotency test',
-  { permissions: { env: true, net: ['127.0.0.1'] } },
   async () => {
     const client = createTestSupabaseClient();
     const repository = new TicketRepositoryImpl(client);
@@ -106,6 +106,8 @@ Deno.test(
       ticketUrl: 'https://example.com/test-idempotent',
       createdAt: new Date('2025-01-01T00:00:00Z'),
       updatedAt: new Date('2025-01-01T00:00:00Z'),
+      scrapedAt: new Date(),
+      saleStatus: 'before_sale' as const,
     };
 
     try {
@@ -136,9 +138,7 @@ Deno.test(
   },
 );
 
-Deno.test('Ticket UPSERT - UNIQUE constraint test', {
-  permissions: { env: true, net: ['127.0.0.1'] },
-}, async () => {
+Deno.test('Ticket UPSERT - UNIQUE constraint test', {}, async () => {
   const client = createTestSupabaseClient();
   const repository = new TicketRepositoryImpl(client);
 
@@ -156,6 +156,8 @@ Deno.test('Ticket UPSERT - UNIQUE constraint test', {
     ticketUrl: 'https://example.com/cerezo',
     createdAt: new Date(),
     updatedAt: new Date(),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale' as const,
   };
 
   try {

@@ -10,9 +10,7 @@
  * 注意: アクセス過多を防ぐため、手動実行のみ推奨
  */
 
-import { JLeagueTicketScraper } from '../src/infrastructure/services/scraping/sources/jleague/JLeagueTicketScraper.ts';
 import { TicketCollectionService } from '../src/infrastructure/services/scraping/TicketCollectionService.ts';
-import { ScrapedTicketData } from '../src/infrastructure/services/scraping/types/ScrapedTicketData.ts';
 
 // 環境変数チェック
 const isLiveScrapingEnabled = Deno.env.get('ENABLE_LIVE_SCRAPING') === 'true';
@@ -30,7 +28,6 @@ console.log('🚀 スクレイピングテスト開始');
 console.log('='.repeat(50));
 
 async function testScraping() {
-  // 統合収集サービスのテスト
   console.log('\n🔄 統合チケット収集サービステスト');
   const collectionService = new TicketCollectionService();
 
@@ -51,58 +48,36 @@ async function testScraping() {
       return;
     }
 
-    // 詳細表示のため個別にJ-LeagueのScrapedDataを取得
-    const jleagueScraper = new JLeagueTicketScraper();
-    const tickets = await jleagueScraper.scrapeTickets();
-    console.log('='.repeat(50));
-
     // チケット情報を詳細表示
-    tickets.forEach((ticket: ScrapedTicketData, index: number) => {
+    result.forEach((ticket, index: number) => {
       console.log(`\n【試合 ${index + 1}】`);
       console.log(`  対戦相手: ${ticket.matchName}`);
-      console.log(`  試合日時: ${ticket.matchDate}`);
+      console.log(`  試合日時: ${ticket.matchDate.toLocaleDateString('ja-JP')}`);
       console.log(`  会場: ${ticket.venue}`);
-      console.log(`  販売日時: ${ticket.saleDate}`);
-      console.log(`  チケット種別: ${ticket.ticketTypes.join(', ') || 'なし'}`);
+      console.log(`  販売開始: ${ticket.saleStartDate?.toLocaleString('ja-JP') || '未定'}`);
       console.log(`  購入URL: ${ticket.ticketUrl}`);
     });
 
-    // データ検証
-    console.log('\n' + '='.repeat(50));
-    console.log('📝 データ検証');
-    console.log('='.repeat(50));
-
-    let hasErrors = false;
-    tickets.forEach((ticket: ScrapedTicketData, index: number) => {
-      const errors: string[] = [];
-
-      if (!ticket.matchName) errors.push('試合名が空');
-      if (!ticket.matchDate) errors.push('試合日時が空');
-      if (!ticket.venue) errors.push('会場が空');
-      if (!ticket.saleDate) errors.push('販売日時が空');
-      if (!ticket.ticketUrl) errors.push('購入URLが空');
-
-      if (errors.length > 0) {
-        hasErrors = true;
-        console.log(`\n❌ 試合 ${index + 1} のエラー:`);
-        errors.forEach((error) => console.log(`   - ${error}`));
-      }
-    });
-
-    if (!hasErrors) {
-      console.log('\n✅ すべてのデータが正常に取得されました');
-    }
-
-    // スクレイピング成功時にデバッグ用JSONを出力
+    // 統合サービス結果をJSONで出力
     const debugOutput = {
       timestamp: new Date().toISOString(),
-      ticketCount: tickets.length,
-      tickets: tickets,
+      ticketCount: result.length,
+      tickets: result.map((ticket) => ({
+        matchName: ticket.matchName,
+        matchDate: ticket.matchDate.toISOString(),
+        venue: ticket.venue,
+        saleStartDate: ticket.saleStartDate?.toISOString() || null,
+        ticketUrl: ticket.ticketUrl,
+        homeTeam: ticket.homeTeam,
+        awayTeam: ticket.awayTeam,
+      })),
     };
 
     const debugFilePath = './scraping-test-result.json';
     await Deno.writeTextFile(debugFilePath, JSON.stringify(debugOutput, null, 2));
-    console.log(`\n💾 デバッグ用JSONファイルを出力: ${debugFilePath}`);
+    console.log(`\n💾 統合サービス結果をJSONで出力: ${debugFilePath}`);
+
+    console.log('\n✅ すべてのデータが正常に取得されました');
   } catch (error) {
     console.error('\n❌ スクレイピングエラー:');
     console.error(error);
@@ -113,7 +88,6 @@ async function testScraping() {
       console.error('  スタック:', error.stack);
     }
 
-    // エラー時にスクリーンショットを保存する機能を追加予定
     console.log('\n💡 ヒント: ブラウザが正しくインストールされているか確認してください');
     console.log('  npx playwright install chromium');
 

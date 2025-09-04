@@ -227,6 +227,89 @@ graph TD
     G --> H
 ```
 
+## Database Schema (Supabase PostgreSQL)
+
+### Core Tables
+
+#### tickets Table (Enhanced for Sale Status Management)
+
+```sql
+CREATE TABLE tickets (
+  id TEXT PRIMARY KEY,
+  match_name TEXT NOT NULL,
+  match_date TIMESTAMPTZ NOT NULL,
+  home_team TEXT,
+  away_team TEXT,
+  sale_start_date TIMESTAMPTZ,                    -- Nullable for failed scraping
+  sale_start_time TEXT,
+  sale_end_date TIMESTAMPTZ,
+  venue TEXT,                                     -- Nullable for failed scraping
+  ticket_types TEXT[],
+  ticket_url TEXT,                                -- Nullable for failed scraping
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  scraped_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), -- Issue #62
+  sale_status TEXT NOT NULL DEFAULT 'before_sale' CHECK (sale_status IN ('before_sale', 'on_sale', 'ended')), -- Issue #62
+  notification_scheduled BOOLEAN NOT NULL DEFAULT FALSE -- Issue #62
+);
+
+-- Performance indexes for sale status management
+CREATE INDEX idx_tickets_sale_status ON tickets(sale_status);
+CREATE INDEX idx_tickets_scraped_at ON tickets(scraped_at);
+CREATE INDEX idx_tickets_match_date ON tickets(match_date);
+CREATE INDEX idx_tickets_sale_start_date ON tickets(sale_start_date);
+```
+
+#### notification_history Table (Enhanced)
+
+```sql
+CREATE TABLE notification_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id TEXT NOT NULL REFERENCES tickets(id),
+  notification_type TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'sent', 'failed', 'expired')),
+  scheduled_time TIMESTAMPTZ NOT NULL,
+  sent_time TIMESTAMPTZ,
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  notification_scheduled BOOLEAN NOT NULL DEFAULT FALSE -- Issue #62
+);
+
+CREATE INDEX idx_notification_history_ticket_id ON notification_history(ticket_id);
+CREATE INDEX idx_notification_history_status ON notification_history(status);
+CREATE INDEX idx_notification_history_scheduled_time ON notification_history(scheduled_time);
+```
+
+#### system_health Table
+
+```sql
+CREATE TABLE system_health (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  executed_at TIMESTAMPTZ NOT NULL,
+  tickets_found INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL CHECK (status IN ('success', 'error')),
+  error_message TEXT,
+  execution_duration_ms INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Data Model Relationships
+
+```
+tickets (1) ←→ (many) notification_history
+   ↓
+system_health (independent monitoring)
+```
+
+### Key Schema Features (Issue #62)
+
+- **Nullable Optional Fields**: `sale_start_date`, `venue`, `ticket_url` allow partial data saves
+- **Sale Status Tracking**: Automated lifecycle management with CHECK constraints
+- **Scraping Timestamps**: `scraped_at` for temporal data management
+- **Notification Scheduling**: `notification_scheduled` prevents duplicate notifications
+- **Performance Optimization**: Strategic indexes for status-based queries
+
 ## Design Patterns
 
 ### Repository Pattern (Enhanced)
@@ -247,6 +330,10 @@ export class TicketRepositoryImpl {
   findByMatchDate(date: Date): Promise<Ticket[]>;
   // Event-driven notification scheduling
   scheduleNotifications(ticketId: string): Promise<void>;
+
+  // Sale Status Management (Issue #62)
+  upsert(ticket: Ticket): Promise<UpsertResult>;
+  findBySaleStatus(status: 'before_sale' | 'on_sale' | 'ended'): Promise<Ticket[]>;
 }
 ```
 

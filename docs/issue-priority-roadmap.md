@@ -9,7 +9,8 @@
 
 - **Completed**: Foundation setup, external services, domain models, database schema, notification
   services, application layer
-- **In Progress**: Cloud Run deployment (#24), Discord notifications (#30)
+- **In Progress**: Cloud Run deployment (#24), Discord notifications (#30), Sale Status Management
+  (#62)
 - **Not Started**: Google Cloud services integration, final deployment
 
 ## Implementation Phases Overview
@@ -38,7 +39,7 @@
 | #12   | Ticket management application service implementation      | 🔴 Critical | ✅ **COMPLETED**   | Core business logic               |
 | #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | ⏳ **IN PROGRESS** | Container deployment              |
 | #61   | **チケット重複処理・UPSERT機能実装** (**NEW**)            | 🔴 Critical | ✅ **COMPLETED**   | **#25の前提条件・重複防止**       |
-| #62   | **発売済みチケット状態管理・除外機能実装** (**NEW**)      | 🔴 Critical | ❌ Not Started     | **#25の前提条件・無駄処理防止**   |
+| #62   | **発売済みチケット状態管理・除外機能実装** (**NEW**)      | 🔴 Critical | 🔄 **IN PROGRESS** | **#25の前提条件・無駄処理防止**   |
 | #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started     | Notification timing control       |
 | #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started     | Automation requirements           |
 
@@ -160,7 +161,7 @@ Each issue is considered complete when:
 ## Next Steps Priority (**UPDATED**)
 
 1. **#24** - Deploy scraping to Cloud Run (production deployment) - **継続**
-2. **#62** - 発売済み状態管理実装 (**NEW PRIORITY** - #25の前提条件)
+2. **#62** - 発売済み状態管理実装 (**IN PROGRESS** - #25の前提条件)
 3. **#25** - Cloud Tasks notification scheduling (depends on #62完了後)
 4. **#26** - Cloud Scheduler daily execution setup
 

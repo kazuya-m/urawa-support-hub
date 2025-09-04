@@ -4,7 +4,6 @@ import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketReposi
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketCollectionResult, TicketUpsertResult } from '@/application/types/UseCaseResults.ts';
-import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
 export class TicketCollectionUseCase {
   private ticketCollectionService: TicketCollectionService;
@@ -22,7 +21,7 @@ export class TicketCollectionUseCase {
     let executionResult: HealthCheckResult;
 
     try {
-      const tickets = await this.ticketCollectionService.collectFromJLeagueOnly();
+      const tickets = await this.ticketCollectionService.collectAllTickets();
 
       const upsertResults = await this.upsertCollectedTickets(tickets);
 
@@ -73,7 +72,6 @@ export class TicketCollectionUseCase {
           'CRITICAL: Failed to record health check - Supabase may auto-pause:',
           healthError,
         );
-        handleSupabaseError('record daily health check', healthError as Error);
       }
 
       return {
@@ -112,7 +110,28 @@ export class TicketCollectionUseCase {
   }
 
   private async upsertTicket(ticket: Ticket): Promise<TicketUpsertResult> {
-    return await this.ticketRepository.upsert(ticket);
+    const upsertResult = await this.ticketRepository.upsert(ticket);
+
+    if (upsertResult.isNew && upsertResult.ticket.requiresNotification()) {
+      console.log(
+        `New ticket requiring notification: ${upsertResult.ticket.matchName} (${upsertResult.ticket.saleStatus})`,
+      );
+    }
+
+    if (upsertResult.hasChanged && upsertResult.previousSaleStatus) {
+      const statusChanged = upsertResult.previousSaleStatus !== upsertResult.ticket.saleStatus;
+      if (statusChanged) {
+        console.log(
+          `Status transition: ${upsertResult.previousSaleStatus} → ${upsertResult.ticket.saleStatus} for ${upsertResult.ticket.matchName}`,
+        );
+      }
+    }
+
+    return {
+      isNew: upsertResult.isNew,
+      hasChanged: upsertResult.hasChanged,
+      ticket: upsertResult.ticket,
+    };
   }
 
   private calculateStatistics(upsertResults: TicketUpsertResult[]): {

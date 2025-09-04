@@ -1,5 +1,6 @@
 import { Page } from 'npm:playwright@1.40.0';
 import { ScrapedTicketData } from '@/infrastructure/services/scraping/types/ScrapedTicketData.ts';
+import { parseSaleDate } from '@/domain/entities/SaleStatusUtils.ts';
 
 interface ExtractorConfig {
   selectors: {
@@ -107,15 +108,35 @@ export class JLeagueDataExtractor {
         this.extractionWarnings.push(warning);
       }
 
+      const scrapedAt = new Date();
+      const saleDate = await this.extractSaleDate(page, containerSelector);
+      let saleStatus: 'before_sale' | 'on_sale' | 'ended' = 'before_sale';
+      let saleEndDate: string | null = null;
+
+      if (saleDate) {
+        try {
+          const saleInfo = parseSaleDate(saleDate);
+          saleStatus = saleInfo.saleStatus;
+          if (saleInfo.saleEndDate) {
+            saleEndDate = saleInfo.saleEndDate.toISOString();
+          }
+        } catch (error) {
+          console.warn(`Could not parse sale date "${saleDate}":`, error);
+        }
+      }
+
       return {
         matchName,
         matchDate: matchDate || null,
-        saleDate: null,
+        saleDate,
+        saleEndDate,
         venue,
         ticketUrl,
         ticketTypes: [],
         homeTeam: null,
         awayTeam: null,
+        scrapedAt,
+        saleStatus,
       };
     } catch (error) {
       console.warn('Failed to extract single ticket data:', error);
@@ -172,6 +193,32 @@ export class JLeagueDataExtractor {
     }
 
     return true;
+  }
+
+  private async extractSaleDate(page: Page, containerSelector: string): Promise<string | null> {
+    const saleSelectors = [
+      '.sale-date',
+      '.ticket-sale-date',
+      '.sale-info',
+      '[class*="sale"]',
+      '[class*="date"]',
+    ];
+
+    for (const selector of saleSelectors) {
+      const fullSelector = `${containerSelector} ${selector}`;
+      try {
+        const saleDate = await page.$eval(
+          fullSelector,
+          (element) => element.textContent?.trim() || null,
+        ) as string | null;
+        if (saleDate) {
+          return saleDate;
+        }
+      } catch (_error) {
+        // continue to next selector
+      }
+    }
+    return null;
   }
 
   getAndClearWarnings(): string[] {

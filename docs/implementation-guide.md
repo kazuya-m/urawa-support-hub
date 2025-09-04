@@ -79,18 +79,44 @@ export class Ticket {
     public readonly matchName: string,
     public readonly matchDate: Date,
     public readonly venue: string,
-    public readonly saleStartDate: Date,
+    public readonly saleStartDate: Date | null,
+    public readonly saleEndDate: Date | undefined,
     public readonly purchaseUrl: string,
     public readonly seatCategories: string[],
+    public readonly scrapedAt: Date,
+    public readonly saleStatus: 'before_sale' | 'on_sale' | 'ended',
+    public readonly notificationScheduled: boolean = false,
   ) {}
 
   // Business Logic Methods
   shouldSendNotification(type: NotificationType, currentTime: Date): boolean {
+    if (!this.saleStartDate) return false;
     return shouldSendNotificationAtTime(type, this.saleStartDate, currentTime);
   }
 
-  isExpired(): boolean {
-    return this.saleStartDate < new Date();
+  // Sale Status Management (Issue #62)
+  isOnSale(): boolean {
+    return this.saleStatus === 'on_sale';
+  }
+
+  isBeforeSale(): boolean {
+    return this.saleStatus === 'before_sale';
+  }
+
+  isSaleEnded(): boolean {
+    return this.saleStatus === 'ended';
+  }
+
+  requiresNotification(): boolean {
+    return this.isBeforeSale() && !this.notificationScheduled && this.saleStartDate !== null;
+  }
+
+  isValidForNotification(): boolean {
+    const now = new Date();
+    if (this.matchDate <= now) return false;
+    if (!this.saleStartDate) return false;
+    if (now.getTime() > this.saleStartDate.getTime() + 24 * 60 * 60 * 1000) return false;
+    return this.isValidTicket();
   }
 
   getNotificationMessage(type: NotificationType): string {
@@ -99,20 +125,31 @@ export class Ticket {
   }
 
   getScheduledNotificationTimes(): Array<{ type: NotificationType; scheduledTime: Date }> {
+    if (!this.saleStartDate) return [];
     return Object.entries(NOTIFICATION_TIMING_CONFIG).map(([type, config]) => ({
       type: type as NotificationType,
       scheduledTime: config.calculateScheduledTime(this.saleStartDate),
     }));
+  }
+
+  hasDataChanges(other: Ticket): boolean {
+    return this.matchName !== other.matchName ||
+      this.venue !== other.venue ||
+      this.saleStartDate?.getTime() !== other.saleStartDate?.getTime() ||
+      this.saleStatus !== other.saleStatus ||
+      JSON.stringify(this.seatCategories) !== JSON.stringify(other.seatCategories);
   }
 }
 ```
 
 #### Key Responsibilities
 
-- Match ticket information encapsulation
+- Match ticket information encapsulation with sale status management
 - Notification timing business logic with configuration-driven calculations
-- Data validation and business rules
-- Integration with Cloud Tasks scheduling
+- Data validation and business rules with nullable field support
+- Sale status lifecycle management (`before_sale` → `on_sale` → `ended`)
+- Integration with Cloud Tasks scheduling based on sale status
+- Change detection for efficient database updates
 
 ### NotificationHistory Entity
 
@@ -199,7 +236,11 @@ export class TicketRepositoryImpl {
   // Enhanced methods for Cloud Tasks integration
   scheduleNotifications(ticketId: string): Promise<void>;
   findPendingTickets(): Promise<Ticket[]>;
-  upsert(ticket: Ticket): Promise<void>; // Save or update
+  
+  // Sale Status Management (Issue #62)
+  upsert(ticket: Ticket): Promise<UpsertResult>; // Save or update with status tracking
+  findBySaleStatus(status: 'before_sale' | 'on_sale' | 'ended'): Promise<Ticket[]>;
+}
 }
 ```
 
@@ -227,6 +268,80 @@ export class NotificationRepositoryImpl {
   ): Promise<NotificationHistory | null>;
   findOverdueNotifications(currentTime: Date): Promise<NotificationHistory[]>;
   markAsError(id: string, errorMessage: string): Promise<void>;
+}
+```
+
+## Sale Status Management Patterns (Issue #62)
+
+### UpsertResult Pattern
+
+Enhanced upsert operation with change detection and sale status tracking:
+
+```typescript
+export interface UpsertResult {
+  ticket: Ticket;
+  isNew: boolean;
+  hasChanged: boolean;
+  previousSaleStatus?: 'before_sale' | 'on_sale' | 'ended';
+}
+
+export class TicketRepositoryImpl {
+  async upsert(ticket: Ticket): Promise<UpsertResult> {
+    const existing = await this.findById(ticket.id);
+    const isNew = !existing;
+    let hasChanged = false;
+    let previousSaleStatus: 'before_sale' | 'on_sale' | 'ended' | undefined;
+
+    if (existing) {
+      hasChanged = ticket.hasDataChanges(existing);
+      previousSaleStatus = existing.saleStatus;
+    }
+
+    if (isNew || hasChanged) {
+      const { error } = await this.client
+        .from('tickets')
+        .upsert({
+          ...TicketConverter.toDatabaseRow(ticket),
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) handleSupabaseError('upsert ticket', error);
+    }
+
+    return { ticket, isNew, hasChanged, previousSaleStatus };
+  }
+}
+```
+
+### Sale Status Utilities
+
+Centralized sale status determination logic:
+
+```typescript
+export function determineSaleStatus(
+  saleStartDate: Date | undefined,
+  saleEndDate: Date | undefined,
+  scrapedAt: Date,
+): 'before_sale' | 'on_sale' | 'ended' {
+  if (saleEndDate && scrapedAt > saleEndDate) {
+    return 'ended';
+  }
+
+  if (saleStartDate && scrapedAt < saleStartDate) {
+    return 'before_sale';
+  }
+
+  return 'on_sale';
+}
+
+export function parseSaleDate(saleText: string): {
+  saleStartDate?: Date;
+  saleEndDate?: Date;
+  saleStatus: 'before_sale' | 'on_sale' | 'ended';
+} {
+  // Pattern matching for various J-League date formats
+  // 02/15(月)12:00〜, 〜03/01(金)18:00, 02/15(月)12:00〜03/01(金)18:00
+  // Returns parsed dates and determined status
 }
 ```
 

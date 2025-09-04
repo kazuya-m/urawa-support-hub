@@ -17,11 +17,15 @@ Deno.test('SupabaseTicketRepository - findById with null handling', async () => 
     away_team: 'アウェイチーム',
     sale_start_date: '2025-03-01T01:00:00.000Z',
     sale_start_time: null,
+    sale_end_date: null,
     venue: 'テストスタジアム',
     ticket_types: ['ビジター席'],
     ticket_url: 'https://example.com/test',
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
+    scraped_at: '2025-01-01T00:00:00Z',
+    sale_status: 'before_sale',
+    notification_scheduled: false,
   };
 
   const mockClient = createMockSupabaseClient([mockTicketRow]);
@@ -53,6 +57,8 @@ Deno.test('SupabaseTicketRepository - save error handling', async () => {
     ticketUrl: 'https://example.com',
     createdAt: new Date(),
     updatedAt: new Date(),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
   });
 
   await assertRejects(
@@ -71,11 +77,15 @@ Deno.test('TicketRepository - upsert creates new ticket', async () => {
     away_team: '浦和レッズ',
     sale_start_date: '2025-03-01T01:00:00.000Z',
     sale_start_time: null,
+    sale_end_date: null,
     venue: 'パナソニックスタジアム吹田',
     ticket_types: ['ビジター席'],
     ticket_url: 'https://example.com/test',
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
+    scraped_at: '2025-01-01T00:00:00Z',
+    sale_status: 'before_sale',
+    notification_scheduled: false,
   };
 
   const mockClient = createUpsertMockSupabaseClient({
@@ -97,11 +107,12 @@ Deno.test('TicketRepository - upsert creates new ticket', async () => {
     ticketUrl: 'https://example.com/test',
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date('2025-01-01T00:00:00Z'),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
   });
 
   const result = await repository.upsert(testTicket);
 
-  // upsertはTicketUpsertResultを返す
   assertEquals(result.ticket.id, 'test-id');
   assertEquals(result.ticket.matchName, 'ガンバ大阪 vs 浦和レッズ');
   assertEquals(result.isNew, true);
@@ -117,11 +128,15 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
     away_team: '浦和レッズ',
     sale_start_date: '2025-03-01T01:00:00.000Z',
     sale_start_time: null,
+    sale_end_date: null,
     venue: 'パナソニックスタジアム吹田',
     ticket_types: ['ビジター席'],
     ticket_url: 'https://example.com/test',
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
+    scraped_at: '2025-01-01T00:00:00Z',
+    sale_status: 'before_sale',
+    notification_scheduled: false,
   };
 
   const updatedTicketRow = {
@@ -149,6 +164,8 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
     ticketUrl: 'https://example.com/test',
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date(),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
   });
 
   const result = await repository.upsert(updatedTicket);
@@ -156,7 +173,7 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
   // upsertはTicketUpsertResultを返す
   assertEquals(result.ticket.id, 'test-id');
   assertEquals(
-    result.ticket.saleStartDate.getTime(),
+    result.ticket.saleStartDate?.getTime(),
     new Date('2025-03-01T02:00:00.000Z').getTime(),
   );
   assertEquals(result.isNew, false);
@@ -164,6 +181,7 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
 });
 
 Deno.test('TicketRepository - upsert detects no changes', async () => {
+  const fixedScrapedAt = new Date('2025-01-15T12:00:00Z');
   const unchangedTicketRow = {
     id: 'test-id',
     match_name: 'ガンバ大阪 vs 浦和レッズ',
@@ -172,11 +190,15 @@ Deno.test('TicketRepository - upsert detects no changes', async () => {
     away_team: '浦和レッズ',
     sale_start_date: '2025-03-01T01:00:00.000Z',
     sale_start_time: null,
+    sale_end_date: null,
     venue: 'パナソニックスタジアム吹田',
     ticket_types: ['ビジター席'],
     ticket_url: 'https://example.com/test',
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
+    scraped_at: fixedScrapedAt.toISOString(),
+    sale_status: 'before_sale',
+    notification_scheduled: false,
   };
 
   const mockClient = createUpsertMockSupabaseClient({
@@ -198,6 +220,8 @@ Deno.test('TicketRepository - upsert detects no changes', async () => {
     ticketUrl: 'https://example.com/test',
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date('2025-01-01T00:00:00Z'),
+    scrapedAt: fixedScrapedAt,
+    saleStatus: 'before_sale',
   });
 
   const result = await repository.upsert(sameTicket);
@@ -228,6 +252,8 @@ Deno.test('TicketRepository - upsert handles database error properly', async () 
     ticketUrl: 'https://example.com',
     createdAt: new Date(),
     updatedAt: new Date(),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
   });
 
   await assertRejects(
@@ -256,6 +282,8 @@ Deno.test('TicketRepository - upsert handles upsert error properly', async () =>
     ticketUrl: 'https://example.com',
     createdAt: new Date(),
     updatedAt: new Date(),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
   });
 
   await assertRejects(
@@ -274,11 +302,15 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     away_team: '浦和レッズ',
     sale_start_date: '2025-03-01T01:00:00.000Z',
     sale_start_time: null,
+    sale_end_date: null,
     venue: 'パナソニックスタジアム吹田',
     ticket_types: ['ビジター席'],
     ticket_url: 'https://example.com/test',
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
+    scraped_at: '2025-01-01T00:00:00Z',
+    sale_status: 'before_sale',
+    notification_scheduled: false,
   };
 
   const updatedTicketRow = {
@@ -306,6 +338,8 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     ticketUrl: 'https://example.com/test',
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date(),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
   });
 
   const result = await repository.upsert(updatedTicket);

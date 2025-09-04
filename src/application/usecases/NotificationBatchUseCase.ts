@@ -1,6 +1,5 @@
 import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
 import { BatchProcessingResult } from '@/application/types/UseCaseResults.ts';
-import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
 export interface BatchExecutionInput {
   operation: 'process_pending' | 'cleanup_expired';
@@ -33,11 +32,14 @@ export class NotificationBatchUseCase {
         error: error instanceof Error ? error.message : String(error),
       });
 
-      if (error instanceof Error) {
-        handleSupabaseError(`execute batch operation: ${input.operation}`, error);
+      if (error instanceof Error && error.message.startsWith('Unknown operation:')) {
+        throw error;
       }
-
-      throw error;
+      throw new Error(
+        `Failed to execute batch notifications: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 
@@ -45,44 +47,19 @@ export class NotificationBatchUseCase {
     let processed = 0;
     const failed = 0;
 
-    try {
-      // NotificationServiceのprocessPendingNotificationsを呼び出す
-      // 現在は成功/失敗の詳細を返さないため、今後の拡張が必要
-      await this.notificationService.processPendingNotifications();
+    await this.notificationService.processPendingNotifications();
 
-      // TODO: NotificationServiceから詳細な結果を取得する実装が必要
-      // 現時点では正常完了とみなす
-      processed = 1; // 仮の値
+    processed = 1;
 
-      const executionTime = Date.now() - startTime;
+    const executionTime = Date.now() - startTime;
 
-      return {
-        status: 'success',
-        operation: 'process_pending',
-        processed,
-        failed,
-        executionDurationMs: executionTime,
-      };
-    } catch (error) {
-      const executionTime = Date.now() - startTime;
-      console.error('Batch notifications processing failed:', {
-        executionTimeMs: executionTime,
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      if (error instanceof Error) {
-        handleSupabaseError('execute batch notifications', error);
-      }
-
-      return {
-        status: 'error',
-        operation: 'process_pending',
-        processed: 0,
-        failed: 1,
-        executionDurationMs: executionTime,
-        errorMessage: error instanceof Error ? error.message : String(error),
-      };
-    }
+    return {
+      status: 'success',
+      operation: 'process_pending',
+      processed,
+      failed,
+      executionDurationMs: executionTime,
+    };
   }
 
   private cleanupExpiredNotifications(startTime: number): Promise<BatchProcessingResult> {
@@ -105,10 +82,6 @@ export class NotificationBatchUseCase {
         executionTimeMs: executionTime,
         error: error instanceof Error ? error.message : String(error),
       });
-
-      if (error instanceof Error) {
-        handleSupabaseError('cleanup expired notifications', error);
-      }
 
       return Promise.resolve({
         status: 'error',

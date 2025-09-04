@@ -34,7 +34,8 @@ BEGIN
     
     RETURN deleted_count;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = '';
 
 -- Grant execute permission to the service role
 GRANT EXECUTE ON FUNCTION manual_cleanup_health_records(INTEGER) TO service_role;

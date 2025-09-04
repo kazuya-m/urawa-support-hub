@@ -38,6 +38,8 @@ export class MockJLeagueTicketScraper {
         ticketTypes: ['ビジター１F指定席', 'ビジター２F自由席'],
         homeTeam: '清水エスパルス',
         awayTeam: '浦和レッズ',
+        scrapedAt: new Date(),
+        saleStatus: 'before_sale',
       },
       {
         matchName: 'ガンバ大阪',
@@ -48,6 +50,8 @@ export class MockJLeagueTicketScraper {
         ticketTypes: ['アウェイ指定席', 'アウェイ自由席'],
         homeTeam: 'ガンバ大阪',
         awayTeam: '浦和レッズ',
+        scrapedAt: new Date(),
+        saleStatus: 'before_sale',
       },
       {
         matchName: '横浜F・マリノス',
@@ -58,6 +62,8 @@ export class MockJLeagueTicketScraper {
         ticketTypes: ['ビジターゴール裏', 'ビジター指定席'],
         homeTeam: '横浜F・マリノス',
         awayTeam: '浦和レッズ',
+        scrapedAt: new Date(),
+        saleStatus: 'before_sale',
       },
     ];
   }

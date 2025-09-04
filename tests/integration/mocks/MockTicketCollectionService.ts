@@ -26,6 +26,8 @@ export class MockTicketCollectionService {
         ticketUrl: 'https://example.com/ticket1',
         createdAt: new Date(),
         updatedAt: new Date(),
+        scrapedAt: new Date(),
+        saleStatus: 'before_sale',
       }),
       Ticket.fromExisting({
         id: 'mock-2',
@@ -37,6 +39,8 @@ export class MockTicketCollectionService {
         ticketUrl: 'https://example.com/ticket2',
         createdAt: new Date(),
         updatedAt: new Date(),
+        scrapedAt: new Date(),
+        saleStatus: 'before_sale',
       }),
     ];
 

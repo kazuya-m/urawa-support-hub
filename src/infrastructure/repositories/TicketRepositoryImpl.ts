@@ -4,7 +4,7 @@ import { TicketConverter } from './converters/TicketConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
 import { createSupabaseAdminClient } from '../config/supabase.ts';
 import { TicketRow } from '../types/database.ts';
-import { TicketUpsertResult } from '@/application/types/UseCaseResults.ts';
+import { UpsertResult } from './types/UpsertResult.ts';
 
 export class TicketRepositoryImpl {
   private client: SupabaseClient;
@@ -107,42 +107,42 @@ export class TicketRepositoryImpl {
     if (error) handleSupabaseError('delete tickets by date', error);
   }
 
-  async upsert(ticket: Ticket): Promise<TicketUpsertResult> {
-    // Now we can use findById directly since DB id = Entity id
+  async upsert(ticket: Ticket): Promise<UpsertResult> {
+    // Check if ticket already exists
     const existing = await this.findById(ticket.id);
     const isNew = !existing;
-    const hasChanged = isNew ? false : ticket.hasSignificantChanges(existing);
+    let hasChanged = false;
+    let previousSaleStatus: 'before_sale' | 'on_sale' | 'ended' | undefined;
 
-    if (isNew || hasChanged) {
-      const row = TicketConverter.toDatabaseRow(ticket);
-
-      const { data: upsertedData, error: upsertError } = await this.client
-        .from('tickets')
-        .upsert({
-          ...row,
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (upsertError) handleSupabaseError('upsert ticket', upsertError);
-
-      if (!upsertedData) {
-        throw new Error('Upsert operation did not return data');
-      }
-
-      const savedTicket = TicketConverter.toDomainEntity(upsertedData as TicketRow);
-      return {
-        isNew,
-        hasChanged,
-        ticket: savedTicket,
-      };
+    if (existing) {
+      hasChanged = ticket.hasDataChanges(existing);
+      previousSaleStatus = existing.saleStatus;
     }
 
+    const row = TicketConverter.toDatabaseRow(ticket);
+
+    const { data: upsertedData, error: upsertError } = await this.client
+      .from('tickets')
+      .upsert({
+        ...row,
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (upsertError) handleSupabaseError('upsert ticket', upsertError);
+
+    if (!upsertedData) {
+      throw new Error('Upsert operation did not return data');
+    }
+
+    const upsertedTicket = TicketConverter.toDomainEntity(upsertedData as TicketRow);
+
     return {
-      isNew: false,
-      hasChanged: false,
-      ticket: existing,
+      ticket: upsertedTicket,
+      isNew,
+      hasChanged,
+      previousSaleStatus,
     };
   }
 }
