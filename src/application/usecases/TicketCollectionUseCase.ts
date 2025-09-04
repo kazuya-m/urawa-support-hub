@@ -1,19 +1,19 @@
 import { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
-import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
-import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
+import { HealthRepository } from '@/infrastructure/repositories/HealthRepository.ts';
+import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketCollectionResult, TicketUpsertResult } from '@/application/types/UseCaseResults.ts';
 
 export class TicketCollectionUseCase {
   private ticketCollectionService: TicketCollectionService;
-  private healthRepository: HealthRepositoryImpl;
-  private ticketRepository: TicketRepositoryImpl;
+  private healthRepository: HealthRepository;
+  private ticketRepository: TicketRepository;
 
   constructor() {
     this.ticketCollectionService = new TicketCollectionService();
-    this.healthRepository = new HealthRepositoryImpl();
-    this.ticketRepository = new TicketRepositoryImpl();
+    this.healthRepository = new HealthRepository();
+    this.ticketRepository = new TicketRepository();
   }
 
   async execute(): Promise<TicketCollectionResult> {
@@ -110,7 +110,9 @@ export class TicketCollectionUseCase {
   }
 
   private async upsertTicket(ticket: Ticket): Promise<TicketUpsertResult> {
-    const upsertResult = await this.ticketRepository.upsert(ticket);
+    const existingTicket = await this.ticketRepository.findById(ticket.id);
+
+    const upsertResult = await this.ticketRepository.upsert(ticket, existingTicket || undefined);
 
     if (upsertResult.isNew && upsertResult.ticket.requiresNotification()) {
       console.log(

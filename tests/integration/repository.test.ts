@@ -1,13 +1,17 @@
 import { assertEquals, assertNotEquals } from 'jsr:@std/assert';
-import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
-import { NotificationRepositoryImpl } from '@/infrastructure/repositories/NotificationRepositoryImpl.ts';
+import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
 import { NotificationHistory, Ticket } from '@/domain/entities/index.ts';
-import { cleanupTestData, createTestSupabaseClient } from '@/tests/utils/test-supabase.ts';
+import {
+  cleanupTestData,
+  cleanupTestDataById,
+  createTestSupabaseClient,
+} from '@/tests/utils/test-supabase.ts';
 import { createDynamicTestTicket } from '@/tests/utils/test-fixtures.ts';
 
 const supabase = createTestSupabaseClient();
-const ticketRepo = new TicketRepositoryImpl(supabase);
-const notificationRepo = new NotificationRepositoryImpl(supabase);
+const ticketRepo = new TicketRepository(supabase);
+const notificationRepo = new NotificationRepository(supabase);
 
 // 各テストで一意なIDを持つテストチケットを生成する関数
 // test-fixtures.ts の createDynamicTestTicket を使用
@@ -36,7 +40,7 @@ Deno.test('TicketRepository - save and findById', async () => {
   const testTicket = await createTestTicketForIntegration('save-findById');
 
   try {
-    await ticketRepo.save(testTicket);
+    await ticketRepo.upsert(testTicket);
     const result = await ticketRepo.findById(testTicket.id);
 
     assertEquals(result?.id, testTicket.id);
@@ -50,13 +54,13 @@ Deno.test('TicketRepository - update', async () => {
   const testTicket = await createTestTicketForIntegration('update');
 
   try {
-    await ticketRepo.save(testTicket);
+    await ticketRepo.upsert(testTicket);
 
     const updatedTicket = Ticket.fromExisting({
       ...testTicket.toPlainObject(),
       matchName: '更新済み試合名',
     });
-    await ticketRepo.update(updatedTicket);
+    await ticketRepo.upsert(updatedTicket);
 
     const result = await ticketRepo.findById(testTicket.id);
     assertEquals(result?.matchName, '更新済み試合名');
@@ -69,7 +73,7 @@ Deno.test('TicketRepository - findAll', async () => {
   const testTicket = await createTestTicketForIntegration('findAll');
 
   try {
-    await ticketRepo.save(testTicket);
+    await ticketRepo.upsert(testTicket);
 
     const results = await ticketRepo.findAll();
     const found = results.find((t) => t.id === testTicket.id);
@@ -85,7 +89,7 @@ Deno.test('TicketRepository - findByDateRange', async () => {
   const testTicket = await createTestTicketForIntegration('findByDateRange');
 
   try {
-    await ticketRepo.save(testTicket);
+    await ticketRepo.upsert(testTicket);
 
     const currentTime = new Date();
     const results = await ticketRepo.findByDateRange('match_date', currentTime);
@@ -100,8 +104,8 @@ Deno.test('TicketRepository - findByDateRange', async () => {
 Deno.test('TicketRepository - delete', async () => {
   const testTicket = await createTestTicketForIntegration('delete');
 
-  await ticketRepo.save(testTicket);
-  await ticketRepo.delete(testTicket.id);
+  await ticketRepo.upsert(testTicket);
+  await cleanupTestDataById(supabase, 'tickets', testTicket.id);
 
   const result = await ticketRepo.findById(testTicket.id);
   assertEquals(result, null);
@@ -119,7 +123,7 @@ Deno.test('NotificationRepository - save and findById', async () => {
   });
 
   try {
-    await ticketRepo.save(testTicket);
+    await ticketRepo.upsert(testTicket);
     await notificationRepo.save(testNotification);
 
     const result = await notificationRepo.findById(testNotification.id);
@@ -145,7 +149,7 @@ Deno.test('NotificationRepository - findByTicketId', async () => {
   });
 
   try {
-    await ticketRepo.save(testTicket);
+    await ticketRepo.upsert(testTicket);
     await notificationRepo.save(testNotification);
 
     const results = await notificationRepo.findByTicketId(testTicket.id);
@@ -171,7 +175,7 @@ Deno.test('NotificationRepository - findByColumn', async () => {
   });
 
   try {
-    await ticketRepo.save(testTicket);
+    await ticketRepo.upsert(testTicket);
     await notificationRepo.save(testNotification);
 
     const results = await notificationRepo.findByColumn('status', 'pending');
@@ -197,7 +201,7 @@ Deno.test('NotificationRepository - update', async () => {
   });
 
   try {
-    await ticketRepo.save(testTicket);
+    await ticketRepo.upsert(testTicket);
     await notificationRepo.save(testNotification);
 
     const notification = await notificationRepo.findById(testNotification.id);
