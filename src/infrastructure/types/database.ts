@@ -1,19 +1,23 @@
+import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
+
 export interface TicketRow {
   id: string;
   match_name: string;
   match_date: string;
   home_team: string | null;
   away_team: string | null;
-  sale_start_date: string;
+  sale_start_date: string | null;
   sale_start_time: string | null;
-  venue: string;
+  sale_end_date: string | null;
+  venue: string | null;
   ticket_types: string[];
-  ticket_url: string;
+  ticket_url: string | null;
   created_at: string;
   updated_at: string;
+  scraped_at: string;
+  sale_status: 'before_sale' | 'on_sale' | 'ended';
+  notification_scheduled: boolean;
 }
-
-import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
 
 export interface NotificationRow {
   id: string;
@@ -32,11 +36,15 @@ export interface TicketInsert {
   match_date: string;
   home_team?: string | null;
   away_team?: string | null;
-  sale_start_date: string;
+  sale_start_date?: string | null;
   sale_start_time?: string | null;
-  venue: string;
-  ticket_types: string[];
-  ticket_url: string;
+  sale_end_date?: string | null;
+  venue?: string | null;
+  ticket_types?: string[];
+  ticket_url?: string | null;
+  scraped_at: string;
+  sale_status: 'before_sale' | 'on_sale' | 'ended';
+  notification_scheduled?: boolean;
 }
 
 export interface NotificationInsert {
