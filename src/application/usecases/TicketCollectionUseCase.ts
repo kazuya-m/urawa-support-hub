@@ -109,7 +109,7 @@ export class TicketCollectionUseCase {
     return results;
   }
 
-  async upsertTicket(ticket: Ticket): Promise<TicketUpsertResult> {
+  private async upsertTicket(ticket: Ticket): Promise<TicketUpsertResult> {
     const upsertResult = await this.ticketRepository.upsert(ticket);
 
     if (upsertResult.isNew && upsertResult.ticket.requiresNotification()) {
