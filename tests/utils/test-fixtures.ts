@@ -30,6 +30,8 @@ export const TEST_TICKETS = {
     ticketUrl: 'https://example.com/test-upsert',
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date('2025-01-01T00:00:00Z'),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale' as const,
   },
   idempotent001: {
     id: 'test-idempotent-001',
@@ -43,6 +45,8 @@ export const TEST_TICKETS = {
     ticketUrl: 'https://example.com/fc-tokyo',
     createdAt: new Date(),
     updatedAt: new Date(),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale' as const,
   },
   unique001: {
     id: 'unique-test-001',
@@ -56,6 +60,8 @@ export const TEST_TICKETS = {
     ticketUrl: 'https://example.com/cerezo',
     createdAt: new Date(),
     updatedAt: new Date(),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale' as const,
   },
   unique002: {
     id: 'unique-test-002',
@@ -69,6 +75,8 @@ export const TEST_TICKETS = {
     ticketUrl: 'https://example.com/cerezo',
     createdAt: new Date(),
     updatedAt: new Date(),
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale' as const,
   },
 };
 
@@ -124,6 +132,9 @@ export async function createDynamicTestTicket(options: TestTicketOptions = {}): 
     venue: venue ?? '味の素スタジアム',
     ticketTypes: ['ビジター席', '一般販売'],
     ticketUrl: `https://example.com/tickets/test${suffix ? '-' + suffix : ''}`,
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale' as const,
+    notificationScheduled: false,
   });
 }
 

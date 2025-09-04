@@ -22,16 +22,6 @@ class TestTicketCollectionService {
 
     return this.mockTickets;
   }
-
-  async collectFromJLeagueOnly(): Promise<Ticket[]> {
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    if (this.shouldThrow) {
-      throw new Error('Mock J-League scraping error');
-    }
-
-    return this.mockTickets;
-  }
 }
 
 Deno.test('System Health Integration Tests', async (t) => {
