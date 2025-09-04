@@ -20,13 +20,18 @@ export class TicketCollectionService {
       console.error('J-League ticket scraping error:', error);
     }
 
-    const ticketEntities = await ScrapedDataTransformer.convertToTicketEntities(allScrapedTickets);
+    const transformResult = await ScrapedDataTransformer.transform(allScrapedTickets);
 
-    return ticketEntities;
-  }
+    // スキップされたチケットの詳細をログ出力
+    if (transformResult.skippedTickets.length > 0) {
+      console.log(
+        `[INFO] ${transformResult.skippedTickets.length} tickets were skipped during transformation`,
+      );
+      transformResult.skippedTickets.forEach((skipped) => {
+        console.log(`[SKIP] ${skipped.matchName}: ${skipped.reason}`);
+      });
+    }
 
-  async collectFromJLeagueOnly(): Promise<Ticket[]> {
-    const scrapedTickets = await this.jleagueScraper.scrapeTickets();
-    return await ScrapedDataTransformer.convertToTicketEntities(scrapedTickets);
+    return transformResult.tickets;
   }
 }

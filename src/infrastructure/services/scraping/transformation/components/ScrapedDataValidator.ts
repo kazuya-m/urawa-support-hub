@@ -1,35 +1,31 @@
-import { ScrapedTicketData } from '../../types/ScrapedTicketData.ts';
 import { ValidationResult } from '../../types/ValidationResult.ts';
+import type { ParsedDateInfo, ParsedTicketData } from './TicketDataParser.ts';
 
 export class ScrapedDataValidator {
-  static validate(data: ScrapedTicketData): ValidationResult {
-    const errors: Record<string, string> = {};
-
-    if (!data.matchName || data.matchName.trim() === '') {
-      errors.matchName = 'MISSING_OR_EMPTY';
-    }
-    if (!data.matchDate || data.matchDate.trim() === '') {
-      errors.matchDate = 'MISSING_OR_EMPTY';
-    }
-
-    if (!data.saleDate || data.saleDate.trim() === '') {
-      errors.saleDate = 'MISSING_OR_EMPTY';
+  /**
+   * パースされたチケットデータの全検証を一度に実行する統合メソッド
+   */
+  static validate(parsedData: ParsedTicketData): boolean {
+    // 1. 基本フィールドの検証
+    if (!parsedData.matchName || parsedData.matchName.trim() === '') {
+      return false;
     }
 
-    if (!data.venue || data.venue.trim() === '') {
-      errors.venue = 'MISSING_OPTIONAL';
-    }
-    if (!data.ticketUrl || data.ticketUrl.trim() === '') {
-      errors.ticketUrl = 'MISSING_OPTIONAL';
+    // 2. 日付の検証
+    if (!parsedData.matchDate || isNaN(parsedData.matchDate.getTime())) {
+      return false;
     }
 
-    const criticalErrors = Object.entries(errors)
-      .filter(([_, error]) => error === 'MISSING_OR_EMPTY');
+    if (!parsedData.saleStartDate || isNaN(parsedData.saleStartDate.getTime())) {
+      return false;
+    }
 
-    return {
-      isValid: criticalErrors.length === 0,
-      errors,
-    };
+    // 3. パース結果の日付検証
+    if (!this.validateParsedDates(parsedData.parsedDates)) {
+      return false;
+    }
+
+    return true;
   }
 
   static getOptionalErrors(validationResult: ValidationResult): Array<[string, string]> {
@@ -53,5 +49,13 @@ export class ScrapedDataValidator {
       saleStartDate: saleDateValid ? saleStartDate : null,
       isValid: matchDateValid && saleDateValid,
     };
+  }
+
+  /**
+   * パースされた日付情報が有効かどうかを検証する
+   * saleStartDateまたはsaleEndDateのいずれかが存在する必要がある
+   */
+  static validateParsedDates(parsedDates: ParsedDateInfo): boolean {
+    return !!(parsedDates.saleStartDate || parsedDates.saleEndDate);
   }
 }
