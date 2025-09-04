@@ -1,7 +1,7 @@
 import { NotificationHistory } from '@/domain/entities/NotificationHistory.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { NotificationRepositoryImpl } from '@/infrastructure/repositories/NotificationRepositoryImpl.ts';
-import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
+import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
+import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import {
   DISCORD_EMBED_TEMPLATES,
   getNotificationConfig,
@@ -10,12 +10,12 @@ import {
 import type { NotificationExecutionInput } from '@/application/usecases/NotificationUseCase.ts';
 
 export class NotificationService {
-  private notificationRepository: NotificationRepositoryImpl;
-  private ticketRepository: TicketRepositoryImpl;
+  private notificationRepository: NotificationRepository;
+  private ticketRepository: TicketRepository;
 
   constructor() {
-    this.notificationRepository = new NotificationRepositoryImpl();
-    this.ticketRepository = new TicketRepositoryImpl();
+    this.notificationRepository = new NotificationRepository();
+    this.ticketRepository = new TicketRepository();
   }
 
   async processScheduledNotification(input: NotificationExecutionInput): Promise<void> {

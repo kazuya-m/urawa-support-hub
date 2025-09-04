@@ -20,7 +20,7 @@ Deno.test({
 
     assertEquals(repo1, repo2);
     assertEquals(typeof repo1.findAll, 'function');
-    assertEquals(typeof repo1.save, 'function');
+    assertEquals(typeof repo1.upsert, 'function');
     assertEquals(typeof repo1.findById, 'function');
   },
 });
