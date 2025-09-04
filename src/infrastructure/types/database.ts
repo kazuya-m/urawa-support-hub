@@ -10,7 +10,7 @@ export interface TicketRow {
   sale_start_time: string | null;
   sale_end_date: string | null;
   venue: string | null;
-  ticket_types: string[];
+  ticket_types: string[] | null;
   ticket_url: string | null;
   created_at: string;
   updated_at: string;
@@ -40,7 +40,7 @@ export interface TicketInsert {
   sale_start_time?: string | null;
   sale_end_date?: string | null;
   venue?: string | null;
-  ticket_types?: string[];
+  ticket_types?: string[] | null;
   ticket_url?: string | null;
   scraped_at: string;
   sale_status: 'before_sale' | 'on_sale' | 'ended';

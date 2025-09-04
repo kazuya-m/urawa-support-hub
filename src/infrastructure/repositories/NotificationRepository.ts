@@ -4,7 +4,7 @@ import { NotificationConverter } from './converters/NotificationConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
 import { createSupabaseAdminClient } from '../config/supabase.ts';
 
-export class NotificationRepositoryImpl {
+export class NotificationRepository {
   private client: SupabaseClient;
 
   constructor(client?: SupabaseClient) {

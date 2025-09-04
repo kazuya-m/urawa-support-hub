@@ -4,7 +4,7 @@ import { HealthConverter } from './converters/HealthConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
 import { createSupabaseAdminClient } from '../config/supabase.ts';
 
-export class HealthRepositoryImpl {
+export class HealthRepository {
   private client: SupabaseClient;
 
   constructor(client?: SupabaseClient) {

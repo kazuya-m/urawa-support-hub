@@ -1,9 +1,9 @@
 import { assertEquals, assertExists } from 'std/assert/mod.ts';
-import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
+import { HealthRepository } from '@/infrastructure/repositories/HealthRepository.ts';
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { createMockSupabaseClient } from '@/infrastructure/repositories/__tests__/test-utils/SupabaseMock.ts';
 
-Deno.test('HealthRepositoryImpl Tests', async (t) => {
+Deno.test('HealthRepository Tests', async (t) => {
   const mockHealthData = [
     {
       id: '1',
@@ -25,7 +25,7 @@ Deno.test('HealthRepositoryImpl Tests', async (t) => {
 
   await t.step('should record daily execution successfully', async () => {
     const mockClient = createMockSupabaseClient(mockHealthData);
-    const repository = new HealthRepositoryImpl(mockClient);
+    const repository = new HealthRepository(mockClient);
 
     const result: HealthCheckResult = {
       executedAt: new Date('2025-01-01T12:00:00Z'),
@@ -39,7 +39,7 @@ Deno.test('HealthRepositoryImpl Tests', async (t) => {
 
   await t.step('should get latest health record when data exists', async () => {
     const mockClient = createMockSupabaseClient(mockHealthData);
-    const repository = new HealthRepositoryImpl(mockClient);
+    const repository = new HealthRepository(mockClient);
 
     const latestRecord = await repository.getLatestHealthRecord();
 
@@ -54,7 +54,7 @@ Deno.test('HealthRepositoryImpl Tests', async (t) => {
       errorMessage: 'PGRST116',
       errorCode: 'PGRST116',
     });
-    const repository = new HealthRepositoryImpl(mockClient);
+    const repository = new HealthRepository(mockClient);
 
     const latestRecord = await repository.getLatestHealthRecord();
     assertEquals(latestRecord, null);
@@ -62,7 +62,7 @@ Deno.test('HealthRepositoryImpl Tests', async (t) => {
 
   await t.step('should get health history for specified days', async () => {
     const mockClient = createMockSupabaseClient(mockHealthData);
-    const repository = new HealthRepositoryImpl(mockClient);
+    const repository = new HealthRepository(mockClient);
 
     const history = await repository.getHealthHistory(7);
 
@@ -73,7 +73,7 @@ Deno.test('HealthRepositoryImpl Tests', async (t) => {
 
   await t.step('should check system health status', async () => {
     const mockClient = createMockSupabaseClient([{ id: '1' }]);
-    const repository = new HealthRepositoryImpl(mockClient);
+    const repository = new HealthRepository(mockClient);
 
     const isHealthy = await repository.isSystemHealthy();
     assertEquals(isHealthy, true);
@@ -81,7 +81,7 @@ Deno.test('HealthRepositoryImpl Tests', async (t) => {
 
   await t.step('should cleanup old records and return count', async () => {
     const mockClient = createMockSupabaseClient([{ id: 1 }, { id: 2 }]);
-    const repository = new HealthRepositoryImpl(mockClient);
+    const repository = new HealthRepository(mockClient);
 
     const deleteCount = await repository.cleanupOldRecords(30);
     assertEquals(deleteCount, 2);
@@ -89,7 +89,7 @@ Deno.test('HealthRepositoryImpl Tests', async (t) => {
 
   await t.step('should handle error details in health records', async () => {
     const mockClient = createMockSupabaseClient(mockHealthData);
-    const repository = new HealthRepositoryImpl(mockClient);
+    const repository = new HealthRepository(mockClient);
 
     const result: HealthCheckResult = {
       executedAt: new Date('2025-01-01T12:00:00Z'),
@@ -107,7 +107,7 @@ Deno.test('HealthRepositoryImpl Tests', async (t) => {
 
   await t.step('should have correct method signatures and types', () => {
     const mockClient = createMockSupabaseClient([]);
-    const repository = new HealthRepositoryImpl(mockClient);
+    const repository = new HealthRepository(mockClient);
 
     assertEquals(typeof repository.recordDailyExecution, 'function');
     assertEquals(typeof repository.getLatestHealthRecord, 'function');

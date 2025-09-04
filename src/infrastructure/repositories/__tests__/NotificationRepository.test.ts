@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects } from 'jsr:@std/assert';
-import { NotificationRepositoryImpl } from '../NotificationRepositoryImpl.ts';
+import { NotificationRepository } from '../NotificationRepository.ts';
 import { NotificationHistory } from '@/domain/entities/index.ts';
 import { NotificationRow } from '@/infrastructure/types/database.ts';
 import { createMockSupabaseClient } from './test-utils/SupabaseMock.ts';
@@ -18,7 +18,7 @@ Deno.test('SupabaseNotificationRepository - findById with error handling', async
   };
 
   const mockClient = createMockSupabaseClient([mockNotificationRow]);
-  const repository = new NotificationRepositoryImpl(mockClient);
+  const repository = new NotificationRepository(mockClient);
 
   const result = await repository.findById('test-notification-id');
 
@@ -33,7 +33,7 @@ Deno.test('SupabaseNotificationRepository - save error handling', async () => {
     shouldError: true,
     errorMessage: 'Database error',
   });
-  const repository = new NotificationRepositoryImpl(mockClient);
+  const repository = new NotificationRepository(mockClient);
 
   const testNotification = new NotificationHistory({
     id: 'test-id',

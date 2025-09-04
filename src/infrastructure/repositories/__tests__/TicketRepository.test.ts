@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects } from 'jsr:@std/assert';
-import { TicketRepositoryImpl } from '../TicketRepositoryImpl.ts';
+import { TicketRepository } from '../TicketRepository.ts';
 import { Ticket } from '@/domain/entities/index.ts';
 import { TicketRow } from '@/infrastructure/types/database.ts';
 import {
@@ -29,7 +29,7 @@ Deno.test('SupabaseTicketRepository - findById with null handling', async () => 
   };
 
   const mockClient = createMockSupabaseClient([mockTicketRow]);
-  const repository = new TicketRepositoryImpl(mockClient);
+  const repository = new TicketRepository(mockClient);
 
   const result = await repository.findById('test-id');
 
@@ -38,12 +38,12 @@ Deno.test('SupabaseTicketRepository - findById with null handling', async () => 
   assertEquals(result?.saleStartTime, undefined);
 });
 
-Deno.test('SupabaseTicketRepository - save error handling', async () => {
+Deno.test('SupabaseTicketRepository - upsert error handling', async () => {
   const mockClient = createMockSupabaseClient([], {
     shouldError: true,
     errorMessage: 'Database error',
   });
-  const repository = new TicketRepositoryImpl(mockClient);
+  const repository = new TicketRepository(mockClient);
 
   const testTicket = Ticket.fromExisting({
     id: 'test-id',
@@ -62,9 +62,9 @@ Deno.test('SupabaseTicketRepository - save error handling', async () => {
   });
 
   await assertRejects(
-    () => repository.save(testTicket),
+    () => repository.upsert(testTicket),
     RepositoryError,
-    'Failed to save ticket: Database error',
+    'Failed to upsert ticket: Database error',
   );
 });
 
@@ -93,7 +93,7 @@ Deno.test('TicketRepository - upsert creates new ticket', async () => {
     upsertData: mockTicketRow,
   });
 
-  const repository = new TicketRepositoryImpl(mockClient);
+  const repository = new TicketRepository(mockClient);
 
   const testTicket = Ticket.fromExisting({
     id: 'test-id',
@@ -150,7 +150,7 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
     upsertData: updatedTicketRow,
   });
 
-  const repository = new TicketRepositoryImpl(mockClient);
+  const repository = new TicketRepository(mockClient);
 
   const updatedTicket = Ticket.fromExisting({
     id: 'test-id',
@@ -168,7 +168,24 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
     saleStatus: 'before_sale',
   });
 
-  const result = await repository.upsert(updatedTicket);
+  // 既存チケットを作成（変更前の状態）
+  const existingTicket = Ticket.fromExisting({
+    id: 'test-id',
+    matchName: 'ガンバ大阪 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:30:00+09:00'),
+    homeTeam: 'ガンバ大阪',
+    awayTeam: '浦和レッズ',
+    saleStartDate: new Date('2025-03-01T01:00:00.000Z'), // 変更前の時間
+    venue: 'パナソニックスタジアム吹田',
+    ticketTypes: ['ビジター席'],
+    ticketUrl: 'https://example.com/test',
+    createdAt: new Date('2025-01-01T00:00:00Z'),
+    updatedAt: new Date('2025-01-01T00:00:00Z'),
+    scrapedAt: new Date('2025-01-01T00:00:00Z'),
+    saleStatus: 'before_sale',
+  });
+
+  const result = await repository.upsert(updatedTicket, existingTicket);
 
   // upsertはTicketUpsertResultを返す
   assertEquals(result.ticket.id, 'test-id');
@@ -206,7 +223,7 @@ Deno.test('TicketRepository - upsert detects no changes', async () => {
     upsertData: unchangedTicketRow,
   });
 
-  const repository = new TicketRepositoryImpl(mockClient);
+  const repository = new TicketRepository(mockClient);
 
   const sameTicket = Ticket.fromExisting({
     id: 'test-id',
@@ -224,7 +241,24 @@ Deno.test('TicketRepository - upsert detects no changes', async () => {
     saleStatus: 'before_sale',
   });
 
-  const result = await repository.upsert(sameTicket);
+  // 既存チケット（同じデータ）
+  const existingTicket = Ticket.fromExisting({
+    id: 'test-id',
+    matchName: 'ガンバ大阪 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:30:00+09:00'),
+    homeTeam: 'ガンバ大阪',
+    awayTeam: '浦和レッズ',
+    saleStartDate: new Date('2025-03-01T01:00:00.000Z'),
+    venue: 'パナソニックスタジアム吹田',
+    ticketTypes: ['ビジター席'],
+    ticketUrl: 'https://example.com/test',
+    createdAt: new Date('2025-01-01T00:00:00Z'),
+    updatedAt: new Date('2025-01-01T00:00:00Z'),
+    scrapedAt: fixedScrapedAt,
+    saleStatus: 'before_sale',
+  });
+
+  const result = await repository.upsert(sameTicket, existingTicket);
 
   // upsertはTicketUpsertResultを返す
   assertEquals(result.ticket.id, 'test-id');
@@ -238,7 +272,7 @@ Deno.test('TicketRepository - upsert handles database error properly', async () 
     upsertError: { code: '42P01', message: 'table does not exist' },
   });
 
-  const repository = new TicketRepositoryImpl(mockClient);
+  const repository = new TicketRepository(mockClient);
 
   const testTicket = Ticket.fromExisting({
     id: 'test-id',
@@ -268,7 +302,7 @@ Deno.test('TicketRepository - upsert handles upsert error properly', async () =>
     upsertError: { code: '23505', message: 'duplicate key error' },
   });
 
-  const repository = new TicketRepositoryImpl(mockClient);
+  const repository = new TicketRepository(mockClient);
 
   const testTicket = Ticket.fromExisting({
     id: 'test-id',
@@ -324,7 +358,7 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     upsertData: updatedTicketRow,
   });
 
-  const repository = new TicketRepositoryImpl(mockClient);
+  const repository = new TicketRepository(mockClient);
 
   const updatedTicket = Ticket.fromExisting({
     id: 'test-id',
@@ -334,7 +368,7 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     awayTeam: '浦和レッズ',
     saleStartDate: new Date('2025-03-01T01:00:00.000Z'),
     venue: 'パナソニックスタジアム吹田',
-    ticketTypes: ['ホーム席', 'ビジター席'], // 順序が異なるが同じ内容
+    ticketTypes: ['ビジター席', 'ホーム席'], // ホーム席を追加
     ticketUrl: 'https://example.com/test',
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date(),
@@ -342,7 +376,24 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     saleStatus: 'before_sale',
   });
 
-  const result = await repository.upsert(updatedTicket);
+  // 既存チケット（変更前の状態）
+  const existingTicket = Ticket.fromExisting({
+    id: 'test-id',
+    matchName: 'ガンバ大阪 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:30:00+09:00'),
+    homeTeam: 'ガンバ大阪',
+    awayTeam: '浦和レッズ',
+    saleStartDate: new Date('2025-03-01T01:00:00.000Z'),
+    venue: 'パナソニックスタジアム吹田',
+    ticketTypes: ['ビジター席'], // 元はビジター席のみ
+    ticketUrl: 'https://example.com/test',
+    createdAt: new Date('2025-01-01T00:00:00Z'),
+    updatedAt: new Date('2025-01-01T00:00:00Z'),
+    scrapedAt: new Date('2025-01-01T00:00:00Z'),
+    saleStatus: 'before_sale',
+  });
+
+  const result = await repository.upsert(updatedTicket, existingTicket);
 
   // upsertはTicketUpsertResultを返す
   assertEquals(result.ticket.id, 'test-id');

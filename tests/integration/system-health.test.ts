@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from 'std/assert/mod.ts';
 import { cleanupTestTable, createTestSupabaseClient } from '../utils/test-supabase.ts';
-import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
+import { HealthRepository } from '@/infrastructure/repositories/HealthRepository.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 
 // Lightweight mock collection service for testing (avoids Playwright dependency)
@@ -26,7 +26,7 @@ class TestTicketCollectionService {
 
 Deno.test('System Health Integration Tests', async (t) => {
   const supabase = createTestSupabaseClient();
-  const healthRepository = new HealthRepositoryImpl(supabase);
+  const healthRepository = new HealthRepository(supabase);
   const testTableName = 'system_health';
 
   // Clean up before and after tests

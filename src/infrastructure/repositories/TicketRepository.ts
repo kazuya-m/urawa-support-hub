@@ -6,7 +6,7 @@ import { createSupabaseAdminClient } from '../config/supabase.ts';
 import { TicketRow } from '../types/database.ts';
 import { UpsertResult } from './types/UpsertResult.ts';
 
-export class TicketRepositoryImpl {
+export class TicketRepository {
   private client: SupabaseClient;
 
   constructor(client?: SupabaseClient) {
@@ -39,17 +39,6 @@ export class TicketRepositoryImpl {
     return TicketConverter.toDomainEntity(data);
   }
 
-  async findByColumn(column: string, value: unknown): Promise<Ticket[]> {
-    const { data, error } = await this.client
-      .from('tickets')
-      .select('*')
-      .eq(column, value)
-      .order('created_at', { ascending: true });
-
-    if (error) handleSupabaseError(`fetch tickets by ${column}`, error);
-    return data.map(TicketConverter.toDomainEntity);
-  }
-
   async findByDateRange(column: string, startDate?: Date, endDate?: Date): Promise<Ticket[]> {
     let query = this.client
       .from('tickets')
@@ -69,56 +58,7 @@ export class TicketRepositoryImpl {
     return data.map(TicketConverter.toDomainEntity);
   }
 
-  async save(ticket: Ticket): Promise<void> {
-    const { error } = await this.client
-      .from('tickets')
-      .insert(TicketConverter.toDatabaseRow(ticket));
-
-    if (error) handleSupabaseError('save ticket', error);
-  }
-
-  async update(ticket: Ticket): Promise<void> {
-    const { error } = await this.client
-      .from('tickets')
-      .update({
-        ...TicketConverter.toDatabaseRow(ticket),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', ticket.id);
-
-    if (error) handleSupabaseError('update ticket', error);
-  }
-
-  async delete(id: string): Promise<void> {
-    const { error } = await this.client
-      .from('tickets')
-      .delete()
-      .eq('id', id);
-
-    if (error) handleSupabaseError('delete ticket', error);
-  }
-
-  async deleteByDateRange(column: string, beforeDate: Date): Promise<void> {
-    const { error } = await this.client
-      .from('tickets')
-      .delete()
-      .lt(column, beforeDate.toISOString());
-
-    if (error) handleSupabaseError('delete tickets by date', error);
-  }
-
-  async upsert(ticket: Ticket): Promise<UpsertResult> {
-    // Check if ticket already exists
-    const existing = await this.findById(ticket.id);
-    const isNew = !existing;
-    let hasChanged = false;
-    let previousSaleStatus: 'before_sale' | 'on_sale' | 'ended' | undefined;
-
-    if (existing) {
-      hasChanged = ticket.hasDataChanges(existing);
-      previousSaleStatus = existing.saleStatus;
-    }
-
+  async upsert(ticket: Ticket, previousTicket?: Ticket): Promise<UpsertResult> {
     const row = TicketConverter.toDatabaseRow(ticket);
 
     const { data: upsertedData, error: upsertError } = await this.client
@@ -140,9 +80,9 @@ export class TicketRepositoryImpl {
 
     return {
       ticket: upsertedTicket,
-      isNew,
-      hasChanged,
-      previousSaleStatus,
+      isNew: !previousTicket,
+      hasChanged: previousTicket ? ticket.hasDataChanges(previousTicket) : false,
+      previousSaleStatus: previousTicket?.saleStatus,
     };
   }
 }

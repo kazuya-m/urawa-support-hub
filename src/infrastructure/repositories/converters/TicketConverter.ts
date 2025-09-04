@@ -13,7 +13,7 @@ export class TicketConverter {
       saleStartTime: data.sale_start_time ?? undefined,
       saleEndDate: data.sale_end_date ? new Date(data.sale_end_date) : undefined,
       venue: data.venue ?? undefined,
-      ticketTypes: data.ticket_types,
+      ticketTypes: data.ticket_types ?? undefined,
       ticketUrl: data.ticket_url ?? undefined,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),

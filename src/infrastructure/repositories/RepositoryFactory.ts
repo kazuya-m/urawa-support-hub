@@ -1,22 +1,22 @@
-import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
-import { NotificationRepositoryImpl } from '@/infrastructure/repositories/NotificationRepositoryImpl.ts';
-import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
+import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
+import { HealthRepository } from '@/infrastructure/repositories/HealthRepository.ts';
 
 /**
  * リポジトリファクトリー
  * 中央集権化されたSupabaseクライアントを使用してリポジトリインスタンスを作成
  */
 export class RepositoryFactory {
-  private static ticketRepository: TicketRepositoryImpl | null = null;
-  private static notificationRepository: NotificationRepositoryImpl | null = null;
-  private static healthRepository: HealthRepositoryImpl | null = null;
+  private static ticketRepository: TicketRepository | null = null;
+  private static notificationRepository: NotificationRepository | null = null;
+  private static healthRepository: HealthRepository | null = null;
 
   /**
    * TicketRepositoryのインスタンスを取得（シングルトン）
    */
-  static getTicketRepository(): TicketRepositoryImpl {
+  static getTicketRepository(): TicketRepository {
     if (!this.ticketRepository) {
-      this.ticketRepository = new TicketRepositoryImpl();
+      this.ticketRepository = new TicketRepository();
     }
     return this.ticketRepository;
   }
@@ -24,9 +24,9 @@ export class RepositoryFactory {
   /**
    * NotificationRepositoryのインスタンスを取得（シングルトン）
    */
-  static getNotificationRepository(): NotificationRepositoryImpl {
+  static getNotificationRepository(): NotificationRepository {
     if (!this.notificationRepository) {
-      this.notificationRepository = new NotificationRepositoryImpl();
+      this.notificationRepository = new NotificationRepository();
     }
     return this.notificationRepository;
   }
@@ -34,9 +34,9 @@ export class RepositoryFactory {
   /**
    * HealthRepositoryのインスタンスを取得（シングルトン）
    */
-  static getHealthRepository(): HealthRepositoryImpl {
+  static getHealthRepository(): HealthRepository {
     if (!this.healthRepository) {
-      this.healthRepository = new HealthRepositoryImpl();
+      this.healthRepository = new HealthRepository();
     }
     return this.healthRepository;
   }
