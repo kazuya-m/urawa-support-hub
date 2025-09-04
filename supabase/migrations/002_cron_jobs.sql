@@ -49,7 +49,8 @@ BEGIN
   ANALYZE error_logs;
   ANALYZE system_metrics;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = '';
 
 -- 古いデータのクリーンアップ関数
 CREATE OR REPLACE FUNCTION cleanup_old_data()
@@ -67,7 +68,8 @@ BEGIN
   DELETE FROM system_metrics 
   WHERE metric_timestamp < NOW() - INTERVAL '30 days';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = '';
 
 -- 週次データクリーンアップスケジュール
 SELECT cron.schedule(
