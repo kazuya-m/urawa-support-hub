@@ -30,7 +30,7 @@ Deno.test('TicketDataMapper - createTicketEntity: 基本的な変換', async () 
   assertEquals(ticket.homeTeam, '浦和レッズ');
   assertEquals(ticket.awayTeam, 'FC東京');
   assertEquals(ticket.matchDate.getTime(), matchDate.getTime());
-  assertEquals(ticket.saleStartDate.getTime(), saleStartDate.getTime());
+  assertEquals(ticket.saleStartDate?.getTime(), saleStartDate.getTime());
 });
 
 Deno.test('TicketDataMapper - createTicketEntity: デフォルト値の処理', async () => {
@@ -51,8 +51,8 @@ Deno.test('TicketDataMapper - createTicketEntity: デフォルト値の処理', 
   );
 
   assertExists(ticket);
-  assertEquals(ticket.venue, '');
-  assertEquals(ticket.ticketUrl, '');
+  assertEquals(ticket.venue, undefined);
+  assertEquals(ticket.ticketUrl, undefined);
   assertEquals(ticket.ticketTypes.length, 0);
   assertEquals(ticket.homeTeam, undefined);
   assertEquals(ticket.awayTeam, undefined);

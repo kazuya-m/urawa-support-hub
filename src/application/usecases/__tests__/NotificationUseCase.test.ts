@@ -53,15 +53,11 @@ Deno.test('NotificationUseCase should handle NotificationService errors properly
       notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
     };
 
-    let caughtError: Error | null = null;
-    try {
-      await useCase.execute(input);
-    } catch (error) {
-      caughtError = error as Error;
-    }
+    // エラーが発生してもresultを返すことを確認
+    const result = await useCase.execute(input);
 
-    // エラーが適切に再スローされることを確認
-    assertEquals(caughtError?.message.includes('NotificationService failed'), true);
+    assertEquals(result.status, 'error');
+    assertEquals(result.errorMessage?.includes('NotificationService failed'), true);
     assertEquals(mockMethod.calls.length, 1);
   } finally {
     mockMethod.restore();

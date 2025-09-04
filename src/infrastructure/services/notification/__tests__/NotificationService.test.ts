@@ -126,6 +126,8 @@ Deno.test('NotificationService', async (t) => {
       ticketTypes: ['一般'],
       createdAt: new Date(),
       updatedAt: new Date(),
+      scrapedAt: new Date(),
+      saleStatus: 'before_sale',
     });
 
     // DB操作はモックできないが、リトライロジックの動作確認

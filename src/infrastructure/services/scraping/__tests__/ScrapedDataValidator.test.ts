@@ -1,25 +1,27 @@
 import { assertEquals } from 'jsr:@std/assert';
-import { ScrapedDataValidator } from '../transformation/components/ScrapedDataValidator.ts';
+import { TicketDataParser } from '../transformation/components/TicketDataParser.ts';
 import { ScrapedTicketData } from '../types/ScrapedTicketData.ts';
 
-Deno.test('ScrapedDataValidator - 必須データがすべて存在する場合', () => {
+Deno.test('TicketDataParser.parseAndValidate - 必須データがすべて存在する場合', () => {
   const data: ScrapedTicketData = {
     matchName: '浦和レッズ vs FC東京',
-    matchDate: '2024-05-15',
-    saleDate: '2024-05-01',
+    matchDate: '5/15',
+    saleDate: '05/01(水)10:00〜',
     venue: 'さいたまスタジアム',
     ticketUrl: 'https://example.com',
     ticketTypes: ['一般', '指定席'],
     homeTeam: '浦和レッズ',
     awayTeam: 'FC東京',
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
   };
 
-  const result = ScrapedDataValidator.validate(data);
-  assertEquals(result.isValid, true);
-  assertEquals(Object.keys(result.errors).length, 0);
+  const result = TicketDataParser.parseAndValidate(data);
+  assertEquals(result.success, true);
+  assertEquals(result.warnings.length, 0);
 });
 
-Deno.test('ScrapedDataValidator - 必須データが不足している場合', () => {
+Deno.test('TicketDataParser.parseAndValidate - 必須データが不足している場合', () => {
   const data: ScrapedTicketData = {
     matchName: '',
     matchDate: '2024-05-15',
@@ -29,60 +31,49 @@ Deno.test('ScrapedDataValidator - 必須データが不足している場合', (
     ticketTypes: [],
     homeTeam: null,
     awayTeam: null,
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
   };
 
-  const result = ScrapedDataValidator.validate(data);
-  assertEquals(result.isValid, false);
-  assertEquals(result.errors.matchName, 'MISSING_OR_EMPTY');
-  assertEquals(result.errors.saleDate, 'MISSING_OR_EMPTY');
+  const result = TicketDataParser.parseAndValidate(data);
+  assertEquals(result.success, false);
+  assertEquals(result.skipReason, 'Missing matchName');
 });
 
-Deno.test('ScrapedDataValidator - オプショナルデータが不足している場合', () => {
+Deno.test('TicketDataParser.parseAndValidate - saleDateなしでも必須データがあれば成功', () => {
   const data: ScrapedTicketData = {
     matchName: '浦和レッズ vs FC東京',
-    matchDate: '2024-05-15',
-    saleDate: '2024-05-01',
+    matchDate: '5/15',
+    saleDate: '', // 空だが、オプショナルなので問題なし
     venue: '',
     ticketUrl: '',
     ticketTypes: [],
     homeTeam: null,
     awayTeam: null,
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
   };
 
-  const result = ScrapedDataValidator.validate(data);
-  assertEquals(result.isValid, true);
-  assertEquals(result.errors.venue, 'MISSING_OPTIONAL');
-  assertEquals(result.errors.ticketUrl, 'MISSING_OPTIONAL');
+  const result = TicketDataParser.parseAndValidate(data);
+  assertEquals(result.success, true); // saleDateが空でも成功
+  assertEquals(result.warnings.length > 0, true); // 警告はある
 });
 
-Deno.test('ScrapedDataValidator - getOptionalErrors', () => {
-  const validationResult = {
-    isValid: true,
-    errors: {
-      venue: 'MISSING_OPTIONAL',
-      ticketUrl: 'MISSING_OPTIONAL',
-      matchName: 'MISSING_OR_EMPTY',
-    },
+Deno.test('TicketDataParser.parseAndValidate - オプショナルデータが不足している場合', () => {
+  const data: ScrapedTicketData = {
+    matchName: '浦和レッズ vs FC東京',
+    matchDate: '5/15',
+    saleDate: '05/01(水)10:00〜',
+    venue: '',
+    ticketUrl: '',
+    ticketTypes: [],
+    homeTeam: null,
+    awayTeam: null,
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
   };
 
-  const optionalErrors = ScrapedDataValidator.getOptionalErrors(validationResult);
-  assertEquals(optionalErrors.length, 2);
-  assertEquals(optionalErrors[0][0], 'venue');
-  assertEquals(optionalErrors[1][0], 'ticketUrl');
-});
-
-Deno.test('ScrapedDataValidator - validateDateFormats: 正常な日付', () => {
-  const result = ScrapedDataValidator.validateDateFormats('2024-05-15', '2024-05-01');
-
-  assertEquals(result.isValid, true);
-  assertEquals(result.matchDate?.getTime(), new Date('2024-05-15').getTime());
-  assertEquals(result.saleStartDate?.getTime(), new Date('2024-05-01').getTime());
-});
-
-Deno.test('ScrapedDataValidator - validateDateFormats: 不正な日付', () => {
-  const result = ScrapedDataValidator.validateDateFormats('invalid-date', '2024-05-01');
-
-  assertEquals(result.isValid, false);
-  assertEquals(result.matchDate, null);
-  assertEquals(result.saleStartDate?.getTime(), new Date('2024-05-01').getTime());
+  const result = TicketDataParser.parseAndValidate(data);
+  assertEquals(result.success, true);
+  assertEquals(result.warnings.length > 0, true); // venueやticketUrlの警告がある
 });
