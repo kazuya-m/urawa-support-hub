@@ -129,16 +129,16 @@ export class NotificationService {
     const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
       ticket.matchName,
       ticket.matchDate.toLocaleString('ja-JP'),
-      ticket.venue,
-      ticket.saleStartDate.toLocaleString('ja-JP'),
+      ticket.venue || '未定',
+      ticket.saleStartDate?.toLocaleString('ja-JP') || '未定',
       ticket.ticketUrl,
     );
 
     const discordEmbed = DISCORD_EMBED_TEMPLATES.ticketNotification(
       ticket.matchName,
       ticket.matchDate.toLocaleString('ja-JP'),
-      ticket.venue,
-      ticket.saleStartDate.toLocaleString('ja-JP'),
+      ticket.venue || '未定',
+      ticket.saleStartDate?.toLocaleString('ja-JP') || '未定',
       ticket.ticketUrl,
     );
 
