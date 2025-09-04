@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { HealthRepositoryImpl } from '@/infrastructure/repositories/HealthRepositoryImpl.ts';
+import { HealthRepository } from '@/infrastructure/repositories/HealthRepository.ts';
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 
@@ -47,7 +47,7 @@ async function testHealthCheck() {
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
   );
 
-  const healthRepository = new HealthRepositoryImpl(supabase);
+  const healthRepository = new HealthRepository(supabase);
 
   // テスト1: 成功シナリオ
   console.log('✅ テスト1: 正常動作（チケット発見）');

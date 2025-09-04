@@ -1,12 +1,12 @@
 import { assertEquals, assertExists } from 'https://deno.land/std@0.210.0/testing/asserts.ts';
-import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
+import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { cleanupTestData } from '../utils/test-supabase.ts';
 import { createTestSupabaseClient } from '../utils/test-supabase.ts';
 
 Deno.test('Sale Status Management Integration - Complete State Transition Flow', async () => {
   const client = createTestSupabaseClient();
-  const ticketRepository = new TicketRepositoryImpl(client);
+  const ticketRepository = new TicketRepository(client);
   const testId = 'test-sale-status-' + Date.now();
 
   try {
@@ -96,7 +96,7 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
 
 Deno.test('Sale Status Management - Notification Control Logic', async () => {
   const client = createTestSupabaseClient();
-  const ticketRepository = new TicketRepositoryImpl(client);
+  const ticketRepository = new TicketRepository(client);
   const testId = 'test-notification-' + Date.now();
 
   try {
@@ -167,7 +167,7 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
 
 Deno.test('Sale Status Management - ScrapedAt Timestamp Tracking', async () => {
   const client = createTestSupabaseClient();
-  const ticketRepository = new TicketRepositoryImpl(client);
+  const ticketRepository = new TicketRepository(client);
   const testId = 'test-scraped-at-' + Date.now();
 
   try {

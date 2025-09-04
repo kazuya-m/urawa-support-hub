@@ -1,5 +1,5 @@
 import { assertEquals } from 'jsr:@std/assert';
-import { TicketRepositoryImpl } from '@/infrastructure/repositories/TicketRepositoryImpl.ts';
+import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketUpsertResult } from '@/application/types/UseCaseResults.ts';
 import {
@@ -13,7 +13,7 @@ Deno.test(
   'Ticket UPSERT - end to end flow',
   async () => {
     const client = createTestSupabaseClient();
-    const repository = new TicketRepositoryImpl(client);
+    const repository = new TicketRepository(client);
 
     // テスト用チケットデータ
     const baseTicket = {
@@ -89,7 +89,7 @@ Deno.test(
   'Ticket UPSERT - idempotency test',
   async () => {
     const client = createTestSupabaseClient();
-    const repository = new TicketRepositoryImpl(client);
+    const repository = new TicketRepository(client);
 
     // テスト前にクリーンアップ
     await cleanupTestData(client, 'tickets', `id = 'test-idempotent-001'`);
@@ -140,7 +140,7 @@ Deno.test(
 
 Deno.test('Ticket UPSERT - UNIQUE constraint test', {}, async () => {
   const client = createTestSupabaseClient();
-  const repository = new TicketRepositoryImpl(client);
+  const repository = new TicketRepository(client);
 
   // テスト前にクリーンアップ
   await cleanupTestData(client, 'tickets', `match_name = 'セレッソ大阪 vs 浦和レッズ'`);
@@ -174,8 +174,9 @@ Deno.test('Ticket UPSERT - UNIQUE constraint test', {}, async () => {
     assertEquals(result2.isNew, true);
 
     // データベースに2件存在することを確認（IDが異なるため）
-    const allTickets = await repository.findByColumn('match_name', baseData.matchName);
-    assertEquals(allTickets.length, 2);
+    const allTickets = await repository.findAll();
+    const matchingTickets = allTickets.filter((ticket) => ticket.matchName === baseData.matchName);
+    assertEquals(matchingTickets.length, 2);
   } finally {
     await cleanupTestData(client, 'tickets', `match_name = 'セレッソ大阪 vs 浦和レッズ'`);
   }
