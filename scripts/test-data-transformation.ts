@@ -26,11 +26,11 @@ async function testDataTransformation() {
     const duration = Date.now() - startTime;
 
     console.log(`✅ 変換完了 (${duration}ms)`);
-    console.log(`📊 結果: ${allResults.length} 件のTicketエンティティが作成されました`);
+    console.log(`📊 結果: ${allResults.tickets.length} 件のTicketエンティティが作成されました`);
 
-    if (allResults.length > 0) {
+    if (allResults.tickets.length > 0) {
       console.log('\n📝 変換されたチケット一覧:');
-      allResults.forEach((ticket, index) => {
+      allResults.tickets.forEach((ticket, index: number) => {
         console.log(`  ${index + 1}. ${ticket.matchName} (${ticket.venue})`);
       });
 
@@ -38,13 +38,13 @@ async function testDataTransformation() {
       const outputData = {
         timestamp: new Date().toISOString(),
         totalInput: mockScrapedTicketData.length,
-        successfulConversions: allResults.length,
-        tickets: allResults.map((ticket) => ({
+        successfulConversions: allResults.tickets.length,
+        tickets: allResults.tickets.map((ticket) => ({
           id: ticket.id,
           matchName: ticket.matchName,
           matchDate: ticket.matchDate.toISOString(),
           venue: ticket.venue,
-          saleStartDate: ticket.saleStartDate.toISOString(),
+          saleStartDate: ticket.saleStartDate?.toISOString() || null,
           ticketUrl: ticket.ticketUrl,
           homeTeam: ticket.homeTeam,
           awayTeam: ticket.awayTeam,
@@ -65,14 +65,14 @@ async function testDataTransformation() {
     console.log('-'.repeat(40));
 
     const validResults = await ScrapedDataTransformer.transform(validScrapedTicketData);
-    console.log(`✅ 有効データ変換結果: ${validResults.length} 件`);
+    console.log(`✅ 有効データ変換結果: ${validResults.tickets.length} 件`);
 
     // 3. 無効データのみ変換テスト
     console.log(`\n📋 無効データ変換テスト (${invalidScrapedTicketData.length}件)`);
     console.log('-'.repeat(40));
 
     const invalidResults = await ScrapedDataTransformer.transform(invalidScrapedTicketData);
-    console.log(`❌ 無効データ変換結果: ${invalidResults.length} 件 (全て除外されるべき)`);
+    console.log(`❌ 無効データ変換結果: ${invalidResults.tickets.length} 件 (全て除外されるべき)`);
 
     // 4. 結果分析
     console.log('\n' + '='.repeat(60));
@@ -82,17 +82,19 @@ async function testDataTransformation() {
     console.log(`入力データ総数: ${mockScrapedTicketData.length} 件`);
     console.log(`  - 有効データ: ${validScrapedTicketData.length} 件`);
     console.log(`  - 無効データ: ${invalidScrapedTicketData.length} 件`);
-    console.log(`変換成功数: ${allResults.length} 件`);
+    console.log(`変換成功数: ${allResults.tickets.length} 件`);
     console.log(
-      `変換成功率: ${((allResults.length / mockScrapedTicketData.length) * 100).toFixed(1)}%`,
+      `変換成功率: ${
+        ((allResults.tickets.length / mockScrapedTicketData.length) * 100).toFixed(1)
+      }%`,
     );
 
-    if (allResults.length === validScrapedTicketData.length) {
+    if (allResults.tickets.length === validScrapedTicketData.length) {
       console.log('\n✅ 期待通り: 有効データのみが変換されました');
     } else {
       console.log('\n⚠️  注意: 変換結果が期待と異なります');
       console.log(`   期待: ${validScrapedTicketData.length} 件`);
-      console.log(`   実際: ${allResults.length} 件`);
+      console.log(`   実際: ${allResults.tickets.length} 件`);
     }
   } catch (error) {
     console.error('\n❌ テスト実行エラー:');

@@ -54,7 +54,7 @@ async function testScraping() {
       console.log(`  対戦相手: ${ticket.matchName}`);
       console.log(`  試合日時: ${ticket.matchDate.toLocaleDateString('ja-JP')}`);
       console.log(`  会場: ${ticket.venue}`);
-      console.log(`  販売開始: ${ticket.saleStartDate.toLocaleString('ja-JP')}`);
+      console.log(`  販売開始: ${ticket.saleStartDate?.toLocaleString('ja-JP') || '未定'}`);
       console.log(`  購入URL: ${ticket.ticketUrl}`);
     });
 
@@ -66,7 +66,7 @@ async function testScraping() {
         matchName: ticket.matchName,
         matchDate: ticket.matchDate.toISOString(),
         venue: ticket.venue,
-        saleStartDate: ticket.saleStartDate.toISOString(),
+        saleStartDate: ticket.saleStartDate?.toISOString() || null,
         ticketUrl: ticket.ticketUrl,
         homeTeam: ticket.homeTeam,
         awayTeam: ticket.awayTeam,
