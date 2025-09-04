@@ -11,7 +11,6 @@ import {
 // 統合テスト - 実際のSupabaseクライアントを使用してUPSERT機能を検証
 Deno.test(
   'Ticket UPSERT - end to end flow',
-  { permissions: { env: true, net: ['127.0.0.1'] } },
   async () => {
     const client = createTestSupabaseClient();
     const repository = new TicketRepositoryImpl(client);
@@ -88,7 +87,6 @@ Deno.test(
 
 Deno.test(
   'Ticket UPSERT - idempotency test',
-  { permissions: { env: true, net: ['127.0.0.1'] } },
   async () => {
     const client = createTestSupabaseClient();
     const repository = new TicketRepositoryImpl(client);
@@ -140,9 +138,7 @@ Deno.test(
   },
 );
 
-Deno.test('Ticket UPSERT - UNIQUE constraint test', {
-  permissions: { env: true, net: ['127.0.0.1'] },
-}, async () => {
+Deno.test('Ticket UPSERT - UNIQUE constraint test', {}, async () => {
   const client = createTestSupabaseClient();
   const repository = new TicketRepositoryImpl(client);
 
