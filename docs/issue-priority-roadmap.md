@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-03\
+**Updated**: 2025-09-04\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
@@ -77,6 +77,7 @@
 - **#32** - Database migration management ✅
 - **#34** - Security and permission detailed design ✅
 - **#27** - LINE APIエンドポイント設定統一化（2025-08-27品質改善） ✅
+- **#70** - リポジトリレイヤーからビジネスロジックを分離し、Impl命名規則を統一 ✅
 
 ## Development Progress Rules
 
@@ -110,7 +111,7 @@ Each issue is considered complete when:
 
 ## Current Status (2025-08-30) - **UPDATED**
 
-### ✅ Completed Issues: 23/27 (85%)
+### ✅ Completed Issues: 24/28 (86%)
 
 **Foundation & Infrastructure:**
 
@@ -135,6 +136,7 @@ Each issue is considered complete when:
 - #38 - Playwright scraping implementation
 - #13 - Notification management application service implementation
 - #61 - チケット重複処理・UPSERT機能実装
+- #70 - リポジトリレイヤーからビジネスロジックを分離し、Impl命名規則を統一
 
 **Testing & Documentation:**
 
@@ -145,16 +147,15 @@ Each issue is considered complete when:
 - #32 - Database migration management
 - #34 - Security and permission detailed design
 
-### ⏳ In Progress: 3/27 (11%)
+### ⏳ In Progress: 3/28 (11%)
 
 - #30 - Discord error notification implementation
 - #33 - Minimal CI/CD setup
 - #24 - Google Cloud Run scraping service implementation
 
-### ❌ Not Started: 3/27 (11%)
+### ❌ Not Started: 1/28 (4%)
 
-- **#62** - 発売済みチケット状態管理・除外機能実装 (**NEW**)
-- #25 - Google Cloud Tasks notification scheduling (depends on #61, #62)
+- #25 - Google Cloud Tasks notification scheduling
 - #26 - Cloud Scheduler daily execution setup
 - Manual testing
 
