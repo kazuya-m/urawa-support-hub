@@ -1,6 +1,5 @@
 import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
 import { NotificationResult } from '@/application/types/UseCaseResults.ts';
-import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
 
 export interface NotificationExecutionInput {
@@ -37,10 +36,6 @@ export class NotificationUseCase {
         executionTimeMs: executionTime,
         error: error instanceof Error ? error.message : String(error),
       });
-
-      if (error instanceof Error) {
-        handleSupabaseError('execute scheduled notification', error);
-      }
 
       return {
         status: 'error',

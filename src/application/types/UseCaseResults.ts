@@ -4,6 +4,7 @@ export interface TicketUpsertResult {
   isNew: boolean;
   hasChanged: boolean;
   ticket: Ticket;
+  previousTicket?: Ticket;
 }
 
 export interface TicketCollectionResult {
