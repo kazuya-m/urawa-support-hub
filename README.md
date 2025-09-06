@@ -11,7 +11,7 @@ J-League ticket site and sends LINE notifications before sales start.
 
 ### System Features
 
-- **Domain Layer**: Ticket, NotificationHistory entities with business logic
+- **Domain Layer**: Ticket, Notification entities with business logic
 - **Infrastructure Layer**: Repository pattern implementation
 - **Configuration-driven Design**: NOTIFICATION_TIMING_CONFIG for operational changes
 - **Integration Testing**: Comprehensive test coverage for entities, repositories, and integration
@@ -28,7 +28,7 @@ J-League ticket site and sends LINE notifications before sales start.
 ├─────────────────────────────────────┤
 │      Application Services          │  ← ScrapingService, NotificationService  
 ├─────────────────────────────────────┤
-│        Domain Layer                │  ← Entities: Ticket, NotificationHistory
+│        Domain Layer                │  ← Entities: Ticket, Notification
 │                                     │    Interfaces: TicketRepository
 ├─────────────────────────────────────┤
 │     Infrastructure Layer           │  ← RepositoryImpl, Supabase Client
@@ -42,7 +42,7 @@ src/
 ├── domain/                    # Domain layer
 │   ├── entities/             # Business entities (Classes)
 │   │   ├── Ticket.ts         # Ticket entity + business logic
-│   │   ├── NotificationHistory.ts
+│   │   ├── Notification.ts
 │   │   └── __tests__/        # Entity unit tests
 │   └── interfaces/           # Repository interfaces
 ├── infrastructure/           # Infrastructure layer  
@@ -177,7 +177,7 @@ SUPABASE_SERVICE_ROLE_KEY: your-service-role-key
 
 ### Test Structure (45 Cases)
 
-- **Entity tests**: 19 cases (Ticket: 8, NotificationHistory: 11)
+- **Entity tests**: 19 cases (Ticket: 8, Notification: 11)
 - **Repository tests**: 17 cases (TicketRepo: 9, NotificationRepo: 8)
 - **Integration tests**: 9 cases (General repository operations)
 
