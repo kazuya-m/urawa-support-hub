@@ -1,9 +1,9 @@
-import { NotificationHistory } from '@/domain/entities/index.ts';
+import { Notification } from '@/domain/entities/index.ts';
 import { NotificationInsert, NotificationRow } from '@/infrastructure/types/database.ts';
 
 export class NotificationConverter {
-  static toDomainEntity(data: NotificationRow): NotificationHistory {
-    return new NotificationHistory({
+  static toDomainEntity(data: NotificationRow): Notification {
+    return new Notification({
       id: data.id,
       ticketId: data.ticket_id,
       notificationType: data.notification_type,
@@ -15,7 +15,7 @@ export class NotificationConverter {
     });
   }
 
-  static toDatabaseRow(notification: NotificationHistory): NotificationInsert {
+  static toDatabaseRow(notification: Notification): NotificationInsert {
     const plainObject = notification.toPlainObject();
     return {
       id: plainObject.id,
