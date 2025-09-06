@@ -1,10 +1,10 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 
 export interface TicketUpsertResult {
-  isNew: boolean;
-  hasChanged: boolean;
   ticket: Ticket;
-  previousTicket?: Ticket;
+  previousTicket: Ticket | null;
+  hasChanges: boolean;
+  error?: string;
 }
 
 export interface TicketCollectionResult {
@@ -13,6 +13,7 @@ export interface TicketCollectionResult {
   newTickets?: number;
   updatedTickets?: number;
   unchangedTickets?: number;
+  failedTickets?: number;
   executionDurationMs: number;
   errorDetails?: {
     message: string;
