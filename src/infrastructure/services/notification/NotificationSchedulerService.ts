@@ -20,10 +20,6 @@ export class CloudTasksNotificationService {
       throw new Error('CLOUD_RUN_NOTIFICATION_URL environment variable is required');
     }
 
-    console.log(
-      `[NotificationScheduler] Scheduling ${scheduledTimes.length} notifications for ticket ${ticket.id}`,
-    );
-
     const schedulingPromises = scheduledTimes.map(async ({ type, scheduledTime }) => {
       try {
         const enqueueParams: EnqueueTaskParams = {
@@ -49,10 +45,6 @@ export class CloudTasksNotificationService {
         });
         await this.notificationRepository.save(notification);
 
-        console.log(
-          `[NotificationScheduler] Scheduled ${type} notification at ${scheduledTime.toISOString()} (TaskID: ${taskId})`,
-        );
-
         return { type, taskId, success: true };
       } catch (error) {
         console.error(`[NotificationScheduler] Failed to schedule ${type} notification:`, error);
@@ -76,7 +68,6 @@ export class CloudTasksNotificationService {
   async cancelNotification(taskId: string): Promise<void> {
     try {
       await this.cloudTasksClient.dequeueTask(taskId);
-      console.log(`[NotificationScheduler] Dequeued notification task: ${taskId}`);
     } catch (error) {
       console.error(`[NotificationScheduler] Failed to dequeue task ${taskId}:`, error);
       throw error;
