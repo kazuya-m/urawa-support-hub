@@ -154,17 +154,19 @@ Each issue is considered complete when:
 - #33 - Minimal CI/CD setup
 - #24 - Google Cloud Run scraping service implementation
 
-### ❌ Not Started: 1/28 (4%)
+### ❌ Not Started: 2/29 (7%)
 
 - #26 - Cloud Scheduler daily execution setup
+- #75 - **依存性注入（DI）パターン導入による単体テストの改善** (**NEW**)
 - Manual testing
 
 ## Next Steps Priority (**UPDATED**)
 
-1. **#24** - Deploy scraping to Cloud Run (production deployment) - **継続**
-2. **#62** - 発売済み状態管理実装 (**IN PROGRESS**)
-3. **#26** - Cloud Scheduler daily execution setup
-4. **#30** - Discord error notification (Low Priority)
+1. **#75** - **依存性注入（DI）パターン導入** (**NEW - HIGH PRIORITY**) - テスト品質改善
+2. **#24** - Deploy scraping to Cloud Run (production deployment) - **継続**
+3. **#62** - 発売済み状態管理実装 (**IN PROGRESS**)
+4. **#26** - Cloud Scheduler daily execution setup
+5. **#30** - Discord error notification (Low Priority)
 
 ## Progress Tracking
 
