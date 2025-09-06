@@ -4,7 +4,7 @@ import { NotificationTiming } from '@/domain/services/NotificationSchedulingServ
 import { CloudTasksClient, EnqueueTaskParams } from '@/infrastructure/clients/CloudTasksClient.ts';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
 
-export class CloudTasksNotificationService {
+export class NotificationSchedulerService {
   private cloudTasksClient: CloudTasksClient;
   private notificationRepository: NotificationRepository;
 
@@ -94,6 +94,3 @@ export class CloudTasksNotificationService {
     }
   }
 }
-
-// Export alias for backward compatibility
-export { CloudTasksNotificationService as NotificationSchedulerService };

@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from 'https://deno.land/std@0.208.0/assert/mod.ts';
 import { stub } from 'testing/mock.ts';
-import { CloudTasksNotificationService } from '../NotificationSchedulerService.ts';
+import { NotificationSchedulerService } from '../NotificationSchedulerService.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { NOTIFICATION_TYPES } from '@/domain/entities/NotificationTypes.ts';
 import { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
@@ -12,14 +12,14 @@ Deno.env.set('GOOGLE_CLOUD_PROJECT', 'test-project');
 Deno.env.set('SUPABASE_URL', 'http://test.supabase.co');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-key');
 
-Deno.test('CloudTasksNotificationService - Basic functionality test', () => {
-  const service = new CloudTasksNotificationService();
+Deno.test('NotificationSchedulerService - Basic functionality test', () => {
+  const service = new NotificationSchedulerService();
 
   assertExists(service);
 });
 
-Deno.test('CloudTasksNotificationService - scheduleNotifications should call CloudTasksClient and NotificationRepository', async () => {
-  const service = new CloudTasksNotificationService();
+Deno.test('NotificationSchedulerService - scheduleNotifications should call CloudTasksClient and NotificationRepository', async () => {
+  const service = new NotificationSchedulerService();
 
   // Create mock instances
   const mockCloudTasksClient = createMockCloudTasksClient({ taskId: 'test-task-id' });
@@ -82,8 +82,8 @@ Deno.test('CloudTasksNotificationService - scheduleNotifications should call Clo
   }
 });
 
-Deno.test('CloudTasksNotificationService - should handle CloudTasksClient errors', async () => {
-  const service = new CloudTasksNotificationService();
+Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors', async () => {
+  const service = new NotificationSchedulerService();
 
   // Create mock that throws error
   const mockCloudTasksClient = createMockCloudTasksClient({
@@ -148,8 +148,8 @@ Deno.test('CloudTasksNotificationService - should handle CloudTasksClient errors
   }
 });
 
-Deno.test('CloudTasksNotificationService - cancelNotification should call CloudTasksClient.dequeueTask', async () => {
-  const service = new CloudTasksNotificationService();
+Deno.test('NotificationSchedulerService - cancelNotification should call CloudTasksClient.dequeueTask', async () => {
+  const service = new NotificationSchedulerService();
 
   // Create mock instance
   const mockCloudTasksClient = createMockCloudTasksClient();

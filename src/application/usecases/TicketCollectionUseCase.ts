@@ -2,7 +2,7 @@ import { TicketCollectionService } from '@/infrastructure/services/scraping/Tick
 import { HealthRepository } from '@/infrastructure/repositories/HealthRepository.ts';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import { CloudTasksNotificationService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
+import { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
 import { NotificationSchedulingService } from '@/domain/services/NotificationSchedulingService.ts';
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
@@ -15,7 +15,7 @@ export class TicketCollectionUseCase {
   private ticketRepository: TicketRepository;
   private notificationRepository: NotificationRepository;
   private notificationSchedulingService: NotificationSchedulingService;
-  private cloudTasksService: CloudTasksNotificationService;
+  private cloudTasksService: NotificationSchedulerService;
 
   constructor() {
     this.ticketCollectionService = new TicketCollectionService();
@@ -23,7 +23,7 @@ export class TicketCollectionUseCase {
     this.ticketRepository = new TicketRepository();
     this.notificationRepository = new NotificationRepository();
     this.notificationSchedulingService = new NotificationSchedulingService();
-    this.cloudTasksService = new CloudTasksNotificationService();
+    this.cloudTasksService = new NotificationSchedulerService();
   }
 
   async execute(): Promise<TicketCollectionResult> {
