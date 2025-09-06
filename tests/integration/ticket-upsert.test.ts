@@ -40,19 +40,16 @@ Deno.test(
       const newTicket = Ticket.fromExisting(baseTicket);
       const result1 = await repository.upsert(newTicket);
 
-      assertEquals(result1.isNew, true);
-      // 新規作成時はhasChangedは常にfalse（前のデータがないため）
-      assertEquals(result1.hasChanged, false);
-      assertEquals(result1.ticket.matchName, 'ガンバ大阪 vs 浦和レッズ');
+      // result1 is now a Ticket, not TicketUpsertResult
+      assertEquals(result1.matchName, 'ガンバ大阪 vs 浦和レッズ');
 
       // 2. 同じデータで再度UPSERT（変更なし）
-      const existingTicket = await repository.findById(result1.ticket.id);
+      const existingTicket = await repository.findById(result1.id);
       const sameTicket = Ticket.fromExisting(baseTicket);
-      const result2 = await repository.upsert(sameTicket, existingTicket || undefined);
+      const result2 = await repository.upsert(sameTicket);
 
-      assertEquals(result2.isNew, false);
-      assertEquals(result2.hasChanged, false);
-      assertEquals(result2.ticket.id, baseTicket.id);
+      // result2 is now a Ticket, not TicketUpsertResult
+      assertEquals(result2.id, baseTicket.id);
 
       // 3. データを変更してUPSERT（更新）
       const updatedSaleStartDate = new Date('2025-03-01T11:00:00+09:00');
@@ -65,13 +62,12 @@ Deno.test(
 
       const existingTicketForUpdate = await repository.findById(baseTicket.id);
       const updatedTicket = Ticket.fromExisting(updatedTicketData);
-      const result3 = await repository.upsert(updatedTicket, existingTicketForUpdate || undefined);
+      const result3 = await repository.upsert(updatedTicket);
 
-      assertEquals(result3.isNew, false);
-      assertEquals(result3.hasChanged, true);
+      // result3 is now a Ticket, not TicketUpsertResult
       // タイムゾーン環境の差異を回避するため、ISO文字列で比較
-      assertEquals(result3.ticket.saleStartDate?.toISOString(), updatedSaleStartDate.toISOString());
-      assertEquals(result3.ticket.ticketTypes.length, 2);
+      assertEquals(result3.saleStartDate?.toISOString(), updatedSaleStartDate.toISOString());
+      assertEquals(result3.ticketTypes.length, 2);
 
       // 4. データベースから直接取得して確認
       const retrievedTicket = await repository.findById(baseTicket.id);
@@ -119,27 +115,23 @@ Deno.test(
 
       for (let i = 0; i < 3; i++) {
         const ticket = Ticket.fromExisting(ticketData);
-        const result = await repository.upsert(ticket, previousTicket);
-        results.push(result);
+        const result = await repository.upsert(ticket);
+        results.push({ ticket: result, previousTicket: previousTicket || null, hasChanges: false });
 
         // 次回のために既存チケットを取得
         if (i === 0) {
-          previousTicket = await repository.findById(result.ticket.id) || undefined;
+          previousTicket = await repository.findById(result.id) || undefined;
         }
       }
 
       // 1回目は新規作成、2回目以降は変更なし
-      assertEquals(results[0].isNew, true);
-      assertEquals(results[0].hasChanged, false);
-
-      assertEquals(results[1].isNew, false);
-      assertEquals(results[1].hasChanged, false);
-
-      assertEquals(results[2].isNew, false);
-      assertEquals(results[2].hasChanged, false);
+      // Note: upsert now returns Ticket directly, not TicketUpsertResult
+      assertEquals(results[0].hasChanges, false);
+      assertEquals(results[1].hasChanges, false);
+      assertEquals(results[2].hasChanges, false);
 
       // 全て同じチケットIDを返すことを確認
-      const ids = results.map((r) => r.ticket.id);
+      const ids = results.map((result) => result.ticket.id);
       assertEquals(new Set(ids).size, 1); // 重複なし = 1つだけ
     } finally {
       await cleanupTestData(client, 'tickets', `id = 'test-idempotent-001'`);
@@ -176,11 +168,13 @@ Deno.test('Ticket UPSERT - UNIQUE constraint test', {}, async () => {
 
     // 1つ目を作成
     const result1 = await repository.upsert(ticket1);
-    assertEquals(result1.isNew, true);
+    // result1 is now a Ticket, not TicketUpsertResult
+    assertEquals(result1.id, 'unique-test-001');
 
     // 2つ目を作成 - 異なるIDなので新規作成される（UNIQUE制約を削除したため）
     const result2 = await repository.upsert(ticket2);
-    assertEquals(result2.isNew, true);
+    // result2 is now a Ticket, not TicketUpsertResult
+    assertEquals(result2.id, 'unique-test-002');
 
     // データベースに2件存在することを確認（IDが異なるため）
     const allTickets = await repository.findAll();
