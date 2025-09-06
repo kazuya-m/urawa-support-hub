@@ -110,7 +110,7 @@ export class JLeagueDataExtractor {
 
       const scrapedAt = new Date();
       const saleDate = await this.extractSaleDate(page, containerSelector);
-      let saleStatus: 'before_sale' | 'on_sale' | 'ended' = 'before_sale';
+      let saleStatus: 'before_sale' | 'on_sale' | 'ended' | undefined;
       let saleEndDate: string | null = null;
 
       if (saleDate) {
@@ -122,6 +122,7 @@ export class JLeagueDataExtractor {
           }
         } catch (error) {
           console.warn(`Could not parse sale date "${saleDate}":`, error);
+          // saleStatusはundefinedのままにして、パース失敗を明示
         }
       }
 

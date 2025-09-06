@@ -1,4 +1,4 @@
-import { NotificationHistory } from '@/domain/entities/NotificationHistory.ts';
+import { Notification } from '@/domain/entities/Notification.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
@@ -30,10 +30,12 @@ export class NotificationService {
       const existingHistories = await this.notificationRepository
         .findByTicketId(ticketId);
 
-      let history = existingHistories.find((h) => h.notificationType === notificationType);
+      let history = existingHistories.find((history) =>
+        history.notificationType === notificationType
+      );
 
       if (!history) {
-        history = new NotificationHistory({
+        history = new Notification({
           id: crypto.randomUUID(),
           ticketId,
           notificationType,
@@ -87,7 +89,7 @@ export class NotificationService {
     }
   }
 
-  async sendNotification(history: NotificationHistory, ticket: Ticket): Promise<void> {
+  async sendNotification(history: Notification, ticket: Ticket): Promise<void> {
     const maxRetries = 3;
     let retryCount = 0;
     let lastError: Error | null = null;
@@ -197,7 +199,7 @@ export class NotificationService {
     });
   }
 
-  async handleFailedNotification(history: NotificationHistory, error: Error): Promise<void> {
+  async handleFailedNotification(history: Notification, error: Error): Promise<void> {
     const failedHistory = history.markAsFailed(error.message);
     await this.notificationRepository.update(failedHistory);
 
