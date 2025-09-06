@@ -1,5 +1,6 @@
 import { NotificationType, shouldSendNotificationAtTime } from './NotificationTypes.ts';
 import { DataQuality, determineDataQuality } from './DataQuality.ts';
+import fastDeepEqual from 'fast-deep-equal';
 
 interface TicketProps {
   id: string;
@@ -16,7 +17,7 @@ interface TicketProps {
   createdAt: Date;
   updatedAt: Date;
   scrapedAt: Date;
-  saleStatus: 'before_sale' | 'on_sale' | 'ended';
+  saleStatus?: 'before_sale' | 'on_sale' | 'ended';
   notificationScheduled?: boolean;
 }
 
@@ -24,7 +25,6 @@ export class Ticket {
   private readonly props: TicketProps;
 
   private constructor(props: TicketProps) {
-    this.validateTicketData(props);
     this.props = { ...props };
   }
 
@@ -41,9 +41,6 @@ export class Ticket {
   }
 
   static fromExisting(props: TicketProps): Ticket {
-    if (!props.id || props.id.trim() === '') {
-      throw new Error('ID is required for existing ticket');
-    }
     return new Ticket(props);
   }
 
@@ -56,7 +53,7 @@ export class Ticket {
 
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    const hashHex = hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
     return [
       hashHex.substring(0, 8),
@@ -81,75 +78,65 @@ export class Ticket {
   get id(): string {
     return this.props.id;
   }
+
   get matchName(): string {
     return this.props.matchName;
   }
+
   get matchDate(): Date {
     return this.props.matchDate;
   }
+
   get homeTeam(): string | undefined {
     return this.props.homeTeam;
   }
+
   get awayTeam(): string | undefined {
     return this.props.awayTeam;
   }
+
   get saleStartDate(): Date | null {
     return this.props.saleStartDate;
   }
+
   get saleStartTime(): string | undefined {
     return this.props.saleStartTime;
-  }
-  get venue(): string | undefined {
-    return this.props.venue;
-  }
-  get ticketTypes(): string[] {
-    return this.props.ticketTypes ? [...this.props.ticketTypes] : [];
-  }
-  get ticketUrl(): string | undefined {
-    return this.props.ticketUrl;
-  }
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-  get updatedAt(): Date {
-    return this.props.updatedAt;
   }
 
   get saleEndDate(): Date | undefined {
     return this.props.saleEndDate;
   }
 
-  get scrapedAt(): Date {
-    return this.props.scrapedAt;
+  get venue(): string | undefined {
+    return this.props.venue;
+  }
+
+  get ticketTypes(): string[] {
+    return this.props.ticketTypes ? [...this.props.ticketTypes] : [];
+  }
+
+  get ticketUrl(): string | undefined {
+    return this.props.ticketUrl;
   }
 
   get saleStatus(): 'before_sale' | 'on_sale' | 'ended' {
-    return this.props.saleStatus;
+    return this.props.saleStatus ?? 'before_sale';
   }
 
   get notificationScheduled(): boolean {
     return this.props.notificationScheduled ?? false;
   }
 
-  shouldSendNotification(type: NotificationType, currentTime: Date = new Date()): boolean {
-    if (!this.props.saleStartDate) return false;
-    return shouldSendNotificationAtTime(type, this.props.saleStartDate, currentTime);
+  get createdAt(): Date {
+    return this.props.createdAt;
   }
 
-  isOnSale(): boolean {
-    return this.props.saleStatus === 'on_sale';
+  get updatedAt(): Date {
+    return this.props.updatedAt;
   }
 
-  isBeforeSale(): boolean {
-    return this.props.saleStatus === 'before_sale';
-  }
-
-  isSaleEnded(): boolean {
-    return this.props.saleStatus === 'ended';
-  }
-
-  requiresNotification(): boolean {
-    return this.isBeforeSale() && !this.notificationScheduled && this.props.saleStartDate !== null;
+  get scrapedAt(): Date {
+    return this.props.scrapedAt;
   }
 
   isValidForNotification(): boolean {
@@ -157,7 +144,9 @@ export class Ticket {
     if (this.props.matchDate <= now) return false;
     if (!this.props.saleStartDate) return false;
     if (now.getTime() > this.props.saleStartDate.getTime() + 24 * 60 * 60 * 1000) return false;
-    return this.isValidTicket();
+    return !!this.props.matchName &&
+      !!this.props.matchDate &&
+      !!this.props.saleStartDate;
   }
 
   getDataQuality(): DataQuality {
@@ -168,46 +157,57 @@ export class Ticket {
     });
   }
 
-  private isValidTicket(): boolean {
-    return !!this.props.matchName &&
-      !!this.props.matchDate &&
-      !!this.props.saleStartDate;
+  equals(other: Ticket): boolean {
+    return this.id === other.id;
   }
 
-  private validateTicketData(props: TicketProps): void {
-    if (!props.id || props.id.trim() === '') {
-      throw new Error('Ticket ID is required');
-    }
-    if (!props.matchName || props.matchName.trim() === '') {
-      throw new Error('Match name is required');
-    }
-    if (props.homeTeam !== undefined && props.homeTeam.trim() === '') {
-      throw new Error('Home team cannot be empty string');
-    }
-    if (props.awayTeam !== undefined && props.awayTeam.trim() === '') {
-      throw new Error('Away team cannot be empty string');
-    }
-    if (props.venue !== undefined && props.venue.trim() === '') {
-      throw new Error('Venue cannot be empty string');
-    }
-    if (props.saleStartDate && props.matchDate <= props.saleStartDate) {
-      throw new Error('Match date must be after sale start date');
-    }
-    if (props.ticketUrl && props.ticketUrl.trim() !== '' && !this.isValidUrl(props.ticketUrl)) {
-      throw new Error('Invalid ticket URL format');
-    }
+  hasSameBusinessData(other: Ticket | null): boolean {
+    if (!other) return false;
+
+    const {
+      id: _id,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      scrapedAt: _scrapedAt,
+      ...thisBusinessData
+    } = this.props;
+    const {
+      id: _otherId,
+      createdAt: _otherCreatedAt,
+      updatedAt: _otherUpdatedAt,
+      scrapedAt: _otherScrapedAt,
+      ...otherBusinessData
+    } = other.props;
+
+    return fastDeepEqual(thisBusinessData, otherBusinessData);
   }
 
-  private isValidUrl(url: string): boolean {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
+  shouldSendNotification(type: NotificationType, currentTime: Date = new Date()): boolean {
+    if (!this.props.saleStartDate) return false;
+    return shouldSendNotificationAtTime(type, this.props.saleStartDate, currentTime);
   }
 
+  requiresNotification(): boolean {
+    return this.saleStatus === 'before_sale' && !this.notificationScheduled &&
+      this.props.saleStartDate !== null;
+  }
+
+  /**
+   * 通知をスケジューリングすべきかの判定（要件準拠）
+   * 有効期限内で発売前のチケット（データ品質に関係なく通知）
+   */
+  shouldScheduleNotification(): boolean {
+    return this.isValidForNotification() &&
+      this.saleStatus === 'before_sale' &&
+      !this.notificationScheduled;
+  }
+
+  /**
+   * 既存チケットと比較して通知の再スケジュールが必要かを判定
+   * saleStartDateが変更された場合にtrueを返す
+   */
   needsNotificationReschedule(existing: Ticket): boolean {
+    // saleStartDateが変更された場合、通知時刻の再計算が必要
     return (
       this.saleStartDate?.getTime() !== existing.saleStartDate?.getTime() ||
       !this.areTicketTypesEqual(existing.ticketTypes) ||
@@ -215,18 +215,26 @@ export class Ticket {
     );
   }
 
-  hasDataChanges(existing: Ticket): boolean {
-    return (
-      this.needsNotificationReschedule(existing) ||
-      this.saleEndDate?.getTime() !== existing.saleEndDate?.getTime() ||
-      this.saleStatus !== existing.saleStatus ||
-      this.scrapedAt.getTime() !== existing.scrapedAt.getTime() ||
-      this.notificationScheduled !== existing.notificationScheduled
-    );
+  /**
+   * 既存チケットで通知再スケジュールが必要かを判定
+   */
+  shouldRescheduleNotification(previousTicket: Ticket | null): boolean {
+    if (!previousTicket) return false;
+
+    // saleStartDateが変更され、かつ通知対象の場合
+    return this.needsNotificationReschedule(previousTicket) && this.shouldScheduleNotification();
   }
 
-  equals(other: Ticket): boolean {
-    return this.id === other.id;
+  markNotificationScheduled(): Ticket {
+    return Ticket.fromExisting({
+      ...this.props,
+      notificationScheduled: true,
+      updatedAt: new Date(),
+    });
+  }
+
+  toPlainObject(): TicketProps {
+    return { ...this.props };
   }
 
   private areTicketTypesEqual(otherTypes: string[]): boolean {
@@ -236,9 +244,5 @@ export class Ticket {
     const sortedOther = [...otherTypes].sort();
 
     return sortedCurrent.every((type, index) => type === sortedOther[index]);
-  }
-
-  toPlainObject(): TicketProps {
-    return { ...this.props };
   }
 }
