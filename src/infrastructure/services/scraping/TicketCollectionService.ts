@@ -22,7 +22,6 @@ export class TicketCollectionService {
 
     const transformResult = await ScrapedDataTransformer.transform(allScrapedTickets);
 
-    // スキップされたチケットの詳細をログ出力
     if (transformResult.skippedTickets.length > 0) {
       console.log(
         `[INFO] ${transformResult.skippedTickets.length} tickets were skipped during transformation`,

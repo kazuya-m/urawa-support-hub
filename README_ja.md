@@ -10,7 +10,7 @@ Jリーグチケットサイトから浦和レッズアウェイ戦チケット�
 
 ### システム機能
 
-- **Domain Layer**: Ticket, NotificationHistory エンティティ（ビジネスロジック含有）
+- **Domain Layer**: Ticket, Notification エンティティ（ビジネスロジック含有）
 - **Infrastructure Layer**: Repository パターン実装
 - **設定駆動設計**: NOTIFICATION_TIMING_CONFIG による運用時変更対応
 - **統合テスト**: エンティティ、リポジトリ、統合の包括的テストカバレッジ
@@ -27,7 +27,7 @@ Jリーグチケットサイトから浦和レッズアウェイ戦チケット�
 ├─────────────────────────────────────┤
 │      Application Services          │  ← ScrapingService, NotificationService  
 ├─────────────────────────────────────┤
-│        Domain Layer                │  ← Entities: Ticket, NotificationHistory
+│        Domain Layer                │  ← Entities: Ticket, Notification
 │                                     │    Interfaces: TicketRepository
 ├─────────────────────────────────────┤
 │     Infrastructure Layer           │  ← RepositoryImpl, Supabase Client
@@ -41,7 +41,7 @@ src/
 ├── domain/                    # ドメイン層
 │   ├── entities/             # ビジネスエンティティ（Class）
 │   │   ├── Ticket.ts         # チケットエンティティ + ビジネスロジック
-│   │   ├── NotificationHistory.ts
+│   │   ├── Notification.ts
 │   │   └── __tests__/        # エンティティ単体テスト
 │   └── interfaces/           # リポジトリインターフェース
 ├── infrastructure/           # インフラ層  
@@ -158,7 +158,7 @@ SUPABASE_SERVICE_ROLE_KEY: your-service-role-key
 
 ### テスト構成（45ケース）
 
-- **エンティティテスト**: 19ケース（Ticket: 8, NotificationHistory: 11）
+- **エンティティテスト**: 19ケース（Ticket: 8, Notification: 11）
 - **リポジトリテスト**: 17ケース（TicketRepo: 9, NotificationRepo: 8）
 - **統合テスト**: 9ケース（Repository操作全般）
 

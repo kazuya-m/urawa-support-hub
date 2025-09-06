@@ -26,12 +26,10 @@ export class ScrapedDataTransformer {
 
       if (parseResult.success) {
         try {
-          // マッパー呼び出し（構造化データ → エンティティ）
           const ticket = await TicketDataMapper.toEntity(parseResult.data!);
           tickets.push(ticket);
           totalWarnings += parseResult.warnings.length;
 
-          // 警告がある場合はログ出力
           if (parseResult.warnings.length > 0) {
             console.log(
               `[WARNINGS] Ticket processed with ${parseResult.warnings.length} warnings:`,
@@ -39,7 +37,6 @@ export class ScrapedDataTransformer {
             );
           }
         } catch (error) {
-          // マッピングエラーもスキップ対象として処理
           const errorMessage = error instanceof Error ? error.message : String(error);
           skippedTickets.push({
             rawData: rawTicket,
@@ -58,7 +55,6 @@ export class ScrapedDataTransformer {
       }
     }
 
-    // 集計ログ
     console.log(
       `[SUMMARY] Processed ${tickets.length} tickets, ` +
         `skipped ${skippedTickets.length}, ` +

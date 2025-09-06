@@ -113,10 +113,8 @@ Deno.test('TicketRepository - upsert creates new ticket', async () => {
 
   const result = await repository.upsert(testTicket);
 
-  assertEquals(result.ticket.id, 'test-id');
-  assertEquals(result.ticket.matchName, 'ガンバ大阪 vs 浦和レッズ');
-  assertEquals(result.isNew, true);
-  assertEquals(result.hasChanged, false);
+  assertEquals(result.id, 'test-id');
+  assertEquals(result.matchName, 'ガンバ大阪 vs 浦和レッズ');
 });
 
 Deno.test('TicketRepository - upsert updates existing ticket', async () => {
@@ -168,33 +166,14 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
     saleStatus: 'before_sale',
   });
 
-  // 既存チケットを作成（変更前の状態）
-  const existingTicket = Ticket.fromExisting({
-    id: 'test-id',
-    matchName: 'ガンバ大阪 vs 浦和レッズ',
-    matchDate: new Date('2025-03-15T19:30:00+09:00'),
-    homeTeam: 'ガンバ大阪',
-    awayTeam: '浦和レッズ',
-    saleStartDate: new Date('2025-03-01T01:00:00.000Z'), // 変更前の時間
-    venue: 'パナソニックスタジアム吹田',
-    ticketTypes: ['ビジター席'],
-    ticketUrl: 'https://example.com/test',
-    createdAt: new Date('2025-01-01T00:00:00Z'),
-    updatedAt: new Date('2025-01-01T00:00:00Z'),
-    scrapedAt: new Date('2025-01-01T00:00:00Z'),
-    saleStatus: 'before_sale',
-  });
+  const result = await repository.upsert(updatedTicket);
 
-  const result = await repository.upsert(updatedTicket, existingTicket);
-
-  // upsertはTicketUpsertResultを返す
-  assertEquals(result.ticket.id, 'test-id');
+  // upsertはTicketを直接返す
+  assertEquals(result.id, 'test-id');
   assertEquals(
-    result.ticket.saleStartDate?.getTime(),
+    result.saleStartDate?.getTime(),
     new Date('2025-03-01T02:00:00.000Z').getTime(),
   );
-  assertEquals(result.isNew, false);
-  assertEquals(result.hasChanged, true);
 });
 
 Deno.test('TicketRepository - upsert detects no changes', async () => {
@@ -241,30 +220,11 @@ Deno.test('TicketRepository - upsert detects no changes', async () => {
     saleStatus: 'before_sale',
   });
 
-  // 既存チケット（同じデータ）
-  const existingTicket = Ticket.fromExisting({
-    id: 'test-id',
-    matchName: 'ガンバ大阪 vs 浦和レッズ',
-    matchDate: new Date('2025-03-15T19:30:00+09:00'),
-    homeTeam: 'ガンバ大阪',
-    awayTeam: '浦和レッズ',
-    saleStartDate: new Date('2025-03-01T01:00:00.000Z'),
-    venue: 'パナソニックスタジアム吹田',
-    ticketTypes: ['ビジター席'],
-    ticketUrl: 'https://example.com/test',
-    createdAt: new Date('2025-01-01T00:00:00Z'),
-    updatedAt: new Date('2025-01-01T00:00:00Z'),
-    scrapedAt: fixedScrapedAt,
-    saleStatus: 'before_sale',
-  });
+  const result = await repository.upsert(sameTicket);
 
-  const result = await repository.upsert(sameTicket, existingTicket);
-
-  // upsertはTicketUpsertResultを返す
-  assertEquals(result.ticket.id, 'test-id');
-  assertEquals(result.ticket.matchName, 'ガンバ大阪 vs 浦和レッズ');
-  assertEquals(result.isNew, false);
-  assertEquals(result.hasChanged, false);
+  // upsertはTicketを直接返す
+  assertEquals(result.id, 'test-id');
+  assertEquals(result.matchName, 'ガンバ大阪 vs 浦和レッズ');
 });
 
 Deno.test('TicketRepository - upsert handles database error properly', async () => {
@@ -376,30 +336,11 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     saleStatus: 'before_sale',
   });
 
-  // 既存チケット（変更前の状態）
-  const existingTicket = Ticket.fromExisting({
-    id: 'test-id',
-    matchName: 'ガンバ大阪 vs 浦和レッズ',
-    matchDate: new Date('2025-03-15T19:30:00+09:00'),
-    homeTeam: 'ガンバ大阪',
-    awayTeam: '浦和レッズ',
-    saleStartDate: new Date('2025-03-01T01:00:00.000Z'),
-    venue: 'パナソニックスタジアム吹田',
-    ticketTypes: ['ビジター席'], // 元はビジター席のみ
-    ticketUrl: 'https://example.com/test',
-    createdAt: new Date('2025-01-01T00:00:00Z'),
-    updatedAt: new Date('2025-01-01T00:00:00Z'),
-    scrapedAt: new Date('2025-01-01T00:00:00Z'),
-    saleStatus: 'before_sale',
-  });
+  const result = await repository.upsert(updatedTicket);
 
-  const result = await repository.upsert(updatedTicket, existingTicket);
-
-  // upsertはTicketUpsertResultを返す
-  assertEquals(result.ticket.id, 'test-id');
-  assertEquals(result.ticket.ticketTypes.includes('ビジター席'), true);
-  assertEquals(result.ticket.ticketTypes.includes('ホーム席'), true);
-  assertEquals(result.ticket.ticketTypes.length, 2);
-  assertEquals(result.isNew, false);
-  assertEquals(result.hasChanged, true);
+  // upsertはTicketを直接返す
+  assertEquals(result.id, 'test-id');
+  assertEquals(result.ticketTypes.includes('ビジター席'), true);
+  assertEquals(result.ticketTypes.includes('ホーム席'), true);
+  assertEquals(result.ticketTypes.length, 2);
 });

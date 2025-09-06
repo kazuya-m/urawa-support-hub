@@ -61,9 +61,6 @@ export class BrowserManager {
     }
   }
 
-  /**
-   * ブラウザが起動しているかチェック
-   */
   isRunning(): boolean {
     return this.browser !== null;
   }

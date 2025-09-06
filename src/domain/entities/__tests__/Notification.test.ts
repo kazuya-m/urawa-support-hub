@@ -1,11 +1,11 @@
 import { assertEquals, assertThrows } from 'jsr:@std/assert';
-import { NotificationHistory } from '../NotificationHistory.ts';
+import { Notification } from '../Notification.ts';
 
-Deno.test('NotificationHistory - 正常な通知履歴作成', () => {
+Deno.test('Notification - 正常な通知履歴作成', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
 
-  const notification = new NotificationHistory({
+  const notification = new Notification({
     id: 'test-id',
     ticketId: 'ticket-123',
     notificationType: 'day_before',
@@ -20,13 +20,13 @@ Deno.test('NotificationHistory - 正常な通知履歴作成', () => {
   assertEquals(notification.status, 'pending');
 });
 
-Deno.test('NotificationHistory - バリデーション: 空のID', () => {
+Deno.test('Notification - バリデーション: 空のID', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
 
   assertThrows(
     () =>
-      new NotificationHistory({
+      new Notification({
         id: '',
         ticketId: 'ticket-123',
         notificationType: 'day_before',
@@ -39,13 +39,13 @@ Deno.test('NotificationHistory - バリデーション: 空のID', () => {
   );
 });
 
-Deno.test('NotificationHistory - バリデーション: 不正な通知タイプ', () => {
+Deno.test('Notification - バリデーション: 不正な通知タイプ', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
 
   assertThrows(
     () =>
-      new NotificationHistory({
+      new Notification({
         id: 'test-id',
         ticketId: 'ticket-123',
         notificationType: 'invalid_type' as 'day_before',
@@ -58,13 +58,13 @@ Deno.test('NotificationHistory - バリデーション: 不正な通知タイプ
   );
 });
 
-Deno.test('NotificationHistory - バリデーション: sent状態でsentAtなし', () => {
+Deno.test('Notification - バリデーション: sent状態でsentAtなし', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
 
   assertThrows(
     () =>
-      new NotificationHistory({
+      new Notification({
         id: 'test-id',
         ticketId: 'ticket-123',
         notificationType: 'day_before',
@@ -77,13 +77,13 @@ Deno.test('NotificationHistory - バリデーション: sent状態でsentAtな�
   );
 });
 
-Deno.test('NotificationHistory - バリデーション: failed状態でエラーメッセージなし', () => {
+Deno.test('Notification - バリデーション: failed状態でエラーメッセージなし', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
 
   assertThrows(
     () =>
-      new NotificationHistory({
+      new Notification({
         id: 'test-id',
         ticketId: 'ticket-123',
         notificationType: 'day_before',
@@ -97,11 +97,11 @@ Deno.test('NotificationHistory - バリデーション: failed状態でエラー
   );
 });
 
-Deno.test('NotificationHistory - 送信可能性判定', () => {
+Deno.test('Notification - 送信可能性判定', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() + 3 * 60 * 1000);
 
-  const notification = new NotificationHistory({
+  const notification = new Notification({
     id: 'test-id',
     ticketId: 'ticket-123',
     notificationType: 'day_before',
@@ -119,11 +119,11 @@ Deno.test('NotificationHistory - 送信可能性判定', () => {
   assertEquals(notification.canBeSent(tooEarly), false);
 });
 
-Deno.test('NotificationHistory - 期限切れ判定', () => {
+Deno.test('Notification - 期限切れ判定', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() - 2 * 60 * 60 * 1000);
 
-  const notification = new NotificationHistory({
+  const notification = new Notification({
     id: 'test-id',
     ticketId: 'ticket-123',
     notificationType: 'day_before',
@@ -134,7 +134,7 @@ Deno.test('NotificationHistory - 期限切れ判定', () => {
 
   assertEquals(notification.isExpired(now), true);
 
-  const sentNotification = new NotificationHistory({
+  const sentNotification = new Notification({
     id: 'test-id',
     ticketId: 'ticket-123',
     notificationType: 'day_before',
@@ -147,11 +147,11 @@ Deno.test('NotificationHistory - 期限切れ判定', () => {
   assertEquals(sentNotification.isExpired(now), false);
 });
 
-Deno.test('NotificationHistory - リトライ可能性判定', () => {
+Deno.test('Notification - リトライ可能性判定', () => {
   const now = new Date();
   const failedTime = new Date(now.getTime() - 10 * 60 * 1000); // 10分前
 
-  const failedNotification = new NotificationHistory({
+  const failedNotification = new Notification({
     id: 'test-id',
     ticketId: 'ticket-123',
     notificationType: 'day_before',
@@ -166,7 +166,7 @@ Deno.test('NotificationHistory - リトライ可能性判定', () => {
   assertEquals(failedNotification.canRetry(now), true);
 
   // 失敗から3分しか経過していない場合
-  const recentFailed = new NotificationHistory({
+  const recentFailed = new Notification({
     id: 'test-id',
     ticketId: 'ticket-123',
     notificationType: 'day_before',
@@ -180,11 +180,11 @@ Deno.test('NotificationHistory - リトライ可能性判定', () => {
   assertEquals(recentFailed.canRetry(now), false);
 });
 
-Deno.test('NotificationHistory - 送信完了マーク', () => {
+Deno.test('Notification - 送信完了マーク', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
 
-  const notification = new NotificationHistory({
+  const notification = new Notification({
     id: 'test-id',
     ticketId: 'ticket-123',
     notificationType: 'day_before',
@@ -201,11 +201,11 @@ Deno.test('NotificationHistory - 送信完了マーク', () => {
   assertEquals(sentNotification.errorMessage, undefined);
 });
 
-Deno.test('NotificationHistory - 送信失敗マーク', () => {
+Deno.test('Notification - 送信失敗マーク', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
 
-  const notification = new NotificationHistory({
+  const notification = new Notification({
     id: 'test-id',
     ticketId: 'ticket-123',
     notificationType: 'day_before',
@@ -223,11 +223,11 @@ Deno.test('NotificationHistory - 送信失敗マーク', () => {
   assertEquals(failedNotification.errorMessage, errorMessage);
 });
 
-Deno.test('NotificationHistory - 通知タイプ表示名', () => {
+Deno.test('Notification - 通知タイプ表示名', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
 
-  const dayBeforeNotification = new NotificationHistory({
+  const dayBeforeNotification = new Notification({
     id: 'test-id',
     ticketId: 'ticket-123',
     notificationType: 'day_before',
@@ -238,7 +238,7 @@ Deno.test('NotificationHistory - 通知タイプ表示名', () => {
 
   assertEquals(dayBeforeNotification.getNotificationTypeDisplayName(), '販売開始前日');
 
-  const hourBeforeNotification = new NotificationHistory({
+  const hourBeforeNotification = new Notification({
     id: 'test-id',
     ticketId: 'ticket-123',
     notificationType: 'hour_before',

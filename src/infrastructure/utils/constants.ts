@@ -3,7 +3,7 @@
  */
 export const TABLE_NAMES = {
   TICKETS: 'tickets',
-  NOTIFICATION_HISTORY: 'notification_history',
+  NOTIFICATIONS: 'notifications',
 } as const;
 
 /**

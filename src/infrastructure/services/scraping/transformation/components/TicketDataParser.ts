@@ -152,7 +152,7 @@ export class TicketDataParser {
     try {
       // 既存のparseDatesロジックを流用
       const currentYear = new Date().getFullYear();
-      const [month, day] = dateStr.split('/').map((n) => parseInt(n));
+      const [month, day] = dateStr.split('/').map((num) => parseInt(num));
       if (isNaN(month) || isNaN(day)) {
         throw new Error(`Invalid date format: ${dateStr}`);
       }

@@ -132,12 +132,23 @@ export class Ticket {
     }));
   }
 
-  hasDataChanges(other: Ticket): boolean {
-    return this.matchName !== other.matchName ||
-      this.venue !== other.venue ||
-      this.saleStartDate?.getTime() !== other.saleStartDate?.getTime() ||
-      this.saleStatus !== other.saleStatus ||
-      JSON.stringify(this.seatCategories) !== JSON.stringify(other.seatCategories);
+  hasSameBusinessData(other: Ticket | null): boolean {
+    if (!other) return false;
+
+    return this.shallowEqual(
+      this.getBusinessDataSnapshot(),
+      other.getBusinessDataSnapshot(),
+    );
+  }
+
+  private getBusinessDataSnapshot() {
+    const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...businessData } = this.props;
+    return businessData;
+  }
+
+  private shallowEqual(obj1: Record<string, unknown>, obj2: Record<string, unknown>): boolean {
+    // React風のShallow Comparison実装
+    // Date型、配列、null/undefinedの適切な処理を含む
   }
 }
 ```
@@ -293,7 +304,7 @@ export class TicketRepositoryImpl {
     let previousSaleStatus: 'before_sale' | 'on_sale' | 'ended' | undefined;
 
     if (existing) {
-      hasChanged = ticket.hasDataChanges(existing);
+      hasChanged = !ticket.hasSameBusinessData(existing);
       previousSaleStatus = existing.saleStatus;
     }
 

@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { NotificationHistory } from '@/domain/entities/NotificationHistory.ts';
+import { Notification } from '@/domain/entities/Notification.ts';
 import { NotificationConverter } from './converters/NotificationConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
 import { createSupabaseAdminClient } from '../config/supabase.ts';
@@ -11,9 +11,9 @@ export class NotificationRepository {
     this.client = client || createSupabaseAdminClient();
   }
 
-  async findAll(): Promise<NotificationHistory[]> {
+  async findAll(): Promise<Notification[]> {
     const { data, error } = await this.client
-      .from('notification_history')
+      .from('notifications')
       .select('*')
       .order('scheduled_at', { ascending: true });
 
@@ -21,9 +21,9 @@ export class NotificationRepository {
     return data.map(NotificationConverter.toDomainEntity);
   }
 
-  async findById(id: string): Promise<NotificationHistory | null> {
+  async findById(id: string): Promise<Notification | null> {
     const { data, error } = await this.client
-      .from('notification_history')
+      .from('notifications')
       .select('*')
       .eq('id', id)
       .single();
@@ -35,9 +35,9 @@ export class NotificationRepository {
     return NotificationConverter.toDomainEntity(data);
   }
 
-  async findByTicketId(ticketId: string): Promise<NotificationHistory[]> {
+  async findByTicketId(ticketId: string): Promise<Notification[]> {
     const { data, error } = await this.client
-      .from('notification_history')
+      .from('notifications')
       .select('*')
       .eq('ticket_id', ticketId)
       .order('scheduled_at', { ascending: true });
@@ -46,9 +46,9 @@ export class NotificationRepository {
     return data.map(NotificationConverter.toDomainEntity);
   }
 
-  async findByColumn(column: string, value: unknown): Promise<NotificationHistory[]> {
+  async findByColumn(column: string, value: unknown): Promise<Notification[]> {
     const { data, error } = await this.client
-      .from('notification_history')
+      .from('notifications')
       .select('*')
       .eq(column, value)
       .order('created_at', { ascending: true });
@@ -61,9 +61,9 @@ export class NotificationRepository {
     column: string,
     startDate?: Date,
     endDate?: Date,
-  ): Promise<NotificationHistory[]> {
+  ): Promise<Notification[]> {
     let query = this.client
-      .from('notification_history')
+      .from('notifications')
       .select('*');
 
     if (startDate) {
@@ -80,17 +80,17 @@ export class NotificationRepository {
     return data.map(NotificationConverter.toDomainEntity);
   }
 
-  async save(notification: NotificationHistory): Promise<void> {
+  async save(notification: Notification): Promise<void> {
     const { error } = await this.client
-      .from('notification_history')
+      .from('notifications')
       .insert(NotificationConverter.toDatabaseRow(notification));
 
     if (error) handleSupabaseError('save notification', error);
   }
 
-  async update(notification: NotificationHistory): Promise<void> {
+  async update(notification: Notification): Promise<void> {
     const { error } = await this.client
-      .from('notification_history')
+      .from('notifications')
       .update(NotificationConverter.toDatabaseRow(notification))
       .eq('id', notification.id);
 
@@ -99,7 +99,7 @@ export class NotificationRepository {
 
   async delete(id: string): Promise<void> {
     const { error } = await this.client
-      .from('notification_history')
+      .from('notifications')
       .delete()
       .eq('id', id);
 

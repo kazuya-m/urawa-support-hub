@@ -5,7 +5,18 @@
     "noImplicitAny": true,
     "noImplicitReturns": true
   },
-  "importMap": "./import_map.json",
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "playwright": "https://deno.land/x/playwright@0.4.0/mod.ts",
+    "std/": "https://deno.land/std@0.208.0/",
+    "@/": "./src/",
+    "@/tests/": "./tests/",
+    "date-fns": "https://esm.sh/date-fns@2.30.0",
+    "testing/": "https://deno.land/std@0.208.0/testing/",
+    "fast-deep-equal": "npm:fast-deep-equal@3.1.3",
+    "@google-cloud/tasks": "npm:@google-cloud/tasks@6.2.0",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.0"
+  },
   "tasks": {
     "start": "supabase start",
     "dev": "supabase functions serve --debug",

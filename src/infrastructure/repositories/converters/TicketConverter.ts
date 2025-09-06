@@ -38,7 +38,7 @@ export class TicketConverter {
       ticket_types: plainObject.ticketTypes ?? [],
       ticket_url: plainObject.ticketUrl ?? null,
       scraped_at: plainObject.scrapedAt.toISOString(),
-      sale_status: plainObject.saleStatus,
+      sale_status: plainObject.saleStatus ?? 'before_sale',
       notification_scheduled: plainObject.notificationScheduled ?? false,
     };
   }

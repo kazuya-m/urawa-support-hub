@@ -187,8 +187,8 @@ Deno.test('Notification Services Integration Tests', async (t) => {
 
     // リクエストが正しく送信されたことを確認
     const requests = mockServer.getRequests();
-    const lineRequest = requests.find((r) =>
-      r.url.includes('api.line.me/v2/bot/message/broadcast')
+    const lineRequest = requests.find((request) =>
+      request.url.includes('api.line.me/v2/bot/message/broadcast')
     );
 
     assertExists(lineRequest);
@@ -223,7 +223,7 @@ Deno.test('Notification Services Integration Tests', async (t) => {
 
     // リクエストが正しく送信されたことを確認
     const requests = mockServer.getRequests();
-    const discordRequest = requests.find((r) => r.url.includes('discord.com'));
+    const discordRequest = requests.find((request) => request.url.includes('discord.com'));
 
     assertExists(discordRequest);
     assertEquals(discordRequest.method, 'POST');
@@ -250,7 +250,7 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     assertEquals(response.status, 200);
 
     const requests = mockServer.getRequests();
-    const lineRequest = requests.find((r) => r.url.includes('api.line.me'));
+    const lineRequest = requests.find((request) => request.url.includes('api.line.me'));
 
     assertExists(lineRequest);
     if (!lineRequest.body) {
@@ -275,7 +275,7 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     assertEquals(response.status, 204);
 
     const requests = mockServer.getRequests();
-    const discordRequest = requests.find((r) => r.url.includes('discord.com'));
+    const discordRequest = requests.find((request) => request.url.includes('discord.com'));
 
     assertExists(discordRequest);
     if (!discordRequest.body) {
@@ -301,7 +301,7 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     assertEquals(response.status, 204);
 
     const requests = mockServer.getRequests();
-    const discordRequest = requests.find((r) => r.url.includes('discord.com'));
+    const discordRequest = requests.find((request) => request.url.includes('discord.com'));
 
     assertExists(discordRequest);
     if (!discordRequest.body) {
@@ -376,8 +376,8 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     assertEquals(requests.length, 2);
 
     // LINE APIとDiscord Webhookへのリクエストがそれぞれ1つずつあることを確認
-    const lineRequests = requests.filter((r) => r.url.includes('api.line.me'));
-    const discordRequests = requests.filter((r) => r.url.includes('discord.com'));
+    const lineRequests = requests.filter((request) => request.url.includes('api.line.me'));
+    const discordRequests = requests.filter((request) => request.url.includes('discord.com'));
 
     assertEquals(lineRequests.length, 1);
     assertEquals(discordRequests.length, 1);
@@ -391,7 +391,7 @@ Deno.test('Notification Services Integration Tests', async (t) => {
 
     assertEquals(lineBody.messages[0].altText, '【チケット通知】浦和レッズ vs ガンバ大阪');
     const matchField = discordBody.embeds[0].fields.find(
-      (f: { name: string; value: string }) => f.name === '⚽ 試合',
+      (field: { name: string; value: string }) => field.name === '⚽ 試合',
     );
     assertEquals(matchField?.value, '浦和レッズ vs ガンバ大阪');
   });

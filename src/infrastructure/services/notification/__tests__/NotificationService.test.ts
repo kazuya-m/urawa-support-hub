@@ -1,6 +1,6 @@
 import { assertEquals } from 'std/assert/mod.ts';
 import { NotificationService } from '../NotificationService.ts';
-import { NotificationHistory } from '@/domain/entities/NotificationHistory.ts';
+import { Notification } from '@/domain/entities/Notification.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { NOTIFICATION_TYPES } from '@/domain/entities/NotificationTypes.ts';
 import type { NotificationExecutionInput } from '@/application/usecases/NotificationUseCase.ts';
@@ -105,7 +105,7 @@ Deno.test('NotificationService', async (t) => {
     const createdAt = new Date();
     const scheduledAt = new Date(createdAt.getTime() + 60 * 60 * 1000); // 1時間後
 
-    const history = new NotificationHistory({
+    const history = new Notification({
       id: 'test-history-123',
       ticketId: 'test-ticket-123',
       notificationType: NOTIFICATION_TYPES.DAY_BEFORE,

@@ -13,5 +13,5 @@ export interface ScrapedTicketData {
   homeTeam: string | null; // ホームチーム（取得できない場合はnull）
   awayTeam: string | null; // アウェイチーム（取得できない場合はnull）
   scrapedAt: Date; // スクレイピング実行時刻
-  saleStatus: 'before_sale' | 'on_sale' | 'ended'; // 販売状態
+  saleStatus?: 'before_sale' | 'on_sale' | 'ended'; // 販売状態（スクレイピング失敗時はundefined）
 }

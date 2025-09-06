@@ -4,7 +4,6 @@ import { TicketConverter } from './converters/TicketConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
 import { createSupabaseAdminClient } from '../config/supabase.ts';
 import { TicketRow } from '../types/database.ts';
-import { UpsertResult } from './types/UpsertResult.ts';
 
 export class TicketRepository {
   private client: SupabaseClient;
@@ -58,7 +57,7 @@ export class TicketRepository {
     return data.map(TicketConverter.toDomainEntity);
   }
 
-  async upsert(ticket: Ticket, previousTicket?: Ticket): Promise<UpsertResult> {
+  async upsert(ticket: Ticket): Promise<Ticket> {
     const row = TicketConverter.toDatabaseRow(ticket);
 
     const { data: upsertedData, error: upsertError } = await this.client
@@ -76,13 +75,6 @@ export class TicketRepository {
       throw new Error('Upsert operation did not return data');
     }
 
-    const upsertedTicket = TicketConverter.toDomainEntity(upsertedData as TicketRow);
-
-    return {
-      ticket: upsertedTicket,
-      isNew: !previousTicket,
-      hasChanged: previousTicket ? ticket.hasDataChanges(previousTicket) : false,
-      previousSaleStatus: previousTicket?.saleStatus,
-    };
+    return TicketConverter.toDomainEntity(upsertedData as TicketRow);
   }
 }

@@ -2,16 +2,16 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-04\
+**Updated**: 2025-09-06\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
 
 - **Completed**: Foundation setup, external services, domain models, database schema, notification
-  services, application layer
+  services, application layer, Cloud Tasks notification scheduling (#25)
 - **In Progress**: Cloud Run deployment (#24), Discord notifications (#30), Sale Status Management
   (#62)
-- **Not Started**: Google Cloud services integration, final deployment
+- **Not Started**: Cloud Scheduler daily execution, final deployment
 
 ## Implementation Phases Overview
 
@@ -40,7 +40,7 @@
 | #24   | Google Cloud Run scraping service implementation          | 🔴 Critical | ⏳ **IN PROGRESS** | Container deployment              |
 | #61   | **チケット重複処理・UPSERT機能実装** (**NEW**)            | 🔴 Critical | ✅ **COMPLETED**   | **#25の前提条件・重複防止**       |
 | #62   | **発売済みチケット状態管理・除外機能実装** (**NEW**)      | 🔴 Critical | 🔄 **IN PROGRESS** | **#25の前提条件・無駄処理防止**   |
-| #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ❌ Not Started     | Notification timing control       |
+| #25   | Google Cloud Tasks notification scheduling implementation | 🔴 Critical | ✅ **COMPLETED**   | Notification timing control       |
 | #26   | Cloud Scheduler daily execution setup implementation      | 🔴 Critical | ❌ Not Started     | Automation requirements           |
 
 ### Phase 3: Notification Services (2 days)
@@ -107,11 +107,11 @@ Each issue is considered complete when:
 
 - **Target**: Complete Google Cloud integration and production deployment
 - **Success Criteria**: Automated daily ticket monitoring with LINE/Discord notifications
-- **Remaining**: 5 issues (18% of total scope) - **UPDATED**
+- **Remaining**: 4 issues (14% of total scope) - **UPDATED**
 
 ## Current Status (2025-08-30) - **UPDATED**
 
-### ✅ Completed Issues: 24/28 (86%)
+### ✅ Completed Issues: 25/28 (89%)
 
 **Foundation & Infrastructure:**
 
@@ -137,6 +137,7 @@ Each issue is considered complete when:
 - #13 - Notification management application service implementation
 - #61 - チケット重複処理・UPSERT機能実装
 - #70 - リポジトリレイヤーからビジネスロジックを分離し、Impl命名規則を統一
+- #25 - Google Cloud Tasks notification scheduling implementation
 
 **Testing & Documentation:**
 
@@ -153,18 +154,19 @@ Each issue is considered complete when:
 - #33 - Minimal CI/CD setup
 - #24 - Google Cloud Run scraping service implementation
 
-### ❌ Not Started: 1/28 (4%)
+### ❌ Not Started: 2/29 (7%)
 
-- #25 - Google Cloud Tasks notification scheduling
 - #26 - Cloud Scheduler daily execution setup
+- #75 - **依存性注入（DI）パターン導入による単体テストの改善** (**NEW**)
 - Manual testing
 
 ## Next Steps Priority (**UPDATED**)
 
-1. **#24** - Deploy scraping to Cloud Run (production deployment) - **継続**
-2. **#62** - 発売済み状態管理実装 (**IN PROGRESS** - #25の前提条件)
-3. **#25** - Cloud Tasks notification scheduling (depends on #62完了後)
+1. **#75** - **依存性注入（DI）パターン導入** (**NEW - HIGH PRIORITY**) - テスト品質改善
+2. **#24** - Deploy scraping to Cloud Run (production deployment) - **継続**
+3. **#62** - 発売済み状態管理実装 (**IN PROGRESS**)
 4. **#26** - Cloud Scheduler daily execution setup
+5. **#30** - Discord error notification (Low Priority)
 
 ## Progress Tracking
 

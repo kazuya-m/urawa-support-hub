@@ -1,7 +1,7 @@
 import { assertEquals, assertNotEquals } from 'jsr:@std/assert';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import { NotificationHistory, Ticket } from '@/domain/entities/index.ts';
+import { Notification, Ticket } from '@/domain/entities/index.ts';
 import {
   cleanupTestData,
   cleanupTestDataById,
@@ -76,7 +76,7 @@ Deno.test('TicketRepository - findAll', async () => {
     await ticketRepo.upsert(testTicket);
 
     const results = await ticketRepo.findAll();
-    const found = results.find((t) => t.id === testTicket.id);
+    const found = results.find((ticket) => ticket.id === testTicket.id);
 
     assertNotEquals(found, undefined);
     assertEquals(found?.matchName, testTicket.matchName);
@@ -93,7 +93,7 @@ Deno.test('TicketRepository - findByDateRange', async () => {
 
     const currentTime = new Date();
     const results = await ticketRepo.findByDateRange('match_date', currentTime);
-    const found = results.find((t) => t.id === testTicket.id);
+    const found = results.find((ticket) => ticket.id === testTicket.id);
 
     assertNotEquals(found, undefined);
   } finally {
@@ -113,7 +113,7 @@ Deno.test('TicketRepository - delete', async () => {
 
 Deno.test('NotificationRepository - save and findById', async () => {
   const testTicket = await createTestTicketForIntegration('notification-save');
-  const testNotification = new NotificationHistory({
+  const testNotification = new Notification({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
@@ -139,7 +139,7 @@ Deno.test('NotificationRepository - save and findById', async () => {
 
 Deno.test('NotificationRepository - findByTicketId', async () => {
   const testTicket = await createTestTicketForIntegration('notification-findByTicket');
-  const testNotification = new NotificationHistory({
+  const testNotification = new Notification({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
@@ -153,7 +153,7 @@ Deno.test('NotificationRepository - findByTicketId', async () => {
     await notificationRepo.save(testNotification);
 
     const results = await notificationRepo.findByTicketId(testTicket.id);
-    const found = results.find((n) => n.id === testNotification.id);
+    const found = results.find((notification) => notification.id === testNotification.id);
 
     assertNotEquals(found, undefined);
     assertEquals(found?.ticketId, testTicket.id);
@@ -165,7 +165,7 @@ Deno.test('NotificationRepository - findByTicketId', async () => {
 
 Deno.test('NotificationRepository - findByColumn', async () => {
   const testTicket = await createTestTicketForIntegration('notification-findByColumn');
-  const testNotification = new NotificationHistory({
+  const testNotification = new Notification({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
@@ -179,7 +179,7 @@ Deno.test('NotificationRepository - findByColumn', async () => {
     await notificationRepo.save(testNotification);
 
     const results = await notificationRepo.findByColumn('status', 'pending');
-    const found = results.find((n) => n.id === testNotification.id);
+    const found = results.find((notification) => notification.id === testNotification.id);
 
     assertNotEquals(found, undefined);
     assertEquals(found?.status, 'pending');
@@ -191,7 +191,7 @@ Deno.test('NotificationRepository - findByColumn', async () => {
 
 Deno.test('NotificationRepository - update', async () => {
   const testTicket = await createTestTicketForIntegration('notification-update');
-  const testNotification = new NotificationHistory({
+  const testNotification = new Notification({
     id: crypto.randomUUID(),
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,

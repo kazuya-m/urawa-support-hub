@@ -25,15 +25,15 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
 
     // データベースに保存
     const saveResult1 = await ticketRepository.upsert(beforeSaleTicket);
-    assertEquals(saveResult1.isNew, true, 'First save should be new');
+    // saveResult1 is now a Ticket, not TicketUpsertResult
     assertEquals(
-      saveResult1.ticket?.requiresNotification(),
+      saveResult1.requiresNotification(),
       true,
       'Should require notification when before sale',
     );
 
     // 2. 販売中状態への遷移（同じIDで更新）
-    const existingTicket = await ticketRepository.findById(saveResult1.ticket.id);
+    const existingTicket = await ticketRepository.findById(saveResult1.id);
     const onSaleTicket = Ticket.fromExisting({
       id: existingTicket!.id,
       matchName: existingTicket!.matchName,
@@ -53,18 +53,17 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
       notificationScheduled: existingTicket!.notificationScheduled,
     });
 
-    const saveResult2 = await ticketRepository.upsert(onSaleTicket, existingTicket || undefined);
-    assertEquals(saveResult2.isNew, false, 'Second save should be update');
-    assertEquals(saveResult2.hasChanged, true, 'Status change should be detected');
-    assertEquals(saveResult2.ticket?.saleStatus, 'on_sale', 'Status should be on_sale');
+    const saveResult2 = await ticketRepository.upsert(onSaleTicket);
+    // saveResult2 is now a Ticket, not TicketUpsertResult
+    assertEquals(saveResult2.saleStatus, 'on_sale', 'Status should be on_sale');
     assertEquals(
-      saveResult2.ticket?.requiresNotification(),
+      saveResult2.requiresNotification(),
       false,
       'Should not require notification when on sale',
     );
 
     // 3. 販売終了状態への遷移（同じIDで更新）
-    const existingTicket2 = await ticketRepository.findById(saveResult1.ticket.id);
+    const existingTicket2 = await ticketRepository.findById(saveResult1.id);
     const endedTicket = Ticket.fromExisting({
       id: existingTicket2!.id,
       matchName: existingTicket2!.matchName,
@@ -84,12 +83,11 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
       notificationScheduled: existingTicket2!.notificationScheduled,
     });
 
-    const saveResult3 = await ticketRepository.upsert(endedTicket, existingTicket2 || undefined);
-    assertEquals(saveResult3.isNew, false, 'Third save should be update');
-    assertEquals(saveResult3.hasChanged, true, 'Status change should be detected');
-    assertEquals(saveResult3.ticket?.saleStatus, 'ended', 'Status should be ended');
+    const saveResult3 = await ticketRepository.upsert(endedTicket);
+    // saveResult3 is now a Ticket, not TicketUpsertResult
+    assertEquals(saveResult3.saleStatus, 'ended', 'Status should be ended');
     assertEquals(
-      saveResult3.ticket?.requiresNotification(),
+      saveResult3.requiresNotification(),
       false,
       'Should not require notification when ended',
     );
@@ -128,14 +126,15 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
     });
 
     const result1 = await ticketRepository.upsert(beforeSaleTicket);
+    // result1 is now a Ticket, not TicketUpsertResult
     assertEquals(
-      result1.ticket?.requiresNotification(),
+      result1.requiresNotification(),
       true,
       'New before_sale ticket should require notification',
     );
 
     // 通知スケジュール済みに更新（同じIDで更新）
-    const existingForSchedule = await ticketRepository.findById(result1.ticket.id);
+    const existingForSchedule = await ticketRepository.findById(result1.id);
     const scheduledTicket = Ticket.fromExisting({
       id: existingForSchedule!.id,
       matchName: existingForSchedule!.matchName,
@@ -155,18 +154,16 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
       notificationScheduled: true,
     });
 
-    const result2 = await ticketRepository.upsert(
-      scheduledTicket,
-      existingForSchedule || undefined,
-    );
+    const result2 = await ticketRepository.upsert(scheduledTicket);
+    // result2 is now a Ticket, not TicketUpsertResult
     assertEquals(
-      result2.ticket?.requiresNotification(),
+      result2.requiresNotification(),
       false,
       'Scheduled ticket should not require notification',
     );
 
     // 販売中に変更 - 通知不要（同じIDで更新）
-    const existingForOnSale = await ticketRepository.findById(result1.ticket.id);
+    const existingForOnSale = await ticketRepository.findById(result1.id);
     const onSaleTicket = Ticket.fromExisting({
       id: existingForOnSale!.id,
       matchName: existingForOnSale!.matchName,
@@ -186,9 +183,10 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
       notificationScheduled: true,
     });
 
-    const result3 = await ticketRepository.upsert(onSaleTicket, existingForOnSale || undefined);
+    const result3 = await ticketRepository.upsert(onSaleTicket);
+    // result3 is now a Ticket, not TicketUpsertResult
     assertEquals(
-      result3.ticket?.requiresNotification(),
+      result3.requiresNotification(),
       false,
       'On-sale ticket should not require notification',
     );
@@ -222,7 +220,7 @@ Deno.test('Sale Status Management - ScrapedAt Timestamp Tracking', async () => {
     const firstResult = await ticketRepository.upsert(ticket1);
 
     // 2回目スクレイピング（状態変化なし）
-    const existingForScrapedAt = await ticketRepository.findById(firstResult.ticket.id);
+    const existingForScrapedAt = await ticketRepository.findById(firstResult.id);
     const ticket2 = Ticket.fromExisting({
       id: existingForScrapedAt!.id,
       matchName: existingForScrapedAt!.matchName,
@@ -242,11 +240,12 @@ Deno.test('Sale Status Management - ScrapedAt Timestamp Tracking', async () => {
       notificationScheduled: existingForScrapedAt!.notificationScheduled,
     });
 
-    const result = await ticketRepository.upsert(ticket2, existingForScrapedAt || undefined);
+    const result = await ticketRepository.upsert(ticket2);
 
     // スクレイピング時刻は更新されるべき
+    // result is now a Ticket, not TicketUpsertResult
     assertEquals(
-      result.ticket?.scrapedAt.toISOString(),
+      result.scrapedAt.toISOString(),
       secondScrapedAt.toISOString(),
       'ScrapedAt should be updated',
     );

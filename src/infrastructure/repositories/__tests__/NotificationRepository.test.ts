@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from 'jsr:@std/assert';
 import { NotificationRepository } from '../NotificationRepository.ts';
-import { NotificationHistory } from '@/domain/entities/index.ts';
+import { Notification } from '@/domain/entities/index.ts';
 import { NotificationRow } from '@/infrastructure/types/database.ts';
 import { createMockSupabaseClient } from './test-utils/SupabaseMock.ts';
 import { RepositoryError } from '../../utils/error-handler.ts';
@@ -14,6 +14,7 @@ Deno.test('SupabaseNotificationRepository - findById with error handling', async
     sent_at: null,
     status: 'pending',
     error_message: null,
+    cloud_task_id: null,
     created_at: '2025-01-01T00:00:00Z',
   };
 
@@ -35,7 +36,7 @@ Deno.test('SupabaseNotificationRepository - save error handling', async () => {
   });
   const repository = new NotificationRepository(mockClient);
 
-  const testNotification = new NotificationHistory({
+  const testNotification = new Notification({
     id: 'test-id',
     ticketId: 'test-ticket-id',
     notificationType: 'day_before',
