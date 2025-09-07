@@ -1,23 +1,25 @@
-import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
-import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
-import { NotificationBatchController } from '@/adapters/controllers/NotificationBatchController.ts';
+import {
+  createNotificationBatchController,
+  createNotificationController,
+  createTicketCollectionController,
+} from '@/config/di.ts';
 import { handleHealthCheck } from '@/middleware/health.ts';
 
 async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
   if (url.pathname === '/api/collect-tickets' && req.method === 'POST') {
-    const ticketController = new TicketCollectionController();
+    const ticketController = createTicketCollectionController();
     return await ticketController.handleCollectTickets(req);
   }
 
   if (url.pathname === '/api/send-notification' && req.method === 'POST') {
-    const notificationController = new NotificationController();
+    const notificationController = createNotificationController();
     return await notificationController.handleSendNotification(req);
   }
 
   if (url.pathname === '/api/process-pending-notifications' && req.method === 'POST') {
-    const notificationBatchController = new NotificationBatchController();
+    const notificationBatchController = createNotificationBatchController();
     return await notificationBatchController.handleProcessPendingNotifications(req);
   }
 

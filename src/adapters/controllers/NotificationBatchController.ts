@@ -1,16 +1,14 @@
 import {
   BatchExecutionInput,
-  NotificationBatchUseCase,
-} from '@/application/usecases/NotificationBatchUseCase.ts';
+  INotificationBatchUseCase,
+} from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
 import { NotificationBatchPresenter } from '@/adapters/presenters/NotificationBatchPresenter.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
 export class NotificationBatchController {
-  private notificationBatchUseCase: NotificationBatchUseCase;
-
-  constructor() {
-    this.notificationBatchUseCase = new NotificationBatchUseCase();
-  }
+  constructor(
+    private readonly notificationBatchUseCase: INotificationBatchUseCase,
+  ) {}
 
   async handleProcessPendingNotifications(req: Request): Promise<Response> {
     try {
@@ -61,7 +59,6 @@ export class NotificationBatchController {
   private validateCloudSchedulerRequest(req: Request): boolean {
     const authHeader = req.headers.get('Authorization');
 
-    // 開発環境では認証をスキップ
     if (Deno.env.get('NODE_ENV') !== 'production') {
       return true;
     }

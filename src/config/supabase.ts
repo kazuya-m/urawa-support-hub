@@ -13,7 +13,6 @@ export function createSupabaseClient(): SupabaseClient {
     );
   }
 
-  // 本番環境では自動リフレッシュを有効にする
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 

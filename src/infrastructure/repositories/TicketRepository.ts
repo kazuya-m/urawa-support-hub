@@ -2,15 +2,13 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketConverter } from './converters/TicketConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
-import { createSupabaseAdminClient } from '../config/supabase.ts';
 import { TicketRow } from '../types/database.ts';
+import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
 
-export class TicketRepository {
-  private client: SupabaseClient;
-
-  constructor(client?: SupabaseClient) {
-    this.client = client || createSupabaseAdminClient();
-  }
+export class TicketRepository implements ITicketRepository {
+  constructor(
+    private readonly client: SupabaseClient,
+  ) {}
 
   async findAll(): Promise<Ticket[]> {
     const { data, error } = await this.client

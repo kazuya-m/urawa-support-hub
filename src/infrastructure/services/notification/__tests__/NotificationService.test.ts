@@ -3,7 +3,9 @@ import { NotificationService } from '../NotificationService.ts';
 import { Notification } from '@/domain/entities/Notification.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { NOTIFICATION_TYPES } from '@/domain/entities/NotificationTypes.ts';
-import type { NotificationExecutionInput } from '@/application/usecases/NotificationUseCase.ts';
+import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
+import { MockNotificationRepository } from '@/shared/testing/mocks/MockNotificationRepository.ts';
+import { MockTicketRepository } from '@/shared/testing/mocks/MockTicketRepository.ts';
 
 // モック用のfetch関数
 let mockFetchResponse: Response;
@@ -66,7 +68,12 @@ Deno.test('NotificationService', async (t) => {
     mockFetchResponse = new Response('{"ok": true}', { status: 200 });
     fetchCallHistory = [];
 
-    const service = new NotificationService();
+    const mockNotificationRepo = new MockNotificationRepository();
+    const mockTicketRepo = new MockTicketRepository();
+    const service = new NotificationService(
+      mockNotificationRepo,
+      mockTicketRepo,
+    );
 
     // モックデータは実際の処理をスキップするためのものなので、
     // ここではservice層の単体テストに留める
@@ -100,7 +107,12 @@ Deno.test('NotificationService', async (t) => {
       return Promise.resolve(new Response('{"ok": true}', { status: 200 }));
     };
 
-    const service = new NotificationService();
+    const mockNotificationRepo = new MockNotificationRepository();
+    const mockTicketRepo = new MockTicketRepository();
+    const service = new NotificationService(
+      mockNotificationRepo,
+      mockTicketRepo,
+    );
 
     const createdAt = new Date();
     const scheduledAt = new Date(createdAt.getTime() + 60 * 60 * 1000); // 1時間後
@@ -145,7 +157,12 @@ Deno.test('NotificationService', async (t) => {
   });
 
   await t.step('should validate input format', () => {
-    const _service = new NotificationService();
+    const mockNotificationRepo = new MockNotificationRepository();
+    const mockTicketRepo = new MockTicketRepository();
+    const _service = new NotificationService(
+      mockNotificationRepo,
+      mockTicketRepo,
+    );
 
     // Serviceの入力検証は実行時に行われるため、
     // ここでは型安全性が保たれていることを確認

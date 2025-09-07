@@ -1,16 +1,14 @@
-import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
+import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
 import { BatchProcessingResult } from '@/application/types/UseCaseResults.ts';
+import {
+  BatchExecutionInput,
+  INotificationBatchUseCase,
+} from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
 
-export interface BatchExecutionInput {
-  operation: 'process_pending' | 'cleanup_expired';
-}
-
-export class NotificationBatchUseCase {
-  private notificationService: NotificationService;
-
-  constructor() {
-    this.notificationService = new NotificationService();
-  }
+export class NotificationBatchUseCase implements INotificationBatchUseCase {
+  constructor(
+    private readonly notificationService: INotificationService,
+  ) {}
 
   async execute(input: BatchExecutionInput): Promise<BatchProcessingResult> {
     const startTime = Date.now();

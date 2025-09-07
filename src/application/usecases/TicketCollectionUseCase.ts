@@ -1,30 +1,24 @@
-import { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
-import { HealthRepository } from '@/infrastructure/repositories/HealthRepository.ts';
-import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
-import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
-import { NotificationSchedulingService } from '@/domain/services/NotificationSchedulingService.ts';
+import { ITicketCollectionService } from '@/application/interfaces/services/ITicketCollectionService.ts';
+import { IHealthRepository } from '@/application/interfaces/repositories/IHealthRepository.ts';
+import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
+import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
+import { INotificationSchedulerService } from '@/application/interfaces/services/INotificationSchedulerService.ts';
+import { INotificationSchedulingService } from '@/domain/interfaces/services/INotificationSchedulingService.ts';
 import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketCollectionResult, TicketUpsertResult } from '@/application/types/UseCaseResults.ts';
 import { CancellationReason } from '@/domain/entities/Notification.ts';
+import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 
-export class TicketCollectionUseCase {
-  private ticketCollectionService: TicketCollectionService;
-  private healthRepository: HealthRepository;
-  private ticketRepository: TicketRepository;
-  private notificationRepository: NotificationRepository;
-  private notificationSchedulingService: NotificationSchedulingService;
-  private cloudTasksService: NotificationSchedulerService;
-
-  constructor() {
-    this.ticketCollectionService = new TicketCollectionService();
-    this.healthRepository = new HealthRepository();
-    this.ticketRepository = new TicketRepository();
-    this.notificationRepository = new NotificationRepository();
-    this.notificationSchedulingService = new NotificationSchedulingService();
-    this.cloudTasksService = new NotificationSchedulerService();
-  }
+export class TicketCollectionUseCase implements ITicketCollectionUseCase {
+  constructor(
+    private readonly ticketCollectionService: ITicketCollectionService,
+    private readonly healthRepository: IHealthRepository,
+    private readonly ticketRepository: ITicketRepository,
+    private readonly notificationRepository: INotificationRepository,
+    private readonly notificationSchedulingService: INotificationSchedulingService,
+    private readonly notificationSchedulerService: INotificationSchedulerService,
+  ) {}
 
   async execute(): Promise<TicketCollectionResult> {
     const startTime = Date.now();
@@ -73,18 +67,22 @@ export class TicketCollectionUseCase {
         },
       };
 
-      console.error(
-        'Daily execution failed:',
-        error instanceof Error ? error.message : String(error),
-      );
+      if (Deno.env.get('DENO_ENV') !== 'production') {
+        console.error(
+          'Daily execution failed:',
+          error instanceof Error ? error.message : String(error),
+        );
+      }
 
       try {
         await this.healthRepository.recordDailyExecution(executionResult);
       } catch (healthError) {
-        console.error(
-          'CRITICAL: Failed to record health check - Supabase may auto-pause:',
-          healthError,
-        );
+        if (Deno.env.get('DENO_ENV') !== 'production') {
+          console.error(
+            'CRITICAL: Failed to record health check - Supabase may auto-pause:',
+            healthError,
+          );
+        }
       }
 
       return {
@@ -167,7 +165,7 @@ export class TicketCollectionUseCase {
             .map((notification) => notification.cloudTaskId!);
 
           if (pendingTasks.length > 0) {
-            await this.cloudTasksService.cancelNotifications(pendingTasks);
+            await this.notificationSchedulerService.cancelNotifications(pendingTasks);
 
             for (
               const notification of notifications.filter((notification) =>
@@ -191,7 +189,10 @@ export class TicketCollectionUseCase {
         const futureNotificationTimes = this.notificationSchedulingService
           .calculateNotificationTimes(ticket.saleStartDate);
 
-        await this.cloudTasksService.scheduleNotifications(ticket, futureNotificationTimes);
+        await this.notificationSchedulerService.scheduleNotifications(
+          ticket,
+          futureNotificationTimes,
+        );
         const updatedTicket = ticket.markNotificationScheduled();
         await this.ticketRepository.upsert(updatedTicket);
       } catch (error) {

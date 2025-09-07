@@ -1,7 +1,7 @@
 import {
+  INotificationUseCase,
   NotificationExecutionInput,
-  NotificationUseCase,
-} from '@/application/usecases/NotificationUseCase.ts';
+} from '@/application/interfaces/usecases/INotificationUseCase.ts';
 import { NotificationPresenter } from '@/adapters/presenters/NotificationPresenter.ts';
 import { isValidNotificationType, NotificationType } from '@/domain/entities/NotificationTypes.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
@@ -12,11 +12,9 @@ interface CloudTaskRequestBody {
 }
 
 export class NotificationController {
-  private notificationUseCase: NotificationUseCase;
-
-  constructor() {
-    this.notificationUseCase = new NotificationUseCase();
-  }
+  constructor(
+    private readonly notificationUseCase: INotificationUseCase,
+  ) {}
 
   async handleSendNotification(req: Request): Promise<Response> {
     try {

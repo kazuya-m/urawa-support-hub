@@ -1,28 +1,19 @@
 import { CloudTasksClient as GoogleCloudTasksClient } from '@google-cloud/tasks';
+import {
+  EnqueueTaskParams,
+  ICloudTasksClient,
+  Task,
+} from '@/infrastructure/interfaces/clients/ICloudTasksClient.ts';
 
-/**
- * Cloud Tasksでスケジュールされるタスク情報
- */
-export interface Task {
-  name: string;
-  scheduleTime: Date;
-  payload: unknown;
-  httpRequest: {
-    url: string;
-    httpMethod: string;
-  };
-}
+// Re-export types for test files
+export type { EnqueueTaskParams, Task };
 
-/**
- * タスクをキューに追加するためのパラメータ
- */
-export interface EnqueueTaskParams {
-  taskId?: string;
-  payload: unknown;
-  scheduledTime: Date;
-  targetUrl: string;
-  httpMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  headers?: Record<string, string>;
+export interface CloudTasksConfig {
+  projectId: string;
+  location: string;
+  queueName: string;
+  enableDebugLogs: boolean;
+  denoEnv: string;
 }
 
 /**
@@ -30,44 +21,28 @@ export interface EnqueueTaskParams {
  * Google Cloud Tasks APIを使用してタスクの管理を行う
  * gRPC接続問題を回避するためREST fallbackを使用
  */
-export class CloudTasksClient {
+export class CloudTasksClient implements ICloudTasksClient {
   private client: GoogleCloudTasksClient;
-  private projectId: string;
-  private location: string;
-  private queueName: string;
-  private readonly enableDebugLogs: boolean;
+  private readonly config: CloudTasksConfig;
 
-  constructor(
-    projectId?: string,
-    location?: string,
-    queueName?: string,
-  ) {
-    this.projectId = projectId || Deno.env.get('GOOGLE_CLOUD_PROJECT') ||
-      Deno.env.get('GCP_PROJECT_ID') || '';
-    this.location = location || Deno.env.get('CLOUD_TASKS_LOCATION') ||
-      Deno.env.get('GCP_REGION') || 'asia-northeast1';
-    this.queueName = queueName || 'notifications';
-    this.enableDebugLogs = Deno.env.get('CLOUD_TASKS_DEBUG') === 'true';
+  constructor(config: CloudTasksConfig) {
+    this.config = config;
 
-    if (!this.projectId) {
+    if (!this.config.projectId) {
       throw new Error('GOOGLE_CLOUD_PROJECT or GCP_PROJECT_ID environment variable is required');
     }
 
-    // Initialize Google Cloud Tasks client with environment-specific settings
-    const denoEnv = Deno.env.get('DENO_ENV') || 'development';
-
-    // 開発環境では強制REST、本番環境ではgRPC優先・REST fallback
-    const clientOptions = denoEnv === 'development'
-      ? { fallback: 'rest' as const } // 開発環境: 強制REST使用
-      : { fallback: true }; // 本番環境: gRPC優先、失敗時REST
+    const clientOptions = this.config.denoEnv === 'development'
+      ? { fallback: 'rest' as const }
+      : { fallback: true };
 
     this.client = new GoogleCloudTasksClient(clientOptions);
 
-    if (this.enableDebugLogs) {
-      console.log(`[CloudTasks] Environment: ${denoEnv}`);
+    if (this.config.enableDebugLogs && this.config.denoEnv !== 'production') {
+      console.log(`[CloudTasks] Environment: ${this.config.denoEnv}`);
       console.log(
         `[CloudTasks] Using: ${
-          denoEnv === 'development' ? 'REST API (forced)' : 'gRPC with REST fallback'
+          this.config.denoEnv === 'development' ? 'REST API (forced)' : 'gRPC with REST fallback'
         }`,
       );
     }
@@ -90,7 +65,11 @@ export class CloudTasksClient {
 
     // タスクIDを生成（指定がなければUUIDを使用）
     const actualTaskId = taskId || crypto.randomUUID();
-    const queuePath = this.client.queuePath(this.projectId, this.location, this.queueName);
+    const queuePath = this.client.queuePath(
+      this.config.projectId,
+      this.config.location,
+      this.config.queueName,
+    );
 
     const task = {
       name: `${queuePath}/tasks/${actualTaskId}`,
@@ -111,7 +90,7 @@ export class CloudTasksClient {
       },
     };
 
-    if (this.enableDebugLogs) {
+    if (this.config.enableDebugLogs) {
       console.log(`[CloudTasks] Enqueuing task: ${actualTaskId}`);
       console.log(`[CloudTasks] Target URL: ${targetUrl}`);
       console.log(`[CloudTasks] Scheduled time: ${scheduledTime.toISOString()}`);
@@ -128,7 +107,7 @@ export class CloudTasksClient {
       }
 
       const createdTaskId = response.name.split('/').pop()!;
-      if (this.enableDebugLogs) {
+      if (this.config.enableDebugLogs) {
         console.log(`[CloudTasks] Task created successfully: ${createdTaskId}`);
       }
 
@@ -142,15 +121,20 @@ export class CloudTasksClient {
   }
 
   async dequeueTask(taskId: string): Promise<void> {
-    const taskName = this.client.taskPath(this.projectId, this.location, this.queueName, taskId);
+    const taskName = this.client.taskPath(
+      this.config.projectId,
+      this.config.location,
+      this.config.queueName,
+      taskId,
+    );
 
-    if (this.enableDebugLogs) {
+    if (this.config.enableDebugLogs) {
       console.log(`[CloudTasks] Dequeuing task: ${taskId}`);
     }
 
     try {
       await this.client.deleteTask({ name: taskName });
-      if (this.enableDebugLogs) {
+      if (this.config.enableDebugLogs) {
         console.log(`[CloudTasks] Task dequeued successfully: ${taskId}`);
       }
     } catch (error) {
@@ -162,10 +146,10 @@ export class CloudTasksClient {
   }
 
   async listTasks(queueName?: string): Promise<Task[]> {
-    const queue = queueName || this.queueName;
-    const queuePath = this.client.queuePath(this.projectId, this.location, queue);
+    const queue = queueName || this.config.queueName;
+    const queuePath = this.client.queuePath(this.config.projectId, this.config.location, queue);
 
-    if (this.enableDebugLogs) {
+    if (this.config.enableDebugLogs) {
       console.log(`[CloudTasks] Listing tasks in queue: ${queue}`);
     }
 
@@ -198,9 +182,14 @@ export class CloudTasksClient {
    * デバッグや監視用途で使用
    */
   async getTask(taskId: string): Promise<Task | null> {
-    const taskName = this.client.taskPath(this.projectId, this.location, this.queueName, taskId);
+    const taskName = this.client.taskPath(
+      this.config.projectId,
+      this.config.location,
+      this.config.queueName,
+      taskId,
+    );
 
-    if (this.enableDebugLogs) {
+    if (this.config.enableDebugLogs) {
       console.log(`[CloudTasks] Getting task: ${taskId}`);
     }
 

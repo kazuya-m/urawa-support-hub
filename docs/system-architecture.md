@@ -146,7 +146,7 @@ ticket sales begin.
 - **External Service Clients**: Supabase client, Playwright integration
 - **Configuration Management**: notification.ts, scraping.ts, url.ts
 - **Technical Utilities**: Error handling, logging, type definitions
-- **Factory Pattern**: RepositoryFactory for dependency management
+- **Dependency Injection**: Constructor-based DI pattern for dependency management
 
 ## System Components
 
@@ -598,7 +598,7 @@ src/
     │   ├── TicketRepositoryImpl.ts
     │   ├── NotificationRepositoryImpl.ts
     │   ├── HealthRepositoryImpl.ts
-    │   ├── RepositoryFactory.ts
+    │   ├── (repositories with DI support)
     │   ├── converters/
     │   │   ├── TicketConverter.ts
     │   │   ├── NotificationConverter.ts
@@ -631,4 +631,5 @@ src/
    - Configuration moved from `src/config/` to `src/infrastructure/config/`
    - Services organized under `src/infrastructure/services/`
 3. **Domain Layer Refinement**: Clear separation of entities and repository interfaces
-4. **Factory Pattern**: `RepositoryFactory` for centralized dependency management
+4. **Dependency Injection**: Constructor-based DI for centralized dependency management via
+   `src/config/di.ts`

@@ -229,13 +229,11 @@ export class NotificationHistory {
 ### TicketRepository Implementation
 
 ```typescript
-// Direct concrete class usage - small-scale project approach
-export class TicketRepositoryImpl {
-  private client: SupabaseClient;
-
-  constructor() {
-    this.client = createSupabaseAdminClient();
-  }
+// Interface-driven with dependency injection
+export class TicketRepository implements ITicketRepository {
+  constructor(
+    private readonly client: SupabaseClient,
+  ) {}
 
   save(ticket: Ticket): Promise<void>;
   findById(id: string): Promise<Ticket | null>;
@@ -360,36 +358,38 @@ export function parseSaleDate(saleText: string): {
 
 ### Repository Factory Pattern
 
-Centralized dependency management using the Factory pattern:
+Centralized dependency management using Dependency Injection (DI) pattern:
 
 ```typescript
-export class RepositoryFactory {
-  private static ticketRepository: TicketRepository | null = null;
-  private static notificationRepository: NotificationRepository | null = null;
-  private static healthRepository: HealthRepository | null = null;
+// src/config/di.ts
+export const createDependencies = () => {
+  const supabaseClient = createSupabaseAdminClient();
 
-  static getTicketRepository(): TicketRepository {
-    if (!this.ticketRepository) {
-      const client = getSupabaseClient();
-      this.ticketRepository = new TicketRepositoryImpl(client);
-    }
-    return this.ticketRepository;
-  }
+  // Repositories
+  const ticketRepository = new TicketRepository(supabaseClient);
+  const notificationRepository = new NotificationRepository(supabaseClient);
+  const healthRepository = new HealthRepository(supabaseClient);
 
-  static getHealthRepository(): HealthRepository {
-    if (!this.healthRepository) {
-      const client = getSupabaseClient();
-      this.healthRepository = new HealthRepositoryImpl(client);
-    }
-    return this.healthRepository;
-  }
+  return {
+    ticketRepository,
+    notificationRepository,
+    healthRepository,
+    // ... other dependencies
+  };
+};
 
-  static resetInstances(): void {
-    this.ticketRepository = null;
-    this.notificationRepository = null;
-    this.healthRepository = null;
-  }
-}
+export const createTicketCollectionUseCase = (): TicketCollectionUseCase => {
+  const deps = createDependencies();
+
+  return new TicketCollectionUseCase(
+    deps.ticketCollectionService,
+    deps.healthRepository,
+    deps.ticketRepository,
+    deps.notificationRepository,
+    deps.notificationSchedulingService,
+    deps.notificationSchedulerService,
+  );
+};
 ```
 
 ### Configuration Management

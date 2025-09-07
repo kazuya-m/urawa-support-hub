@@ -1,17 +1,18 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { Notification } from '@/domain/entities/Notification.ts';
 import { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
-import { CloudTasksClient, EnqueueTaskParams } from '@/infrastructure/clients/CloudTasksClient.ts';
-import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
+import {
+  EnqueueTaskParams,
+  ICloudTasksClient,
+} from '@/infrastructure/interfaces/clients/ICloudTasksClient.ts';
+import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
+import { INotificationSchedulerService } from '@/application/interfaces/services/INotificationSchedulerService.ts';
 
-export class NotificationSchedulerService {
-  private cloudTasksClient: CloudTasksClient;
-  private notificationRepository: NotificationRepository;
-
-  constructor() {
-    this.cloudTasksClient = new CloudTasksClient();
-    this.notificationRepository = new NotificationRepository();
-  }
+export class NotificationSchedulerService implements INotificationSchedulerService {
+  constructor(
+    private readonly cloudTasksClient: ICloudTasksClient,
+    private readonly notificationRepository: INotificationRepository,
+  ) {}
 
   async scheduleNotifications(ticket: Ticket, scheduledTimes: NotificationTiming[]): Promise<void> {
     const targetUrl = Deno.env.get('CLOUD_RUN_NOTIFICATION_URL');

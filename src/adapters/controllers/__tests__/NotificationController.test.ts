@@ -1,7 +1,7 @@
 import { assertEquals } from 'std/assert/mod.ts';
-import { returnsNext, stub } from 'testing/mock.ts';
 import { NotificationController } from '../NotificationController.ts';
 import { NOTIFICATION_TYPES } from '@/domain/entities/NotificationTypes.ts';
+import { MockNotificationUseCase } from '@/shared/testing/mocks/MockNotificationUseCase.ts';
 
 Deno.test('NotificationController', async (t) => {
   const originalEnv = {
@@ -20,50 +20,45 @@ Deno.test('NotificationController', async (t) => {
   Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');
 
   await t.step('should handle valid send notification request', async () => {
-    const controller = new NotificationController();
+    const mockUseCase = new MockNotificationUseCase();
+    mockUseCase.setMockResults([{
+      status: 'success' as const,
+      ticketId: 'test-ticket-123',
+      notificationType: 'day_before',
+      executionDurationMs: 100,
+    }]);
 
-    // NotificationUseCaseのexecuteメソッドをモック化
-    const mockExecute = stub(
-      controller['notificationUseCase'],
-      'execute',
-      returnsNext([Promise.resolve({
-        status: 'success' as const,
-        ticketId: 'test-ticket-123',
-        notificationType: 'day_before',
-        executionDurationMs: 100,
-      })]),
-    );
+    const controller = new NotificationController(mockUseCase);
 
-    try {
-      const requestBody = {
-        ticketId: 'test-ticket-123',
-        notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
-      };
+    const requestBody = {
+      ticketId: 'test-ticket-123',
+      notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
+    };
 
-      const request = new Request('http://localhost/api/send-notification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-token',
-        },
-        body: JSON.stringify(requestBody),
-      });
+    const request = new Request('http://localhost/api/send-notification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer test-token',
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-      const response = await controller.handleSendNotification(request);
+    const response = await controller.handleSendNotification(request);
 
-      assertEquals(response.status, 200);
-      assertEquals(mockExecute.calls.length, 1);
+    assertEquals(response.status, 200);
 
-      const responseBody = await response.json();
-      assertEquals(responseBody.status, 'success');
-      assertEquals(responseBody.ticketId, 'test-ticket-123');
-    } finally {
-      mockExecute.restore();
-    }
+    const executedInputs = mockUseCase.getExecutedInputs();
+    assertEquals(executedInputs.length, 1);
+
+    const responseBody = await response.json();
+    assertEquals(responseBody.status, 'success');
+    assertEquals(responseBody.ticketId, 'test-ticket-123');
   });
 
   await t.step('should reject invalid request body', async () => {
-    const controller = new NotificationController();
+    const mockUseCase = new MockNotificationUseCase();
+    const controller = new NotificationController(mockUseCase);
 
     const invalidRequestBody = {
       ticketId: '', // 空のID
@@ -90,7 +85,8 @@ Deno.test('NotificationController', async (t) => {
     // 本番環境での認証テスト
     Deno.env.set('NODE_ENV', 'production');
 
-    const controller = new NotificationController();
+    const mockUseCase = new MockNotificationUseCase();
+    const controller = new NotificationController(mockUseCase);
 
     const request = new Request('http://localhost/api/send-notification', {
       method: 'POST',
@@ -115,7 +111,8 @@ Deno.test('NotificationController', async (t) => {
   });
 
   await t.step('should validate notification type', async () => {
-    const controller = new NotificationController();
+    const mockUseCase = new MockNotificationUseCase();
+    const controller = new NotificationController(mockUseCase);
 
     const requestBody = {
       ticketId: 'test-ticket-123',

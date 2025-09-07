@@ -13,23 +13,26 @@ Deno.env.set('SUPABASE_URL', 'http://test.supabase.co');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-key');
 
 Deno.test('NotificationSchedulerService - Basic functionality test', () => {
-  const service = new NotificationSchedulerService();
+  const mockCloudTasksClient = createMockCloudTasksClient({ taskId: 'test-task-id' });
+  const mockNotificationRepository = createMockNotificationRepository();
+  const service = new NotificationSchedulerService(
+    mockCloudTasksClient,
+    mockNotificationRepository,
+  );
 
   assertExists(service);
 });
 
 Deno.test('NotificationSchedulerService - scheduleNotifications should call CloudTasksClient and NotificationRepository', async () => {
-  const service = new NotificationSchedulerService();
-
   // Create mock instances
   const mockCloudTasksClient = createMockCloudTasksClient({ taskId: 'test-task-id' });
   const mockNotificationRepository = createMockNotificationRepository();
 
-  // Replace internal dependencies with mocks
-  // deno-lint-ignore no-explicit-any
-  (service as any).cloudTasksClient = mockCloudTasksClient;
-  // deno-lint-ignore no-explicit-any
-  (service as any).notificationRepository = mockNotificationRepository;
+  // Create service with injected dependencies
+  const service = new NotificationSchedulerService(
+    mockCloudTasksClient,
+    mockNotificationRepository,
+  );
 
   // Mock console methods to suppress output
   const consoleLogStub = stub(console, 'log');
@@ -68,8 +71,8 @@ Deno.test('NotificationSchedulerService - scheduleNotifications should call Clou
     assertEquals(payload.notificationType, NOTIFICATION_TYPES.DAY_BEFORE);
     assertEquals(firstTask.httpRequest.url, 'https://test.example.com/api/notify');
 
-    // Verify logging occurred
-    assertEquals(consoleLogStub.calls.length, 2); // Start and completion logs
+    // Verify no console.log calls in the implementation (only console.error/warn on failures)
+    assertEquals(consoleLogStub.calls.length, 0);
   } finally {
     // Restore environment variable
     if (originalEnvVar === undefined) {
@@ -83,8 +86,6 @@ Deno.test('NotificationSchedulerService - scheduleNotifications should call Clou
 });
 
 Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors', async () => {
-  const service = new NotificationSchedulerService();
-
   // Create mock that throws error
   const mockCloudTasksClient = createMockCloudTasksClient({
     shouldError: true,
@@ -92,11 +93,11 @@ Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors'
   });
   const mockNotificationRepository = createMockNotificationRepository();
 
-  // Replace internal dependencies with mocks
-  // deno-lint-ignore no-explicit-any
-  (service as any).cloudTasksClient = mockCloudTasksClient;
-  // deno-lint-ignore no-explicit-any
-  (service as any).notificationRepository = mockNotificationRepository;
+  // Create service with injected dependencies
+  const service = new NotificationSchedulerService(
+    mockCloudTasksClient,
+    mockNotificationRepository,
+  );
 
   // Suppress console output during test
   const consoleLogStub = stub(console, 'log');
@@ -149,14 +150,15 @@ Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors'
 });
 
 Deno.test('NotificationSchedulerService - cancelNotification should call CloudTasksClient.dequeueTask', async () => {
-  const service = new NotificationSchedulerService();
-
   // Create mock instance
   const mockCloudTasksClient = createMockCloudTasksClient();
+  const mockNotificationRepository = createMockNotificationRepository();
 
-  // Replace internal dependency with mock
-  // deno-lint-ignore no-explicit-any
-  (service as any).cloudTasksClient = mockCloudTasksClient;
+  // Create service with injected dependencies
+  const service = new NotificationSchedulerService(
+    mockCloudTasksClient,
+    mockNotificationRepository,
+  );
 
   // Suppress console output
   const consoleLogStub = stub(console, 'log');
@@ -164,9 +166,8 @@ Deno.test('NotificationSchedulerService - cancelNotification should call CloudTa
   try {
     await service.cancelNotification('test-task-id');
 
-    // Verify dequeueTask behavior by checking that task is no longer in the list
-    // (Since we're using a real mock implementation, we can test the actual behavior)
-    assertEquals(consoleLogStub.calls.length, 1);
+    // Verify no console.log calls in the implementation (only console.error on failures)
+    assertEquals(consoleLogStub.calls.length, 0);
   } finally {
     consoleLogStub.restore();
   }

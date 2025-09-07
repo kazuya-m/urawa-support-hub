@@ -4,13 +4,12 @@ export class BrowserManager {
   private browser: Browser | null = null;
 
   async launch(timeout: number): Promise<void> {
-    // 開発環境ではシステムのChromeを使用
     const isDevelopment = Deno.env.get('NODE_ENV') !== 'production';
     const debugMode = Deno.env.get('DEBUG_SCRAPING') === 'true';
 
     this.browser = await chromium.launch({
-      channel: isDevelopment ? 'chrome' : undefined, // 開発環境ではChromeを使用
-      headless: !debugMode, // デバッグモード時はGUI表示
+      channel: isDevelopment ? 'chrome' : undefined,
+      headless: !debugMode,
       timeout,
     });
   }

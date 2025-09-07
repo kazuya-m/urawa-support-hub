@@ -10,15 +10,15 @@ Architectureレイヤー実装、ドメインエンティティ、リポジト�
 日次チケット収集操作の主要なビジネスワークフローオーケストレーター:
 
 ```typescript
-export class TicketCollectionUseCase {
-  private ticketCollectionService: TicketCollectionService;
-  private healthRepository: HealthRepositoryImpl;
-
-  constructor() {
-    const supabaseClient = createSupabaseAdminClient();
-    this.ticketCollectionService = new TicketCollectionService();
-    this.healthRepository = new HealthRepositoryImpl(supabaseClient);
-  }
+export class TicketCollectionUseCase implements ITicketCollectionUseCase {
+  constructor(
+    private readonly ticketCollectionService: ITicketCollectionService,
+    private readonly healthRepository: IHealthRepository,
+    private readonly ticketRepository: ITicketRepository,
+    private readonly notificationRepository: INotificationRepository,
+    private readonly notificationSchedulingService: INotificationSchedulingService,
+    private readonly notificationSchedulerService: INotificationSchedulerService,
+  ) {}
 
   async execute(): Promise<void> {
     const startTime = Date.now();
@@ -180,13 +180,11 @@ export class NotificationHistory {
 ### TicketRepository実装
 
 ```typescript
-// 小規模プロジェクト向けの直接具象クラス使用
-export class TicketRepositoryImpl {
-  private client: SupabaseClient;
-
-  constructor() {
-    this.client = createSupabaseAdminClient();
-  }
+// インタフェース駆動設計による依存性注入対応
+export class TicketRepository implements ITicketRepository {
+  constructor(
+    private readonly client: SupabaseClient,
+  ) {}
 
   save(ticket: Ticket): Promise<void>;
   findById(id: string): Promise<Ticket | null>;
@@ -205,13 +203,11 @@ export class TicketRepositoryImpl {
 ### NotificationRepository実装
 
 ```typescript
-// 小規模プロジェクト向けの直接具象クラス使用
-export class NotificationRepositoryImpl {
-  private client: SupabaseClient;
-
-  constructor() {
-    this.client = createSupabaseAdminClient();
-  }
+// インタフェース駆動設計による依存性注入対応
+export class NotificationRepository implements INotificationRepository {
+  constructor(
+    private readonly client: SupabaseClient,
+  ) {}
 
   save(history: NotificationHistory): Promise<void>;
   findByTicketId(ticketId: string): Promise<NotificationHistory[]>;
@@ -228,6 +224,49 @@ export class NotificationRepositoryImpl {
   markAsError(id: string, errorMessage: string): Promise<void>;
 }
 ```
+
+### 依存性注入（DI）パターン
+
+中央集権的な依存関係管理を依存性注入（DI）パターンで実現:
+
+```typescript
+// src/config/di.ts
+export const createDependencies = () => {
+  const supabaseClient = createSupabaseAdminClient();
+
+  // Repositories
+  const ticketRepository = new TicketRepository(supabaseClient);
+  const notificationRepository = new NotificationRepository(supabaseClient);
+  const healthRepository = new HealthRepository(supabaseClient);
+
+  return {
+    ticketRepository,
+    notificationRepository,
+    healthRepository,
+    // ... その他の依存関係
+  };
+};
+
+// Use Caseファクトリー関数
+export const createTicketCollectionUseCase = (): ITicketCollectionUseCase => {
+  const dependencies = createDependencies();
+  return new TicketCollectionUseCase(
+    dependencies.ticketCollectionService,
+    dependencies.healthRepository,
+    dependencies.ticketRepository,
+    dependencies.notificationRepository,
+    dependencies.notificationSchedulingService,
+    dependencies.notificationSchedulerService,
+  );
+};
+```
+
+**DI実装の利点:**
+
+- **テスタビリティ**: モック注入による単体テスト容易性
+- **疎結合**: インタフェースベースの依存関係
+- **一元管理**: 依存関係の統一管理
+- **拡張性**: 新規実装の容易な追加
 
 ## インフラストラクチャ実装
 

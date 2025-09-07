@@ -1,18 +1,14 @@
-import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
+import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
 import { NotificationResult } from '@/application/types/UseCaseResults.ts';
-import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
+import {
+  INotificationUseCase,
+  NotificationExecutionInput,
+} from '@/application/interfaces/usecases/INotificationUseCase.ts';
 
-export interface NotificationExecutionInput {
-  ticketId: string;
-  notificationType: NotificationType;
-}
-
-export class NotificationUseCase {
-  private notificationService: NotificationService;
-
-  constructor() {
-    this.notificationService = new NotificationService();
-  }
+export class NotificationUseCase implements INotificationUseCase {
+  constructor(
+    private readonly notificationService: INotificationService,
+  ) {}
 
   async execute(input: NotificationExecutionInput): Promise<NotificationResult> {
     const startTime = Date.now();
