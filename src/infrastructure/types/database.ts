@@ -25,7 +25,7 @@ export interface NotificationRow {
   notification_type: NotificationType;
   scheduled_at: string;
   sent_at: string | null;
-  status: 'pending' | 'sent' | 'failed' | 'cancelled';
+  status: 'scheduled' | 'sent' | 'failed' | 'cancelled';
   error_message: string | null;
   created_at: string;
   cloud_task_id: string | null;
@@ -54,7 +54,7 @@ export interface NotificationInsert {
   notification_type: NotificationType;
   scheduled_at: string;
   sent_at?: string;
-  status: 'pending' | 'sent' | 'failed' | 'cancelled';
+  status: 'scheduled' | 'sent' | 'failed' | 'cancelled';
   error_message?: string;
   cloud_task_id?: string;
 }

@@ -12,7 +12,7 @@ Deno.test('SupabaseNotificationRepository - findById with error handling', async
     notification_type: 'day_before',
     scheduled_at: '2025-03-15T20:00:00+09:00',
     sent_at: null,
-    status: 'pending',
+    status: 'scheduled',
     error_message: null,
     cloud_task_id: null,
     created_at: '2025-01-01T00:00:00Z',
@@ -26,7 +26,7 @@ Deno.test('SupabaseNotificationRepository - findById with error handling', async
   assertEquals(result?.id, 'test-notification-id');
   assertEquals(result?.ticketId, 'test-ticket-id');
   assertEquals(result?.notificationType, 'day_before');
-  assertEquals(result?.status, 'pending');
+  assertEquals(result?.status, 'scheduled');
 });
 
 Deno.test('SupabaseNotificationRepository - save error handling', async () => {
@@ -41,7 +41,7 @@ Deno.test('SupabaseNotificationRepository - save error handling', async () => {
     ticketId: 'test-ticket-id',
     notificationType: 'day_before',
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 明日
-    status: 'pending',
+    status: 'scheduled',
     createdAt: new Date(),
   });
 

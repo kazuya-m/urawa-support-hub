@@ -1,6 +1,6 @@
 import { getDisplayName, NotificationType } from './NotificationTypes.ts';
 
-export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'cancelled';
+export type NotificationStatus = 'scheduled' | 'sent' | 'failed' | 'cancelled';
 
 export type CancellationReason =
   | 'Cancelled due to ticket update'
@@ -74,7 +74,7 @@ export class Notification {
   }
 
   canBeSent(currentTime: Date = new Date()): boolean {
-    if (this.props.status !== 'pending') return false;
+    if (this.props.status !== 'scheduled') return false;
 
     const timeDiff = this.props.scheduledAt.getTime() - currentTime.getTime();
     return timeDiff <= 5 * 60 * 1000;

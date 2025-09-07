@@ -112,7 +112,7 @@ Each issue is considered complete when:
 
 ## Current Status (2025-08-30) - **UPDATED**
 
-### ✅ Completed Issues: 26/29 (90%)
+### ✅ Completed Issues: 27/30 (90%)
 
 **Foundation & Infrastructure:**
 
@@ -140,6 +140,7 @@ Each issue is considered complete when:
 - #70 - リポジトリレイヤーからビジネスロジックを分離し、Impl命名規則を統一
 - #25 - Google Cloud Tasks notification scheduling implementation
 - #75 - 依存性注入（DI）パターン導入による単体テストの改善
+- #73 - Notification status名称変更 (pending → scheduled)
 
 **Testing & Documentation:**
 
@@ -150,15 +151,15 @@ Each issue is considered complete when:
 - #32 - Database migration management
 - #34 - Security and permission detailed design
 
-### ⏳ In Progress: 3/28 (11%)
+### ⏳ In Progress: 4/30 (13%)
 
 - #30 - Discord error notification implementation
 - #33 - Minimal CI/CD setup
 - #24 - Google Cloud Run scraping service implementation
-
-### ❌ Not Started: 1/29 (3%)
-
 - #26 - Cloud Scheduler daily execution setup
+
+### ❌ Not Started: 0/30 (0%)
+
 - Manual testing
 
 ## Next Steps Priority (**UPDATED**)

@@ -38,7 +38,7 @@ export class NotificationService implements INotificationService {
           ticketId,
           notificationType,
           scheduledAt: new Date(),
-          status: 'pending',
+          status: 'scheduled',
           createdAt: new Date(),
         });
         await this.notificationRepository.save(history);
@@ -61,10 +61,10 @@ export class NotificationService implements INotificationService {
 
   async processPendingNotifications(): Promise<void> {
     const currentTime = new Date();
-    const pendingNotifications = await this.notificationRepository
-      .findByColumn('status', 'pending');
+    const scheduledNotifications = await this.notificationRepository
+      .findByColumn('status', 'scheduled');
 
-    const dueNotifications = pendingNotifications.filter((notification) =>
+    const dueNotifications = scheduledNotifications.filter((notification) =>
       notification.canBeSent(currentTime)
     );
 
@@ -78,7 +78,7 @@ export class NotificationService implements INotificationService {
 
         await this.sendNotification(notification, ticket);
       } catch (error) {
-        console.error('Failed to process pending notification:', {
+        console.error('Failed to process scheduled notification:', {
           notificationId: notification.id,
           error: error instanceof Error ? error.message : String(error),
         });
