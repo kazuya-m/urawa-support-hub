@@ -122,7 +122,7 @@ Deno.test('NotificationService', async (t) => {
       ticketId: 'test-ticket-123',
       notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
       scheduledAt,
-      status: 'pending',
+      status: 'scheduled',
       createdAt,
     });
 

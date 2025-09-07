@@ -10,14 +10,14 @@ Deno.test('Notification - 正常な通知履歴作成', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
-    status: 'pending',
+    status: 'scheduled',
     createdAt: now,
   });
 
   assertEquals(notification.id, 'test-id');
   assertEquals(notification.ticketId, 'ticket-123');
   assertEquals(notification.notificationType, 'day_before');
-  assertEquals(notification.status, 'pending');
+  assertEquals(notification.status, 'scheduled');
 });
 
 Deno.test('Notification - バリデーション: 空のID', () => {
@@ -31,7 +31,7 @@ Deno.test('Notification - バリデーション: 空のID', () => {
         ticketId: 'ticket-123',
         notificationType: 'day_before',
         scheduledAt: scheduledTime,
-        status: 'pending',
+        status: 'scheduled',
         createdAt: now,
       }),
     Error,
@@ -50,7 +50,7 @@ Deno.test('Notification - バリデーション: 不正な通知タイプ', () =
         ticketId: 'ticket-123',
         notificationType: 'invalid_type' as 'day_before',
         scheduledAt: scheduledTime,
-        status: 'pending',
+        status: 'scheduled',
         createdAt: now,
       }),
     Error,
@@ -106,7 +106,7 @@ Deno.test('Notification - 送信可能性判定', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
-    status: 'pending',
+    status: 'scheduled',
     createdAt: now,
   });
 
@@ -128,7 +128,7 @@ Deno.test('Notification - 期限切れ判定', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
-    status: 'pending',
+    status: 'scheduled',
     createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
   });
 
@@ -189,7 +189,7 @@ Deno.test('Notification - 送信完了マーク', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
-    status: 'pending',
+    status: 'scheduled',
     createdAt: now,
   });
 
@@ -210,7 +210,7 @@ Deno.test('Notification - 送信失敗マーク', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
-    status: 'pending',
+    status: 'scheduled',
     createdAt: now,
   });
 
@@ -232,7 +232,7 @@ Deno.test('Notification - 通知タイプ表示名', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
-    status: 'pending',
+    status: 'scheduled',
     createdAt: now,
   });
 
@@ -243,7 +243,7 @@ Deno.test('Notification - 通知タイプ表示名', () => {
     ticketId: 'ticket-123',
     notificationType: 'hour_before',
     scheduledAt: scheduledTime,
-    status: 'pending',
+    status: 'scheduled',
     createdAt: now,
   });
 

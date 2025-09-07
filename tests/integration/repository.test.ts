@@ -118,7 +118,7 @@ Deno.test('NotificationRepository - save and findById', async () => {
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    status: 'pending' as const,
+    status: 'scheduled' as const,
     createdAt: new Date(),
   });
 
@@ -130,7 +130,7 @@ Deno.test('NotificationRepository - save and findById', async () => {
 
     assertEquals(result?.id, testNotification.id);
     assertEquals(result?.ticketId, testNotification.ticketId);
-    assertEquals(result?.status, 'pending');
+    assertEquals(result?.status, 'scheduled');
   } finally {
     await cleanupNotification(testNotification.id);
     await cleanupTicket(testTicket.id);
@@ -144,7 +144,7 @@ Deno.test('NotificationRepository - findByTicketId', async () => {
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    status: 'pending' as const,
+    status: 'scheduled' as const,
     createdAt: new Date(),
   });
 
@@ -170,7 +170,7 @@ Deno.test('NotificationRepository - findByColumn', async () => {
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    status: 'pending' as const,
+    status: 'scheduled' as const,
     createdAt: new Date(),
   });
 
@@ -178,11 +178,11 @@ Deno.test('NotificationRepository - findByColumn', async () => {
     await ticketRepo.upsert(testTicket);
     await notificationRepo.save(testNotification);
 
-    const results = await notificationRepo.findByColumn('status', 'pending');
+    const results = await notificationRepo.findByColumn('status', 'scheduled');
     const found = results.find((notification) => notification.id === testNotification.id);
 
     assertNotEquals(found, undefined);
-    assertEquals(found?.status, 'pending');
+    assertEquals(found?.status, 'scheduled');
   } finally {
     await cleanupNotification(testNotification.id);
     await cleanupTicket(testTicket.id);
@@ -196,7 +196,7 @@ Deno.test('NotificationRepository - update', async () => {
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    status: 'pending' as const,
+    status: 'scheduled' as const,
     createdAt: new Date(),
   });
 
