@@ -8,7 +8,8 @@
 ## Implementation Status Summary
 
 - **Completed**: Foundation setup, external services, domain models, database schema, notification
-  services, application layer, Cloud Tasks notification scheduling (#25), Dependency Injection Pattern (#75)
+  services, application layer, Cloud Tasks notification scheduling (#25), Dependency Injection
+  Pattern (#75)
 - **In Progress**: Cloud Run deployment (#24), Discord notifications (#30), Sale Status Management
   (#62)
 - **Not Started**: Cloud Scheduler daily execution, final deployment
