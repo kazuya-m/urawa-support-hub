@@ -160,16 +160,18 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
       if (previousTicket) {
         try {
           const notifications = await this.notificationRepository.findByTicketId(ticket.id);
-          const pendingTasks = notifications
-            .filter((notification) => notification.status === 'pending' && notification.cloudTaskId)
+          const scheduledTasks = notifications
+            .filter((notification) =>
+              notification.status === 'scheduled' && notification.cloudTaskId
+            )
             .map((notification) => notification.cloudTaskId!);
 
-          if (pendingTasks.length > 0) {
-            await this.notificationSchedulerService.cancelNotifications(pendingTasks);
+          if (scheduledTasks.length > 0) {
+            await this.notificationSchedulerService.cancelNotifications(scheduledTasks);
 
             for (
               const notification of notifications.filter((notification) =>
-                notification.status === 'pending'
+                notification.status === 'scheduled'
               )
             ) {
               const reason: CancellationReason = this.determineCancellationReason(

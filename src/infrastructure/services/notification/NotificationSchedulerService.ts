@@ -40,7 +40,7 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
           ticketId: ticket.id,
           notificationType: type,
           scheduledAt: scheduledTime,
-          status: 'pending',
+          status: 'scheduled',
           cloudTaskId: taskId,
           createdAt: new Date(),
         });
