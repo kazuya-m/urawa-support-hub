@@ -20,7 +20,14 @@ async function dequeueTask() {
   console.log(`🗑️ Dequeuing task: ${taskId}`);
 
   try {
-    const client = new CloudTasksClient();
+    const config = {
+      projectId: Deno.env.get('GOOGLE_CLOUD_PROJECT') || Deno.env.get('GCP_PROJECT_ID') || '',
+      location: Deno.env.get('CLOUD_TASKS_LOCATION') || 'asia-northeast1',
+      queueName: 'notifications',
+      enableDebugLogs: true,
+      denoEnv: Deno.env.get('DENO_ENV') || 'development',
+    };
+    const client = new CloudTasksClient(config);
     await client.dequeueTask(taskId);
     console.log('✅ Task dequeued successfully');
   } catch (error) {

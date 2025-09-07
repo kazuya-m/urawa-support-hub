@@ -1,13 +1,11 @@
-import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
+import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { TicketCollectionPresenter } from '@/adapters/presenters/TicketCollectionPresenter.ts';
 import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
 
 export class TicketCollectionController {
-  private ticketCollectionUseCase: TicketCollectionUseCase;
-
-  constructor() {
-    this.ticketCollectionUseCase = new TicketCollectionUseCase();
-  }
+  constructor(
+    private readonly ticketCollectionUseCase: ITicketCollectionUseCase,
+  ) {}
 
   async handleCollectTickets(req: Request): Promise<Response> {
     try {

@@ -2,13 +2,13 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-06\
+**Updated**: 2025-09-07\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
 
 - **Completed**: Foundation setup, external services, domain models, database schema, notification
-  services, application layer, Cloud Tasks notification scheduling (#25)
+  services, application layer, Cloud Tasks notification scheduling (#25), Dependency Injection Pattern (#75)
 - **In Progress**: Cloud Run deployment (#24), Discord notifications (#30), Sale Status Management
   (#62)
 - **Not Started**: Cloud Scheduler daily execution, final deployment
@@ -111,7 +111,7 @@ Each issue is considered complete when:
 
 ## Current Status (2025-08-30) - **UPDATED**
 
-### ✅ Completed Issues: 25/28 (89%)
+### ✅ Completed Issues: 26/29 (90%)
 
 **Foundation & Infrastructure:**
 
@@ -138,6 +138,7 @@ Each issue is considered complete when:
 - #61 - チケット重複処理・UPSERT機能実装
 - #70 - リポジトリレイヤーからビジネスロジックを分離し、Impl命名規則を統一
 - #25 - Google Cloud Tasks notification scheduling implementation
+- #75 - 依存性注入（DI）パターン導入による単体テストの改善
 
 **Testing & Documentation:**
 
@@ -154,19 +155,17 @@ Each issue is considered complete when:
 - #33 - Minimal CI/CD setup
 - #24 - Google Cloud Run scraping service implementation
 
-### ❌ Not Started: 2/29 (7%)
+### ❌ Not Started: 1/29 (3%)
 
 - #26 - Cloud Scheduler daily execution setup
-- #75 - **依存性注入（DI）パターン導入による単体テストの改善** (**NEW**)
 - Manual testing
 
 ## Next Steps Priority (**UPDATED**)
 
-1. **#75** - **依存性注入（DI）パターン導入** (**NEW - HIGH PRIORITY**) - テスト品質改善
-2. **#24** - Deploy scraping to Cloud Run (production deployment) - **継続**
-3. **#62** - 発売済み状態管理実装 (**IN PROGRESS**)
-4. **#26** - Cloud Scheduler daily execution setup
-5. **#30** - Discord error notification (Low Priority)
+1. **#24** - Deploy scraping to Cloud Run (production deployment) - **継続**
+2. **#62** - 発売済み状態管理実装 (**IN PROGRESS**)
+3. **#26** - Cloud Scheduler daily execution setup
+4. **#30** - Discord error notification (Low Priority)
 
 ## Progress Tracking
 

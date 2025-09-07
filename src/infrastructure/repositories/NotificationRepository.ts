@@ -2,14 +2,12 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { Notification } from '@/domain/entities/Notification.ts';
 import { NotificationConverter } from './converters/NotificationConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
-import { createSupabaseAdminClient } from '../config/supabase.ts';
+import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
 
-export class NotificationRepository {
-  private client: SupabaseClient;
-
-  constructor(client?: SupabaseClient) {
-    this.client = client || createSupabaseAdminClient();
-  }
+export class NotificationRepository implements INotificationRepository {
+  constructor(
+    private readonly client: SupabaseClient,
+  ) {}
 
   async findAll(): Promise<Notification[]> {
     const { data, error } = await this.client

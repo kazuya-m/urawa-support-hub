@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects, assertThrows } from 'std/assert/mod.ts';
 import { returnsNext, stub } from 'testing/mock.ts';
-import { CloudTasksClient, EnqueueTaskParams } from '../CloudTasksClient.ts';
+import { CloudTasksClient, CloudTasksConfig, EnqueueTaskParams } from '../CloudTasksClient.ts';
 
 // テスト用の共通セットアップ
 function setupTestEnvironment(): { client: CloudTasksClient; originalEnv: Record<string, string> } {
@@ -10,7 +10,15 @@ function setupTestEnvironment(): { client: CloudTasksClient; originalEnv: Record
   Deno.env.set('GOOGLE_CLOUD_PROJECT', 'test-project');
   Deno.env.set('CLOUD_TASKS_LOCATION', 'asia-northeast1');
 
-  const client = new CloudTasksClient();
+  const config: CloudTasksConfig = {
+    projectId: 'test-project',
+    location: 'asia-northeast1',
+    queueName: 'notifications',
+    enableDebugLogs: false,
+    denoEnv: 'test',
+  };
+
+  const client = new CloudTasksClient(config);
 
   return { client, originalEnv };
 }
@@ -42,16 +50,22 @@ Deno.test('CloudTasksClient - should initialize with default values from environ
   }
 });
 
-Deno.test('CloudTasksClient - should throw error when GOOGLE_CLOUD_PROJECT is missing', () => {
+Deno.test('CloudTasksClient - should require config with projectId', () => {
   const originalEnv = { ...Deno.env.toObject() };
 
   try {
-    Deno.env.delete('GOOGLE_CLOUD_PROJECT');
-
+    // CloudTasksClient now requires a config parameter with projectId
     assertThrows(
-      () => new CloudTasksClient(),
+      () =>
+        new CloudTasksClient({
+          projectId: '',
+          location: 'asia-northeast1',
+          queueName: 'notifications',
+          enableDebugLogs: false,
+          denoEnv: 'test',
+        }),
       Error,
-      'GOOGLE_CLOUD_PROJECT environment variable is required',
+      'GOOGLE_CLOUD_PROJECT or GCP_PROJECT_ID environment variable is required',
     );
   } finally {
     tearDown(originalEnv);
@@ -62,7 +76,14 @@ Deno.test('CloudTasksClient - should accept custom parameters', () => {
   const originalEnv = { ...Deno.env.toObject() };
 
   try {
-    const client = new CloudTasksClient('custom-project', 'us-central1', 'custom-queue');
+    const config = {
+      projectId: 'custom-project',
+      location: 'us-central1',
+      queueName: 'custom-queue',
+      enableDebugLogs: false,
+      denoEnv: 'test',
+    };
+    const client = new CloudTasksClient(config);
     assertEquals(typeof client, 'object');
   } finally {
     tearDown(originalEnv);

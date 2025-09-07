@@ -11,6 +11,7 @@
  */
 
 import { TicketCollectionService } from '../src/infrastructure/services/scraping/TicketCollectionService.ts';
+import { JLeagueTicketScraper } from '../src/infrastructure/services/scraping/sources/jleague/JLeagueTicketScraper.ts';
 
 // 環境変数チェック
 const isLiveScrapingEnabled = Deno.env.get('ENABLE_LIVE_SCRAPING') === 'true';
@@ -29,7 +30,9 @@ console.log('='.repeat(50));
 
 async function testScraping() {
   console.log('\n🔄 統合チケット収集サービステスト');
-  const collectionService = new TicketCollectionService();
+  // DI対応：Scraperを注入
+  const jleagueScraper = new JLeagueTicketScraper();
+  const collectionService = new TicketCollectionService(jleagueScraper);
 
   try {
     console.log('\n📋 浦和レッズアウェイチケット情報を取得中...');

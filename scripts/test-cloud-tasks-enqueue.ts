@@ -55,7 +55,14 @@ async function testCloudTasksEnqueue() {
   try {
     // CloudTasksClientのインスタンスを作成
     console.log('🔧 Initializing Cloud Tasks client...');
-    const client = new CloudTasksClient(gcpProjectId, gcpRegion, 'notifications');
+    const config = {
+      projectId: gcpProjectId,
+      location: gcpRegion,
+      queueName: 'notifications',
+      enableDebugLogs: true,
+      denoEnv: Deno.env.get('DENO_ENV') || 'development',
+    };
+    const client = new CloudTasksClient(config);
     console.log('✅ Cloud Tasks client initialized successfully');
     console.log();
 

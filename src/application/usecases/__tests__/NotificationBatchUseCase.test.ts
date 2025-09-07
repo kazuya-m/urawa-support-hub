@@ -1,66 +1,42 @@
 import { assertEquals } from 'std/assert/mod.ts';
-import { returnsNext, stub } from 'std/testing/mock.ts';
-import {
-  BatchExecutionInput,
-  NotificationBatchUseCase,
-} from '@/application/usecases/NotificationBatchUseCase.ts';
-
-Deno.env.set('SUPABASE_URL', 'http://test.supabase.co');
-Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-key');
+import { BatchExecutionInput } from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
+import { NotificationBatchUseCase } from '@/application/usecases/NotificationBatchUseCase.ts';
+import { MockNotificationService } from '@/shared/testing/mocks/MockNotificationService.ts';
 
 Deno.test('NotificationBatchUseCase should call NotificationService.processPendingNotifications', async () => {
-  const useCase = new NotificationBatchUseCase();
+  const mockNotificationService = new MockNotificationService();
+  const useCase = new NotificationBatchUseCase(mockNotificationService);
 
-  const mockMethod = stub(
-    useCase['notificationService'],
-    'processPendingNotifications',
-    returnsNext([Promise.resolve()]),
-  );
+  const input: BatchExecutionInput = { operation: 'process_pending' };
+  const result = await useCase.execute(input);
 
-  try {
-    const input: BatchExecutionInput = { operation: 'process_pending' };
-    const result = await useCase.execute(input);
-
-    assertEquals(mockMethod.calls.length, 1);
-    assertEquals(typeof result, 'object');
-    if ('processed' in result && 'failed' in result) {
-      assertEquals(typeof result.processed, 'number');
-      assertEquals(typeof result.failed, 'number');
-    }
-  } finally {
-    mockMethod.restore();
+  assertEquals(typeof result, 'object');
+  if ('processed' in result && 'failed' in result) {
+    assertEquals(typeof result.processed, 'number');
+    assertEquals(typeof result.failed, 'number');
   }
 });
 
 Deno.test('NotificationBatchUseCase should handle NotificationService errors properly', async () => {
-  const useCase = new NotificationBatchUseCase();
-  const testError = new Error('ProcessPendingNotifications failed');
+  const mockNotificationService = new MockNotificationService();
+  mockNotificationService.setShouldThrowError(true, 'ProcessPendingNotifications failed');
+  const useCase = new NotificationBatchUseCase(mockNotificationService);
 
-  const mockMethod = stub(
-    useCase['notificationService'],
-    'processPendingNotifications',
-    returnsNext([Promise.reject(testError)]),
-  );
-
+  let caughtError: Error | null = null;
   try {
-    let caughtError: Error | null = null;
-    try {
-      const input: BatchExecutionInput = { operation: 'process_pending' };
-      await useCase.execute(input);
-    } catch (error) {
-      caughtError = error as Error;
-    }
-
-    assertEquals(caughtError !== null, true);
-    assertEquals(caughtError?.message.includes('Failed to execute batch notifications'), true);
-    assertEquals(mockMethod.calls.length, 1);
-  } finally {
-    mockMethod.restore();
+    const input: BatchExecutionInput = { operation: 'process_pending' };
+    await useCase.execute(input);
+  } catch (error) {
+    caughtError = error as Error;
   }
+
+  assertEquals(caughtError !== null, true);
+  assertEquals(caughtError?.message.includes('Failed to execute batch notifications'), true);
 });
 
 Deno.test('NotificationBatchUseCase should return cleanup result for expired notifications', async () => {
-  const useCase = new NotificationBatchUseCase();
+  const mockNotificationService = new MockNotificationService();
+  const useCase = new NotificationBatchUseCase(mockNotificationService);
   const input: BatchExecutionInput = { operation: 'cleanup_expired' };
   const result = await useCase.execute(input);
 

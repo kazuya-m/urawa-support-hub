@@ -60,8 +60,9 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 │        Domain Layer               │  ← Entities: Ticket, NotificationHistory
 ├─────────────────────────────────────┤
 │     Infrastructure Layer          │  ← Services: TicketCollectionService, JLeagueTicketScraper
-│                                   │    Repositories: TicketRepositoryImpl
+│                                   │    Repositories: TicketRepository（DI対応）
 │                                   │    Config: notification.ts, scraping.ts
+│                                   │    DI Container: src/config/di.ts
 └─────────────────────────────────────┘
 ```
 
@@ -106,13 +107,14 @@ Botのフォロワー全員へブロードキャスト配信によりタイム�
 
 **インフラストラクチャコンポーネント:**
 
-- **Repository実装**: TicketRepositoryImpl, NotificationRepositoryImpl, HealthRepositoryImpl
+- **Repository実装**: TicketRepository, NotificationRepository,
+  HealthRepository（DIコンストラクタ注入対応）
 - **スクレイピングサービス**: TicketCollectionService (統合レイヤー), JLeagueTicketScraper
   (ソース固有), BrowserManager (共有インフラ)
 - **外部サービスクライアント**: Supabase client, Playwright統合
 - **設定管理**: notification.ts, scraping.ts, url.ts
 - **技術ユーティリティ**: エラーハンドリング、ログ、型定義
-- **Factory Pattern**: RepositoryFactory による依存性管理
+- **依存性注入**: コンストラクタベースのDIパターンによる依存性管理（src/config/di.ts）
 
 ```
 ┌─────────────────────────────────────┐
@@ -278,24 +280,24 @@ graph TD
 
 ## 設計パターン
 
-### Repository Pattern (拡張版)
+### Repository Pattern + 依存性注入
 
-- インターフェースではなく具象クラスを直接使用することでシンプル性を追求
-- テスト時には`stub(instance, method)`によるモジュールモック戦略を採用
+- インターフェース駆動設計による疎結合アーキテクチャ
+- コンストラクタ注入による依存性管理
+- テスト時にはモック注入による単体テスト容易性
 - ドメインロジックを永続化の関心事から分離
 - **拡張**: Cloud Tasksとの統合によるスケジューリング機能
 
 ```typescript
-// 小規模プロジェクト向けの直接具象クラス使用
-export class TicketRepositoryImpl {
-  constructor() {
-    this.client = createSupabaseAdminClient();
-  }
+// インターフェース駆動設計+依存性注入
+export class TicketRepository implements ITicketRepository {
+  constructor(
+    private readonly client: SupabaseClient,
+  ) {}
 
   save(ticket: Ticket): Promise<void>;
   findByMatchDate(date: Date): Promise<Ticket[]>;
-  // イベント駆動通知スケジューリング
-  scheduleNotifications(ticketId: string): Promise<void>;
+  upsert(ticket: Ticket): Promise<Ticket>;
 }
 ```
 
@@ -560,7 +562,7 @@ src/
     │   ├── TicketRepositoryImpl.ts
     │   ├── NotificationRepositoryImpl.ts
     │   ├── HealthRepositoryImpl.ts
-    │   ├── RepositoryFactory.ts
+    │   ├── (DIサポート付きrepositories)
     │   ├── converters/
     │   │   ├── TicketConverter.ts
     │   │   ├── NotificationConverter.ts
@@ -593,4 +595,4 @@ src/
    - 設定を`src/config/`から`src/infrastructure/config/`に移動
    - サービスを`src/infrastructure/services/`下に整理
 3. **Domain層の洗練**: エンティティとリポジトリインターフェースの明確な分離
-4. **Factory Pattern**: `RepositoryFactory`による集約的な依存性管理
+4. **依存性注入**: `src/config/di.ts`によるコンストラクタベースのDI管理

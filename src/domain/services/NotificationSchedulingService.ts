@@ -3,13 +3,14 @@ import {
   NOTIFICATION_TIMING_CONFIG,
   NotificationType,
 } from '@/domain/entities/NotificationTypes.ts';
+import { INotificationSchedulingService } from '@/domain/interfaces/services/INotificationSchedulingService.ts';
 
 export interface NotificationTiming {
   type: NotificationType;
   scheduledTime: Date;
 }
 
-export class NotificationSchedulingService {
+export class NotificationSchedulingService implements INotificationSchedulingService {
   /**
    * チケットの販売開始日から通知タイミングを計算
    * 3つのタイミング（前日、1時間前、15分前）での通知時刻を返す

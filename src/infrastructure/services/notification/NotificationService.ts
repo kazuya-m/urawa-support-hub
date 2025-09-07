@@ -1,22 +1,20 @@
 import { Notification } from '@/domain/entities/Notification.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
+import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
+import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
 import {
   DISCORD_EMBED_TEMPLATES,
   getNotificationConfig,
   LINE_MESSAGE_TEMPLATES,
-} from '@/infrastructure/config/notification.ts';
-import type { NotificationExecutionInput } from '@/application/usecases/NotificationUseCase.ts';
+} from '@/config/notification.ts';
+import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 
-export class NotificationService {
-  private notificationRepository: NotificationRepository;
-  private ticketRepository: TicketRepository;
-
-  constructor() {
-    this.notificationRepository = new NotificationRepository();
-    this.ticketRepository = new TicketRepository();
-  }
+export class NotificationService implements INotificationService {
+  constructor(
+    private readonly notificationRepository: INotificationRepository,
+    private readonly ticketRepository: ITicketRepository,
+  ) {}
 
   async processScheduledNotification(input: NotificationExecutionInput): Promise<void> {
     const { ticketId, notificationType } = input;

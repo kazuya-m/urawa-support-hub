@@ -2,14 +2,12 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { HealthCheckResult, SystemHealth } from '@/domain/entities/SystemHealth.ts';
 import { HealthConverter } from './converters/HealthConverter.ts';
 import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
-import { createSupabaseAdminClient } from '../config/supabase.ts';
+import { IHealthRepository } from '@/application/interfaces/repositories/IHealthRepository.ts';
 
-export class HealthRepository {
-  private client: SupabaseClient;
-
-  constructor(client?: SupabaseClient) {
-    this.client = client || createSupabaseAdminClient();
-  }
+export class HealthRepository implements IHealthRepository {
+  constructor(
+    private readonly client: SupabaseClient,
+  ) {}
 
   async recordDailyExecution(result: HealthCheckResult): Promise<void> {
     const healthRecord = SystemHealth.createFromHealthCheck(result);
