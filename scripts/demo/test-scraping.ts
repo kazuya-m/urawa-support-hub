@@ -10,8 +10,9 @@
  * 注意: アクセス過多を防ぐため、手動実行のみ推奨
  */
 
-import { TicketCollectionService } from '../src/infrastructure/services/scraping/TicketCollectionService.ts';
-import { JLeagueTicketScraper } from '../src/infrastructure/services/scraping/sources/jleague/JLeagueTicketScraper.ts';
+import { TicketCollectionService } from '../../src/infrastructure/services/scraping/TicketCollectionService.ts';
+import { JLeagueTicketScraper } from '../../src/infrastructure/services/scraping/sources/jleague/JLeagueTicketScraper.ts';
+import { Ticket } from '../../src/domain/entities/Ticket.ts';
 
 // 環境変数チェック
 const isLiveScrapingEnabled = Deno.env.get('ENABLE_LIVE_SCRAPING') === 'true';
@@ -52,7 +53,7 @@ async function testScraping() {
     }
 
     // チケット情報を詳細表示
-    result.forEach((ticket, index: number) => {
+    result.forEach((ticket: Ticket, index: number) => {
       console.log(`\n【試合 ${index + 1}】`);
       console.log(`  対戦相手: ${ticket.matchName}`);
       console.log(`  試合日時: ${ticket.matchDate.toLocaleDateString('ja-JP')}`);
@@ -65,7 +66,7 @@ async function testScraping() {
     const debugOutput = {
       timestamp: new Date().toISOString(),
       ticketCount: result.length,
-      tickets: result.map((ticket) => ({
+      tickets: result.map((ticket: Ticket) => ({
         matchName: ticket.matchName,
         matchDate: ticket.matchDate.toISOString(),
         venue: ticket.venue,
