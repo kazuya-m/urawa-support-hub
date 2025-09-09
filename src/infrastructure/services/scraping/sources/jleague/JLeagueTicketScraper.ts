@@ -4,10 +4,11 @@ import { URAWA_URL_CONFIG } from '@/config/url.ts';
 import { BrowserManager } from '../../shared/BrowserManager.ts';
 import { JLeagueDataExtractor } from './JLeagueDataExtractor.ts';
 import { J_LEAGUE_SCRAPING_CONFIG } from './JLeagueConfig.ts';
+import { ITicketScraper } from '@/application/interfaces/services/ITicketScraper.ts';
 
 const debugMode = Deno.env.get('DEBUG_SCRAPING') === 'true';
 
-export class JLeagueTicketScraper {
+export class JLeagueTicketScraper implements ITicketScraper {
   private browserManager: BrowserManager;
   private dataExtractor: JLeagueDataExtractor;
 

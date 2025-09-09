@@ -3,17 +3,18 @@ import { Ticket } from '@/domain/entities/Ticket.ts';
 import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
 import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
 import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
-import {
-  DISCORD_EMBED_TEMPLATES,
-  getNotificationConfig,
-  LINE_MESSAGE_TEMPLATES,
-} from '@/config/notification.ts';
+import { DISCORD_EMBED_TEMPLATES, LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
 import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
+import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
+import { ILineClient } from '@/infrastructure/clients/LineClient.ts';
+import { IDiscordClient } from '@/infrastructure/clients/DiscordClient.ts';
 
 export class NotificationService implements INotificationService {
   constructor(
     private readonly notificationRepository: INotificationRepository,
     private readonly ticketRepository: ITicketRepository,
+    private readonly lineClient: ILineClient,
+    private readonly discordClient: IDiscordClient,
   ) {}
 
   async processScheduledNotification(input: NotificationExecutionInput): Promise<void> {
@@ -22,7 +23,8 @@ export class NotificationService implements INotificationService {
     try {
       const ticket = await this.ticketRepository.findById(ticketId);
       if (!ticket) {
-        throw new Error(`Ticket not found: ${ticketId}`);
+        const error = `Ticket not found: ${ticketId}`;
+        throw new Error(error);
       }
 
       const existingHistories = await this.notificationRepository
@@ -50,7 +52,6 @@ export class NotificationService implements INotificationService {
 
       await this.sendNotification(history, ticket);
     } catch (error) {
-      console.error('Scheduled notification processing failed:', error);
       await this.sendErrorNotification(
         `Scheduled notification processing failed for ticket ${ticketId}`,
         error instanceof Error ? error.message : String(error),
@@ -72,16 +73,11 @@ export class NotificationService implements INotificationService {
       try {
         const ticket = await this.ticketRepository.findById(notification.ticketId);
         if (!ticket) {
-          console.warn(`Ticket not found for notification: ${notification.id}`);
           continue;
         }
 
         await this.sendNotification(notification, ticket);
       } catch (error) {
-        console.error('Failed to process scheduled notification:', {
-          notificationId: notification.id,
-          error: error instanceof Error ? error.message : String(error),
-        });
         await this.handleFailedNotification(notification, error as Error);
       }
     }
@@ -94,7 +90,7 @@ export class NotificationService implements INotificationService {
 
     while (retryCount < maxRetries) {
       try {
-        await this.performNotificationSend(ticket);
+        await this.sendTicketNotification(ticket, history.notificationType);
         const updatedHistory = history.markAsSent();
         await this.notificationRepository.update(updatedHistory);
         return;
@@ -121,80 +117,38 @@ export class NotificationService implements INotificationService {
     }
   }
 
-  private async performNotificationSend(
+  private async sendTicketNotification(
     ticket: Ticket,
+    notificationType: NotificationType,
   ): Promise<void> {
-    const config = getNotificationConfig();
-
     const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
       ticket.matchName,
-      ticket.matchDate.toLocaleString('ja-JP'),
-      ticket.venue || '未定',
-      ticket.saleStartDate?.toLocaleString('ja-JP') || '未定',
-      ticket.ticketUrl,
-    );
-
-    const discordEmbed = DISCORD_EMBED_TEMPLATES.ticketNotification(
-      ticket.matchName,
-      ticket.matchDate.toLocaleString('ja-JP'),
-      ticket.venue || '未定',
-      ticket.saleStartDate?.toLocaleString('ja-JP') || '未定',
-      ticket.ticketUrl,
-    );
-
-    const [lineResponse, discordResponse] = await Promise.allSettled([
-      this.sendLineMessage(config.line.channelAccessToken, lineMessage),
-      this.sendDiscordMessage(config.discord.webhookUrl, discordEmbed),
-    ]);
-
-    const lineSuccess = lineResponse.status === 'fulfilled' && lineResponse.value.ok;
-    const discordSuccess = discordResponse.status === 'fulfilled' && discordResponse.value.ok;
-
-    if (!lineSuccess || !discordSuccess) {
-      const errors: string[] = [];
-      if (!lineSuccess) {
-        const error = lineResponse.status === 'rejected'
-          ? lineResponse.reason
-          : `LINE API error: ${lineResponse.value.status}`;
-        errors.push(`LINE: ${error}`);
-      }
-      if (!discordSuccess) {
-        const error = discordResponse.status === 'rejected'
-          ? discordResponse.reason
-          : `Discord API error: ${discordResponse.value.status}`;
-        errors.push(`Discord: ${error}`);
-      }
-      throw new Error(`Notification failed: ${errors.join(', ')}`);
-    }
-  }
-
-  private sendLineMessage(
-    accessToken: string,
-    message: Record<string, unknown>,
-  ): Promise<Response> {
-    return fetch('https://api.line.me/v2/bot/message/broadcast', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [message],
+      ticket.matchDate.toLocaleString('ja-JP', {
+        month: 'numeric',
+        day: 'numeric',
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
       }),
-    });
-  }
+      ticket.venue || '未定',
+      ticket.saleStartDate?.toLocaleString('ja-JP', {
+        month: 'numeric',
+        day: 'numeric',
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      }) || '未定',
+      notificationType,
+      ticket.ticketUrl,
+    );
 
-  private sendDiscordMessage(
-    webhookUrl: string,
-    embed: Record<string, unknown>,
-  ): Promise<Response> {
-    return fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(embed),
-    });
+    try {
+      await this.lineClient.broadcast(lineMessage);
+    } catch (error) {
+      throw new Error(
+        `LINE notification failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   async handleFailedNotification(history: Notification, error: Error): Promise<void> {
@@ -209,11 +163,10 @@ export class NotificationService implements INotificationService {
 
   private async sendErrorNotification(error: string, details: string): Promise<void> {
     try {
-      const config = getNotificationConfig();
-      const embed = DISCORD_EMBED_TEMPLATES.errorNotification(error, details);
-      await this.sendDiscordMessage(config.discord.webhookUrl, embed);
-    } catch (discordError) {
-      console.error('Failed to send error notification to Discord:', discordError);
+      const webhookPayload = DISCORD_EMBED_TEMPLATES.errorNotification(error, details);
+      await this.discordClient.sendWebhook(webhookPayload);
+    } catch {
+      // Ignore Discord errors
     }
   }
 

@@ -178,6 +178,7 @@ Deno.test('Notification Services Integration Tests', async (t) => {
       '2024-03-15 19:00',
       '味の素スタジアム',
       '2024-03-01 10:00',
+      'day_before',
       'https://example.com/ticket',
     );
 
@@ -209,12 +210,10 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     mockServer.clearRequests();
 
     const config = getNotificationConfig();
-    const embed = DISCORD_EMBED_TEMPLATES.ticketNotification(
-      '浦和レッズ vs FC東京',
-      '2024-03-15 19:00',
-      '味の素スタジアム',
-      '2024-03-01 10:00',
-      'https://example.com/ticket',
+    const embed = DISCORD_EMBED_TEMPLATES.systemNotification(
+      '🎫 チケット販売通知',
+      '**浦和レッズ vs FC東京**\n📅 2024-03-15 19:00\n📍 味の素スタジアム\n🚀 販売開始: 2024-03-01 10:00\n[チケット購入ページ](https://example.com/ticket)',
+      51281,
     );
 
     const response = await sendDiscordMessage(config.discord, embed);
@@ -353,17 +352,16 @@ Deno.test('Notification Services Integration Tests', async (t) => {
       ticketInfo.date,
       ticketInfo.venue,
       ticketInfo.saleStart,
+      'day_before',
       ticketInfo.url,
     );
     const lineResponse = await sendLineMessage(config.line, lineMessage);
 
     // Discord通知
-    const discordEmbed = DISCORD_EMBED_TEMPLATES.ticketNotification(
-      ticketInfo.match,
-      ticketInfo.date,
-      ticketInfo.venue,
-      ticketInfo.saleStart,
-      ticketInfo.url,
+    const discordEmbed = DISCORD_EMBED_TEMPLATES.systemNotification(
+      '🎫 チケット販売通知',
+      `**${ticketInfo.match}**\n📅 ${ticketInfo.date}\n📍 ${ticketInfo.venue}\n🚀 販売開始: ${ticketInfo.saleStart}\n[チケット購入ページ](${ticketInfo.url})`,
+      51281,
     );
     const discordResponse = await sendDiscordMessage(config.discord, discordEmbed);
 
