@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-09 (Issue #78 完了)\
+**Updated**: 2025-09-09 (MVP deployment requirements analysis)\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
@@ -11,8 +11,8 @@
   services, application layer, Cloud Tasks notification scheduling (#25), Cloud Run deployment
   (#24), Discord notifications (#30), Sale Status Management (#62), Dependency Injection Pattern
   (#75), Notification status change (#73), Cloud Tasks→Cloud Run notification integration (#78)
-- **In Progress**: Nothing currently in progress
-- **Not Started**: Cloud Scheduler daily execution, data quality monitoring
+- **In Progress**: MVP deployment planning
+- **Not Started**: Cloud Scheduler daily execution, CI/CD setup, production environment setup
 
 ## Implementation Phases Overview
 
@@ -55,14 +55,15 @@
 | #30   | Discord error notification implementation                  | 🟠 High     | ✅ **COMPLETED** | Error alerts only          |
 | #13   | Notification management application service implementation | 🔴 Critical | ✅ **COMPLETED** | Notification orchestration |
 
-### Phase 4: Deployment (2 days)
+### Phase 4: Deployment (3 days) - **UPDATED**
 
-**Purpose**: Automated deployment and testing
+**Purpose**: Production deployment and automated CI/CD
 
-| Issue | Title               | Priority    | Status         | Reason                  |
-| ----- | ------------------- | ----------- | -------------- | ----------------------- |
-| #33   | Minimal CI/CD setup | 🟠 High     | ❌ Not Started | Post-launch improvement |
-| -     | Manual testing      | 🔴 Critical | ❌ Not Started | Final verification      |
+| Issue | Title                                    | Priority    | Status         | Reason                    |
+| ----- | ---------------------------------------- | ----------- | -------------- | ------------------------- |
+| #33   | **GitHub Actions CI/CD Pipeline実装**    | 🔴 Critical | ❌ Not Started | **MVP自動デプロイ必須**   |
+| #82   | **GCP本番環境構築・Service Account設定** | 🔴 Critical | ❌ Not Started | **MVP認証・権限設定必須** |
+| #83   | **Production Deployment Verification**   | 🔴 Critical | ❌ Not Started | **MVP動作確認必須**       |
 
 ## Completed Issues (Additional implementations)
 
@@ -115,11 +116,11 @@ Each issue is considered complete when:
 
 - **Target**: Complete Google Cloud integration and production deployment
 - **Success Criteria**: Automated daily ticket monitoring with LINE/Discord notifications
-- **Remaining**: 3 issues (8% of total scope) - **UPDATED**
+- **Remaining**: 4 issues (10% of total scope) - **UPDATED**
 
 ## Current Status (2025-09-09) - **UPDATED**
 
-### ✅ Completed Issues: 35/38 (92%)
+### ✅ Completed Issues: 35/40 (88%)
 
 **Foundation & Infrastructure:**
 
@@ -162,11 +163,14 @@ Each issue is considered complete when:
 - #32 - Database migration management
 - #34 - Security and permission detailed design
 
-### ❌ Not Started: 3/38 (8%)
+### ❌ Not Started: 5/40 (12%)
 
-**Critical for MVP Launch:**
+**Critical for MVP Launch (Phase 4):**
 
 - #26 - Cloud Scheduler daily execution setup
+- #33 - **GitHub Actions CI/CD Pipeline実装** (**Phase 5→4に移動**)
+- #82 - **GCP本番環境構築・Service Account設定** (**NEW**)
+- #83 - **Production Deployment Verification** (**NEW**)
 
 **Optimization & Improvements:**
 
@@ -178,15 +182,22 @@ Each issue is considered complete when:
 
 - #67 - ヴィッセル神戸オフィシャルサイト対応 (Phase 5)
 - #66 - サンフレッチェ広島オフィシャルサイト対応 (Phase 5)
-- #50 - 本番環境セキュリティ強化：RLSポリシー導入 (Phase 4)
-- #33 - 最小限CI/CDセットアップ (Phase 5)
+- #50 - 本番環境セキュリティ強化：RLSポリシー導入 (Phase 5)
 
 ## Next Steps Priority (**UPDATED: 2025-09-09**)
 
+**MVP Launch Requirements (Phase 4):**
+
 1. **#26** - Cloud Scheduler daily execution setup 🔴 **MVPローンチ必須**
-2. **#64** - スクレイピングデータ品質監視・Discord通知機能実装 🟠 品質向上
-3. **#72** - データベースへのクエリ回数を最適化する 🟡 コスト最適化
-4. **#68** - データベース履歴とGCPログの料金最適化 🟡 コスト最適化
+2. **#33** - GitHub Actions CI/CD Pipeline実装 🔴 **自動デプロイ必須**
+3. **#82** - GCP本番環境構築・Service Account設定 🔴 **認証・権限設定必須**
+4. **#83** - Production Deployment Verification 🔴 **動作確認必須**
+
+**Post-MVP Improvements:**
+
+5. **#64** - スクレイピングデータ品質監視・Discord通知機能実装 🟠 品質向上
+6. **#72** - データベースへのクエリ回数を最適化する 🟡 コスト最適化
+7. **#68** - データベース履歴とGCPログの料金最適化 🟡 コスト最適化
 
 ## Progress Tracking
 
