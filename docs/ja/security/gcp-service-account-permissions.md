@@ -142,7 +142,7 @@ gcloud projects add-iam-policy-binding PROJECT_ID \
   --role="roles/cloudscheduler.jobRunner"
 
 # 4. スケジューラーに特定のスクレイピングサービスのみrun.invokerロールを付与
-gcloud run services add-iam-policy-binding scraping-service \
+gcloud run services add-iam-policy-binding urawa-support-hub \
   --member="serviceAccount:urawa-scheduler@PROJECT_ID.iam.gserviceaccount.com" \
   --role="roles/run.invoker" \
   --region=asia-northeast1

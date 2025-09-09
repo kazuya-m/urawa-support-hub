@@ -115,7 +115,7 @@ grep -n "\.env" .gitignore
 
 ```bash
 # Set environment variables for Cloud Run
-gcloud run services update scraping-service \
+gcloud run services update urawa-support-hub \
   --set-env-vars="SUPABASE_URL=https://...,SUPABASE_SERVICE_ROLE_KEY=eyJ..." \
   --region=asia-northeast1
 ```
