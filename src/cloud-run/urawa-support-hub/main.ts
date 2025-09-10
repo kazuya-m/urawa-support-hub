@@ -9,7 +9,7 @@ async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
   if (url.pathname === '/api/collect-tickets' && req.method === 'POST') {
-    const ticketController = await createTicketCollectionController();
+    const ticketController = createTicketCollectionController();
     return await ticketController.handleCollectTickets(req);
   }
 
