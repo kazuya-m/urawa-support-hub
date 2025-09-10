@@ -1,4 +1,4 @@
-import { Page } from 'npm:playwright@1.40.0';
+import { Page } from 'playwright';
 import { ScrapedTicketData } from '@/infrastructure/services/scraping/types/ScrapedTicketData.ts';
 import { URAWA_URL_CONFIG } from '@/config/url.ts';
 import { BrowserManager } from '../../shared/BrowserManager.ts';
