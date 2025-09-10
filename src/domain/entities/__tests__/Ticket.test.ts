@@ -1,4 +1,4 @@
-import { assert, assertEquals, assertExists } from 'jsr:@std/assert';
+import { assert, assertEquals, assertExists } from 'std/assert/mod.ts';
 import { Ticket } from '../Ticket.ts';
 import { DataQuality } from '../DataQuality.ts';
 

@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from 'jsr:@std/assert';
+import { assertEquals, assertExists } from 'std/assert/mod.ts';
 import { TicketDataMapper } from '../transformation/components/TicketDataMapper.ts';
 import { ValidatedTicketData } from '../types/ValidationResult.ts';
 

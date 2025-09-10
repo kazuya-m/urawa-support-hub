@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from 'jsr:@std/assert';
+import { assertEquals, assertRejects } from 'std/assert/mod.ts';
 import { TicketRepository } from '../TicketRepository.ts';
 import { Ticket } from '@/domain/entities/index.ts';
 import { TicketRow } from '@/infrastructure/types/database.ts';
