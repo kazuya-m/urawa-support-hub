@@ -1,4 +1,4 @@
-import { assertEquals } from 'jsr:@std/assert';
+import { assertEquals } from 'std/assert/mod.ts';
 import { DataQuality, determineDataQuality } from '../DataQuality.ts';
 
 Deno.test('DataQuality - 完全なデータ', () => {

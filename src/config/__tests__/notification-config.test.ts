@@ -2,7 +2,7 @@
  * 通知サービス設定のユニットテスト
  */
 
-import { assertEquals, assertThrows } from 'jsr:@std/assert';
+import { assertEquals, assertThrows } from 'std/assert/mod.ts';
 import {
   DISCORD_EMBED_TEMPLATES,
   type DiscordConfig,
