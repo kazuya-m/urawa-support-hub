@@ -4,7 +4,7 @@
  * Issue #25: Google Cloud Tasks通知スケジューリング実装
  */
 
-import { load } from 'https://deno.land/std@0.208.0/dotenv/mod.ts';
+import { load } from 'std/dotenv/mod.ts';
 import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
 import {
   NOTIFICATION_TIMING_CONFIG,

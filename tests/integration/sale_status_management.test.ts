@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from 'https://deno.land/std@0.210.0/testing/asserts.ts';
+import { assertEquals, assertExists } from 'std/assert/mod.ts';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { cleanupTestData } from '../utils/test-supabase.ts';

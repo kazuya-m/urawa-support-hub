@@ -1,4 +1,4 @@
-import { assertEquals } from 'jsr:@std/assert';
+import { assertEquals } from 'std/assert/mod.ts';
 import { Ticket } from '../Ticket.ts';
 
 Deno.test('Ticket hasSameBusinessData method', async (t) => {
