@@ -4,14 +4,49 @@
  * Issue #25: Google Cloud Tasks通知スケジューリング実装
  */
 
-import { load } from 'https://deno.land/std@0.208.0/dotenv/mod.ts';
+import { load } from 'std/dotenv/mod.ts';
 import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
+import {
+  NOTIFICATION_TIMING_CONFIG,
+  NOTIFICATION_TYPES,
+} from '@/domain/entities/NotificationTypes.ts';
 
 // .envファイルを読み込み
 await load({ export: true });
 
+/**
+ * 通知タイプ選択機能
+ */
+function selectNotificationType(): string {
+  const args = Deno.args;
+
+  // コマンドライン引数で指定された場合
+  if (args.length > 0) {
+    const specifiedType = args[0];
+    if (Object.values(NOTIFICATION_TYPES).includes(specifiedType as any)) {
+      return specifiedType;
+    } else {
+      console.error(`❌ Invalid notification type: ${specifiedType}`);
+      console.log('   Valid types:', Object.values(NOTIFICATION_TYPES).join(', '));
+      Deno.exit(1);
+    }
+  }
+
+  // デフォルトは day_before
+  return NOTIFICATION_TYPES.DAY_BEFORE;
+}
+
 async function testCloudTasksEnqueue() {
-  console.log('🚀 Testing Cloud Tasks enqueue functionality...');
+  console.log('🚀 Testing Cloud Tasks enqueue functionality with notification types...');
+
+  // 通知タイプの選択
+  const selectedNotificationType = selectNotificationType();
+  const notificationConfig =
+    NOTIFICATION_TIMING_CONFIG[selectedNotificationType as keyof typeof NOTIFICATION_TIMING_CONFIG];
+
+  console.log(`📋 Selected notification type: ${selectedNotificationType}`);
+  console.log(`   Display name: ${notificationConfig.displayName}`);
+  console.log(`   Description: ${notificationConfig.description}`);
   console.log();
 
   // 環境変数の確認と設定
@@ -67,13 +102,14 @@ async function testCloudTasksEnqueue() {
     console.log();
 
     // テストタスクのパラメータを設定
-    const testTaskId = `test-task-${Date.now()}`;
+    const testTaskId = `test-task-${selectedNotificationType}-${Date.now()}`;
     const scheduledTime = new Date(Date.now() + 30 * 1000); // 30秒後
     const testPayload = {
       ticketId: 'test-ticket-123',
-      notificationType: 'day_before',
+      notificationType: selectedNotificationType,
       testData: true,
       timestamp: new Date().toISOString(),
+      notificationStyle: notificationConfig.displayName,
     };
 
     console.log('📝 Test task parameters:');
@@ -139,9 +175,23 @@ async function testCloudTasksEnqueue() {
     console.log(`   1. Check Google Cloud Console for the task in the 'notifications' queue`);
     console.log(`   2. Wait for ${scheduledTime.toISOString()} to see if the task executes`);
     console.log(`   3. Monitor Cloud Run logs for incoming HTTP requests`);
-    console.log(`   4. You can cancel the test task using:`);
+    console.log(
+      `   4. Check LINE/Discord for notification with ${selectedNotificationType} styling`,
+    );
+    console.log(`   5. You can cancel the test task using:`);
     console.log(
       `      deno run --allow-env --allow-net scripts/cancel-test-task.ts ${createdTaskId}`,
+    );
+    console.log();
+    console.log('🔄 Testing other notification types:');
+    console.log(
+      `   deno run --allow-env --allow-net scripts/test-cloud-tasks-enqueue.ts day_before`,
+    );
+    console.log(
+      `   deno run --allow-env --allow-net scripts/test-cloud-tasks-enqueue.ts hour_before`,
+    );
+    console.log(
+      `   deno run --allow-env --allow-net scripts/test-cloud-tasks-enqueue.ts minutes_before`,
     );
   } catch (error) {
     console.error('❌ Test failed:', error);

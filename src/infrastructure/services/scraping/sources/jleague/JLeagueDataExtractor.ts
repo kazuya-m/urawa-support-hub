@@ -1,4 +1,4 @@
-import { Page } from 'npm:playwright@1.40.0';
+import { Page } from 'playwright';
 import { ScrapedTicketData } from '@/infrastructure/services/scraping/types/ScrapedTicketData.ts';
 import { parseSaleDate } from '@/domain/entities/SaleStatusUtils.ts';
 

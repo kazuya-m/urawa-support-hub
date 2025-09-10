@@ -3,6 +3,8 @@
  * LINE Bot および Discord Webhook の設定値管理
  */
 
+import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
+
 export interface LineConfig {
   channelAccessToken: string;
 }
@@ -51,6 +53,35 @@ export function getNotificationConfig(): NotificationServiceConfig {
 }
 
 /**
+ * 通知タイプ別の色とメッセージ設定
+ */
+export const NOTIFICATION_TYPE_STYLES = {
+  day_before: {
+    color: '#00C851', // 緑（安全・余裕あり）
+    discordColor: 51281, // 0x00C851
+    title: '✅ 明日販売開始',
+    urgency: '明日',
+  },
+  hour_before: {
+    color: '#E6B800', // 濃い黄色（視認性向上）
+    discordColor: 15055872, // 0xE6B800
+    title: '⚠️ 1時間後に販売開始',
+    urgency: '1時間後',
+  },
+  minutes_before: {
+    color: '#DC143C', // 浦和レッズの赤色（緊急・危険）
+    discordColor: 14423100, // 0xDC143C
+    title: '🚨 まもなく販売開始',
+    urgency: '15分後',
+  },
+} as const satisfies Record<NotificationType, {
+  color: string;
+  discordColor: number;
+  title: string;
+  urgency: string;
+}>;
+
+/**
  * LINE メッセージテンプレート
  */
 export const LINE_MESSAGE_TEMPLATES = {
@@ -63,130 +94,107 @@ export const LINE_MESSAGE_TEMPLATES = {
   }),
 
   /**
-   * チケット販売通知メッセージ（Flex Message）
+   * チケット販売通知メッセージ（通知タイプ別）
    */
   ticketNotification: (
     match: string,
     date: string,
     venue: string,
     saleStart: string,
+    notificationType: NotificationType,
     url?: string,
-  ) => ({
-    type: 'flex' as const,
-    altText: `【チケット通知】${match}`,
-    contents: {
-      type: 'bubble',
-      body: {
-        type: 'box',
-        layout: 'vertical',
-        contents: [
-          {
-            type: 'text',
-            text: '🎫 チケット販売通知',
-            weight: 'bold',
-            size: 'lg',
-            color: '#DC143C',
-          },
-          {
-            type: 'text',
-            text: match,
-            size: 'md',
-            margin: 'sm',
-          },
-          {
-            type: 'text',
-            text: `⚽ ${date}`,
-            size: 'sm',
-            color: '#666666',
-          },
-          {
-            type: 'text',
-            text: `🏟️ ${venue}`,
-            size: 'sm',
-            color: '#666666',
-          },
-          {
-            type: 'text',
-            text: `🚀 販売開始: ${saleStart}`,
-            size: 'md',
-            weight: 'bold',
-            color: '#DC143C',
-            margin: 'md',
-          },
-        ],
-      },
-      footer: url
-        ? {
+  ) => {
+    const style = NOTIFICATION_TYPE_STYLES[notificationType];
+
+    return {
+      type: 'flex' as const,
+      altText: `【チケット販売通知】${match}`,
+      contents: {
+        type: 'bubble',
+        body: {
           type: 'box',
           layout: 'vertical',
           contents: [
             {
-              type: 'button',
-              action: {
-                type: 'uri',
-                label: 'チケット購入ページ',
-                uri: url,
-              },
-              style: 'primary',
-              color: '#DC143C',
+              type: 'text',
+              text: style.title,
+              weight: 'bold',
+              size: 'lg',
+              color: style.color,
+            },
+            {
+              type: 'separator',
+              margin: 'md',
+            },
+            {
+              type: 'text',
+              text: `⚽️ ${match}`,
+              size: 'md',
+              margin: 'md',
+            },
+            {
+              type: 'text',
+              text: `📅 ${date}`,
+              size: 'sm',
+              color: '#666666',
+              margin: 'sm',
+            },
+            {
+              type: 'text',
+              text: `📍 ${venue}`,
+              size: 'sm',
+              color: '#666666',
+              margin: 'sm',
+            },
+            {
+              type: 'separator',
+              margin: 'md',
+            },
+            {
+              type: 'text',
+              text: `🚀 販売開始: ${saleStart}`,
+              size: 'md',
+              weight: 'bold',
+              color: style.color,
+              margin: 'md',
+            },
+            {
+              type: 'text',
+              text: `⏰ ${style.urgency}販売開始`,
+              size: 'md',
+              weight: 'bold',
+              color: style.color,
+              margin: 'sm',
             },
           ],
-        }
-        : undefined,
-    },
-  }),
+        },
+        footer: url
+          ? {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'button',
+                action: {
+                  type: 'uri',
+                  label: 'チケット購入ページ',
+                  uri: url,
+                },
+                style: 'primary',
+                color: style.color,
+              },
+            ],
+          }
+          : undefined,
+      },
+    };
+  },
 };
 
 /**
- * Discord Embed テンプレート
+ * Discord Embed テンプレート（エラー・システムログ用）
  */
 export const DISCORD_EMBED_TEMPLATES = {
-  /**
-   * チケット販売通知 Embed
-   */
-  ticketNotification: (
-    match: string,
-    date: string,
-    venue: string,
-    saleStart: string,
-    url?: string,
-  ) => ({
-    embeds: [
-      {
-        title: '🎫 浦和レッズ チケット販売通知',
-        description: 'アウェイマッチのチケット販売が開始されます',
-        color: 14431075, // 浦和レッズカラー (#DC143C)
-        fields: [
-          {
-            name: '⚽ 試合',
-            value: match,
-            inline: true,
-          },
-          {
-            name: '📅 日時',
-            value: date,
-            inline: true,
-          },
-          {
-            name: '🏟️ 会場',
-            value: venue,
-            inline: true,
-          },
-          {
-            name: '🚀 販売開始',
-            value: saleStart,
-            inline: false,
-          },
-        ],
-        url: url,
-        timestamp: new Date().toISOString(),
-        footer: {
-          text: 'Urawa Support Hub',
-        },
-      },
-    ],
-  }),
-
   /**
    * システム通知 Embed
    */

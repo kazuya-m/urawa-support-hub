@@ -2,7 +2,7 @@
  * 通知サービス設定のユニットテスト
  */
 
-import { assertEquals, assertThrows } from 'jsr:@std/assert';
+import { assertEquals, assertThrows } from 'std/assert/mod.ts';
 import {
   DISCORD_EMBED_TEMPLATES,
   type DiscordConfig,
@@ -142,11 +142,12 @@ Deno.test('LINE_MESSAGE_TEMPLATES', async (t) => {
       '2024-03-15 19:00',
       '味の素スタジアム',
       '2024-03-01 10:00',
+      'day_before',
       'https://example.com/ticket',
     );
 
     assertEquals(message.type, 'flex');
-    assertEquals(message.altText, '【チケット通知】浦和レッズ vs FC東京');
+    assertEquals(message.altText, '【チケット販売通知】浦和レッズ vs FC東京');
     assertEquals(message.contents.type, 'bubble');
     assertEquals(message.contents.body.type, 'box');
     assertEquals(message.contents.body.layout, 'vertical');
@@ -162,6 +163,7 @@ Deno.test('LINE_MESSAGE_TEMPLATES', async (t) => {
       '2024-03-15 19:00',
       '味の素スタジアム',
       '2024-03-01 10:00',
+      'day_before',
     );
 
     assertEquals(message.contents.footer, undefined);
@@ -173,48 +175,42 @@ Deno.test('LINE_MESSAGE_TEMPLATES', async (t) => {
       '2024-03-15',
       'Test Venue',
       '2024-03-01',
+      'day_before',
     );
 
     const contents = message.contents.body.contents;
-    // タイトルが浦和レッズカラーであることを確認
-    assertEquals(contents[0].color, '#DC143C');
-    // 販売開始日時が浦和レッズカラーであることを確認
+    // タイトルが緑色（day_before）であることを確認
+    assertEquals(contents[0].color, '#00C851');
+    // 販売開始日時が緑色（day_before）であることを確認
     const saleStartText = contents.find((c: unknown) =>
       typeof c === 'object' && c !== null && 'text' in c &&
       typeof c.text === 'string' && c.text.includes('販売開始:')
     );
-    assertEquals((saleStartText as { color?: string })?.color, '#DC143C');
+    assertEquals((saleStartText as { color?: string })?.color, '#00C851');
   });
 });
 
 Deno.test('DISCORD_EMBED_TEMPLATES', async (t) => {
-  await t.step('ticketNotification template should create embed', () => {
-    const embed = DISCORD_EMBED_TEMPLATES.ticketNotification(
-      '浦和レッズ vs FC東京',
-      '2024-03-15 19:00',
-      '味の素スタジアム',
-      '2024-03-01 10:00',
-      'https://example.com/ticket',
+  await t.step('systemNotification template should create embed with custom color', () => {
+    const embed = DISCORD_EMBED_TEMPLATES.systemNotification(
+      '🎫 チケット販売通知',
+      '浦和レッズ vs FC東京\n📅 2024-03-15 19:00\n📍 味の素スタジアム\n🚀 販売開始: 2024-03-01 10:00',
+      51281, // day_before green color
     );
 
     assertEquals(embed.embeds.length, 1);
-    assertEquals(embed.embeds[0].title, '🎫 浦和レッズ チケット販売通知');
-    assertEquals(embed.embeds[0].description, 'アウェイマッチのチケット販売が開始されます');
-    assertEquals(embed.embeds[0].color, 14431075); // 浦和レッズカラー
-    assertEquals(embed.embeds[0].url, 'https://example.com/ticket');
-    assertEquals(embed.embeds[0].fields.length, 4);
-    assertEquals(embed.embeds[0].footer.text, 'Urawa Support Hub');
+    assertEquals(embed.embeds[0].title, '🎫 チケット販売通知');
+    assertEquals(embed.embeds[0].color, 51281);
+    assertEquals(embed.embeds[0].footer.text, 'Urawa Support Hub System');
   });
 
-  await t.step('ticketNotification template should work without URL', () => {
-    const embed = DISCORD_EMBED_TEMPLATES.ticketNotification(
-      '浦和レッズ vs FC東京',
-      '2024-03-15 19:00',
-      '味の素スタジアム',
-      '2024-03-01 10:00',
+  await t.step('systemNotification template should work with basic parameters', () => {
+    const embed = DISCORD_EMBED_TEMPLATES.systemNotification(
+      'システム通知',
+      '処理が完了しました',
     );
 
-    assertEquals(embed.embeds[0].url, undefined);
+    assertEquals(embed.embeds[0].color, 65280); // default green
   });
 
   await t.step('systemNotification template should create system embed', () => {
@@ -263,11 +259,9 @@ Deno.test('DISCORD_EMBED_TEMPLATES', async (t) => {
   await t.step('all embed templates should have timestamp', () => {
     const now = new Date();
 
-    const ticketEmbed = DISCORD_EMBED_TEMPLATES.ticketNotification(
-      'match',
-      'date',
-      'venue',
-      'sale',
+    const ticketEmbed = DISCORD_EMBED_TEMPLATES.systemNotification(
+      'Test Notification',
+      'Test Description',
     );
     const systemEmbed = DISCORD_EMBED_TEMPLATES.systemNotification('title', 'desc');
     const errorEmbed = DISCORD_EMBED_TEMPLATES.errorNotification('error');

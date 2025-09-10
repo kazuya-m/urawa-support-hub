@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from 'jsr:@std/assert';
+import { assertEquals, assertRejects } from 'std/assert/mod.ts';
 import { NotificationRepository } from '../NotificationRepository.ts';
 import { Notification } from '@/domain/entities/index.ts';
 import { NotificationRow } from '@/infrastructure/types/database.ts';

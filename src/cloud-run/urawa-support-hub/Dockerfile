@@ -1,4 +1,4 @@
-FROM denoland/deno:2.0.0
+FROM denoland/deno:2.4.5
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
@@ -24,9 +24,9 @@ RUN apt-get update && apt-get install -y \
 EXPOSE 8080
 WORKDIR /app
 
-COPY import_map.json deno.json deno.lock* ./
+COPY deno.json deno.lock* ./
 COPY src/ ./src/
-RUN deno cache --import-map=import_map.json src/cloud-run/scraping-service/main.ts
+RUN deno cache src/cloud-run/urawa-support-hub/main.ts
 
 COPY . .
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/bin/chromium
@@ -44,5 +44,4 @@ CMD ["deno", "run", \
      "--allow-read", \
      "--allow-run", \
      "--allow-sys", \
-     "--import-map=import_map.json", \
-     "src/cloud-run/scraping-service/main.ts"]
+     "src/cloud-run/urawa-support-hub/main.ts"]

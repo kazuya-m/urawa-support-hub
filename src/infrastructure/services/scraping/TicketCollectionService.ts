@@ -1,12 +1,12 @@
 import { ScrapedTicketData } from './types/ScrapedTicketData.ts';
-import { JLeagueTicketScraper } from './sources/jleague/JLeagueTicketScraper.ts';
 import { ScrapedDataTransformer } from './transformation/ScrapedDataTransformer.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { ITicketCollectionService } from '@/application/interfaces/services/ITicketCollectionService.ts';
+import { ITicketScraper } from '@/application/interfaces/services/ITicketScraper.ts';
 
 export class TicketCollectionService implements ITicketCollectionService {
   constructor(
-    private readonly jleagueScraper: JLeagueTicketScraper,
+    private readonly jleagueScraper: ITicketScraper,
   ) {}
 
   async collectAllTickets(): Promise<Ticket[]> {

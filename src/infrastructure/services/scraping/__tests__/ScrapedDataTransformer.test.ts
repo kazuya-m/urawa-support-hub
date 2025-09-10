@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from 'jsr:@std/assert';
+import { assertEquals, assertExists } from 'std/assert/mod.ts';
 import { ScrapedDataTransformer } from '../transformation/ScrapedDataTransformer.ts';
 import { ScrapedTicketData } from '../types/ScrapedTicketData.ts';
 

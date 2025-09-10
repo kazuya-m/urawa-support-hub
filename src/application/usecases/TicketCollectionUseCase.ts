@@ -67,7 +67,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
         },
       };
 
-      if (Deno.env.get('DENO_ENV') !== 'production') {
+      if (Deno.env.get('NODE_ENV') !== 'production') {
         console.error(
           'Daily execution failed:',
           error instanceof Error ? error.message : String(error),
@@ -77,7 +77,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
       try {
         await this.healthRepository.recordDailyExecution(executionResult);
       } catch (healthError) {
-        if (Deno.env.get('DENO_ENV') !== 'production') {
+        if (Deno.env.get('NODE_ENV') !== 'production') {
           console.error(
             'CRITICAL: Failed to record health check - Supabase may auto-pause:',
             healthError,

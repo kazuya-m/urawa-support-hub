@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from 'https://deno.land/std@0.208.0/assert/mod.ts';
+import { assertEquals, assertExists } from 'std/assert/mod.ts';
 import { stub } from 'testing/mock.ts';
 import { NotificationSchedulerService } from '../NotificationSchedulerService.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';

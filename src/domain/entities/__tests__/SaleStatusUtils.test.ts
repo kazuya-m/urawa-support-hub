@@ -1,4 +1,4 @@
-import { assertEquals } from 'https://deno.land/std@0.210.0/testing/asserts.ts';
+import { assertEquals } from 'std/assert/mod.ts';
 import { determineSaleStatus, parseSaleDate } from '../SaleStatusUtils.ts';
 
 Deno.test('determineSaleStatus should return correct status based on dates', () => {

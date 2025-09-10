@@ -1,7 +1,16 @@
 /**
  * 依存性注入（DI）統一管理
- * アプリケーション全体の依存関係をここで管理
+ * 一般的なファクトリー関数パターンで実装
  */
+
+import { load } from '@std/dotenv';
+
+// .envファイルを読み込み（テスト環境でも本番環境でも対応）
+try {
+  await load({ export: true });
+} catch {
+  // .envファイルが存在しない場合は無視（本番環境など）
+}
 
 // Infrastructure imports
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
@@ -10,9 +19,12 @@ import { HealthRepository } from '@/infrastructure/repositories/HealthRepository
 import { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
 import { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
 import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
-import { CloudTasksClient, CloudTasksConfig } from '@/infrastructure/clients/CloudTasksClient.ts';
+import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
+import { LineClient } from '@/infrastructure/clients/LineClient.ts';
+import { DiscordClient } from '@/infrastructure/clients/DiscordClient.ts';
 import { JLeagueTicketScraper } from '@/infrastructure/services/scraping/sources/jleague/JLeagueTicketScraper.ts';
 import { createSupabaseAdminClient } from '@/config/supabase.ts';
+import { getAppConfig } from '@/config/app-config.ts';
 
 // Domain services
 import { NotificationSchedulingService } from '@/domain/services/NotificationSchedulingService.ts';
@@ -32,25 +44,20 @@ import { NotificationController } from '@/adapters/controllers/NotificationContr
 import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
 import { NotificationBatchController } from '@/adapters/controllers/NotificationBatchController.ts';
 
-// シングルトン依存関係（1度だけ作成）
-const dependencies = (() => {
-  if (Deno.env.get('DENO_ENV') !== 'production') {
-    console.log('🔧 Initializing dependencies...');
-  }
+/**
+ * 依存関係を作成するファクトリー関数
+ * 実行時に設定を取得し、新しいインスタンスを作成
+ */
+export const createDependencies = () => {
+  const config = getAppConfig();
 
   // Clients
   const supabaseClient = createSupabaseAdminClient();
-  const cloudTasksConfig: CloudTasksConfig = {
-    projectId: Deno.env.get('GOOGLE_CLOUD_PROJECT') || Deno.env.get('GCP_PROJECT_ID') || '',
-    location: Deno.env.get('CLOUD_TASKS_LOCATION') || Deno.env.get('GCP_REGION') ||
-      'asia-northeast1',
-    queueName: 'notifications',
-    enableDebugLogs: Deno.env.get('CLOUD_TASKS_DEBUG') === 'true',
-    denoEnv: Deno.env.get('DENO_ENV') || 'development',
-  };
-  const cloudTasksClient = new CloudTasksClient(cloudTasksConfig);
+  const cloudTasksClient = new CloudTasksClient(config.cloudTasks);
+  const lineClient = new LineClient(config.line);
+  const discordClient = new DiscordClient(config.discord);
 
-  // Repositories（シングルトン）
+  // Repositories
   const ticketRepository = new TicketRepository(supabaseClient);
   const notificationRepository = new NotificationRepository(supabaseClient);
   const healthRepository = new HealthRepository(supabaseClient);
@@ -68,12 +75,16 @@ const dependencies = (() => {
   const notificationService = new NotificationService(
     notificationRepository,
     ticketRepository,
+    lineClient,
+    discordClient,
   );
 
   return {
     // Clients
     supabaseClient,
     cloudTasksClient,
+    lineClient,
+    discordClient,
     // Repositories
     ticketRepository,
     notificationRepository,
@@ -83,32 +94,33 @@ const dependencies = (() => {
     notificationSchedulerService,
     notificationService,
     notificationSchedulingService,
-    // Scrapers
-    jleagueScraper,
   };
-})(); // 即座に実行してシングルトンを作成
+};
 
 // UseCase作成関数
 export const createTicketCollectionUseCase = (): ITicketCollectionUseCase => {
+  const deps = createDependencies();
   return new TicketCollectionUseCase(
-    dependencies.ticketCollectionService,
-    dependencies.healthRepository,
-    dependencies.ticketRepository,
-    dependencies.notificationRepository,
-    dependencies.notificationSchedulingService,
-    dependencies.notificationSchedulerService,
+    deps.ticketCollectionService,
+    deps.healthRepository,
+    deps.ticketRepository,
+    deps.notificationRepository,
+    deps.notificationSchedulingService,
+    deps.notificationSchedulerService,
   );
 };
 
 export const createNotificationUseCase = (): INotificationUseCase => {
+  const deps = createDependencies();
   return new NotificationUseCase(
-    dependencies.notificationService,
+    deps.notificationService,
   );
 };
 
 export const createNotificationBatchUseCase = (): INotificationBatchUseCase => {
+  const deps = createDependencies();
   return new NotificationBatchUseCase(
-    dependencies.notificationService,
+    deps.notificationService,
   );
 };
 

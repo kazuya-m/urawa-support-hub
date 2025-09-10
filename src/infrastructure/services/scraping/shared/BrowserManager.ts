@@ -1,4 +1,4 @@
-import { Browser, chromium, Page } from 'npm:playwright@1.40.0';
+import { Browser, chromium, Page } from 'playwright';
 
 export class BrowserManager {
   private browser: Browser | null = null;

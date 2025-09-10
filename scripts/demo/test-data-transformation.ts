@@ -5,12 +5,13 @@
  * モックデータを使用してScrapedDataTransformerの動作を検証
  */
 
-import { ScrapedDataTransformer } from '../src/infrastructure/services/scraping/transformation/ScrapedDataTransformer.ts';
+import { ScrapedDataTransformer } from '../../src/infrastructure/services/scraping/transformation/ScrapedDataTransformer.ts';
 import {
   invalidScrapedTicketData,
   mockScrapedTicketData,
   validScrapedTicketData,
-} from '../src/__mocks__/scraped-ticket-data.ts';
+} from '../../src/__mocks__/scraped-ticket-data.ts';
+import { Ticket } from '../../src/domain/entities/Ticket.ts';
 
 console.log('🧪 データ変換・バリデーション処理テスト開始');
 console.log('='.repeat(60));
@@ -30,7 +31,7 @@ async function testDataTransformation() {
 
     if (allResults.tickets.length > 0) {
       console.log('\n📝 変換されたチケット一覧:');
-      allResults.tickets.forEach((ticket, index: number) => {
+      allResults.tickets.forEach((ticket: Ticket, index: number) => {
         console.log(`  ${index + 1}. ${ticket.matchName} (${ticket.venue})`);
       });
 
@@ -39,7 +40,7 @@ async function testDataTransformation() {
         timestamp: new Date().toISOString(),
         totalInput: mockScrapedTicketData.length,
         successfulConversions: allResults.tickets.length,
-        tickets: allResults.tickets.map((ticket) => ({
+        tickets: allResults.tickets.map((ticket: Ticket) => ({
           id: ticket.id,
           matchName: ticket.matchName,
           matchDate: ticket.matchDate.toISOString(),
