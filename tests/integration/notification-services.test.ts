@@ -203,40 +203,10 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     }
     const requestBody = JSON.parse(lineRequest.body);
     assertEquals(requestBody.messages[0].type, 'flex');
-    assertEquals(requestBody.messages[0].altText, '【チケット通知】浦和レッズ vs FC東京');
+    assertEquals(requestBody.messages[0].altText, '【チケット販売通知】浦和レッズ vs FC東京');
   });
 
-  await t.step('should send Discord ticket notification successfully', async () => {
-    mockServer.clearRequests();
-
-    const config = getNotificationConfig();
-    const embed = DISCORD_EMBED_TEMPLATES.systemNotification(
-      '🎫 チケット販売通知',
-      '**浦和レッズ vs FC東京**\n📅 2024-03-15 19:00\n📍 味の素スタジアム\n🚀 販売開始: 2024-03-01 10:00\n[チケット購入ページ](https://example.com/ticket)',
-      51281,
-    );
-
-    const response = await sendDiscordMessage(config.discord, embed);
-
-    assertEquals(response.status, 204);
-
-    // リクエストが正しく送信されたことを確認
-    const requests = mockServer.getRequests();
-    const discordRequest = requests.find((request) => request.url.includes('discord.com'));
-
-    assertExists(discordRequest);
-    assertEquals(discordRequest.method, 'POST');
-    assertEquals(discordRequest.headers['Content-Type'], 'application/json');
-
-    // リクエストボディの検証
-    if (!discordRequest.body) {
-      throw new Error('Discord request body is missing');
-    }
-    const requestBody = JSON.parse(discordRequest.body);
-    assertEquals(requestBody.embeds.length, 1);
-    assertEquals(requestBody.embeds[0].title, '🎫 浦和レッズ チケット販売通知');
-    assertEquals(requestBody.embeds[0].color, 14431075); // 浦和レッズカラー
-  });
+  // Discordはシステム通知専用のため、チケット販売通知テストは削除
 
   await t.step('should handle LINE simple message', async () => {
     mockServer.clearRequests();
@@ -329,7 +299,7 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     }
   });
 
-  await t.step('should send both LINE and Discord notifications in sequence', async () => {
+  await t.step('should send LINE ticket notification and Discord system notification', async () => {
     mockServer.clearRequests();
 
     // 環境変数を再設定
@@ -337,31 +307,22 @@ Deno.test('Notification Services Integration Tests', async (t) => {
 
     const config = getNotificationConfig();
 
-    // チケット情報
-    const ticketInfo = {
-      match: '浦和レッズ vs ガンバ大阪',
-      date: '2024-04-20 15:00',
-      venue: 'パナソニックスタジアム吹田',
-      saleStart: '2024-04-01 10:00',
-      url: 'https://example.com/ticket/12345',
-    };
-
-    // LINE通知
+    // LINE: チケット販売通知
     const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
-      ticketInfo.match,
-      ticketInfo.date,
-      ticketInfo.venue,
-      ticketInfo.saleStart,
+      '浦和レッズ vs ガンバ大阪',
+      '2024-04-20 15:00',
+      'パナソニックスタジアム吹田',
+      '2024-04-01 10:00',
       'day_before',
-      ticketInfo.url,
+      'https://example.com/ticket/12345',
     );
     const lineResponse = await sendLineMessage(config.line, lineMessage);
 
-    // Discord通知
+    // Discord: システム通知（例：スクレイピング完了通知）
     const discordEmbed = DISCORD_EMBED_TEMPLATES.systemNotification(
-      '🎫 チケット販売通知',
-      `**${ticketInfo.match}**\n📅 ${ticketInfo.date}\n📍 ${ticketInfo.venue}\n🚀 販売開始: ${ticketInfo.saleStart}\n[チケット購入ページ](${ticketInfo.url})`,
-      51281,
+      '✅ スクレイピング完了',
+      '浦和レッズ vs ガンバ大阪のチケット情報を取得しました。',
+      65280, // 緑色
     );
     const discordResponse = await sendDiscordMessage(config.discord, discordEmbed);
 
@@ -380,18 +341,20 @@ Deno.test('Notification Services Integration Tests', async (t) => {
     assertEquals(lineRequests.length, 1);
     assertEquals(discordRequests.length, 1);
 
-    // 両方のリクエストが同じチケット情報を含んでいることを確認
+    // リクエストボディの確認
     if (!lineRequests[0].body || !discordRequests[0].body) {
       throw new Error('Request bodies are missing for comparison');
     }
     const lineBody = JSON.parse(lineRequests[0].body);
     const discordBody = JSON.parse(discordRequests[0].body);
 
-    assertEquals(lineBody.messages[0].altText, '【チケット通知】浦和レッズ vs ガンバ大阪');
-    const matchField = discordBody.embeds[0].fields.find(
-      (field: { name: string; value: string }) => field.name === '⚽ 試合',
-    );
-    assertEquals(matchField?.value, '浦和レッズ vs ガンバ大阪');
+    // LINE: チケット販売通知の確認
+    assertEquals(lineBody.messages[0].altText, '【チケット販売通知】浦和レッズ vs ガンバ大阪');
+
+    // Discord: システム通知の確認
+    assertEquals(discordBody.embeds.length, 1);
+    assertEquals(discordBody.embeds[0].title, '✅ スクレイピング完了');
+    assertEquals(discordBody.embeds[0].color, 65280);
   });
 
   // テスト後のクリーンアップ
