@@ -8,8 +8,8 @@ interface TicketProps {
   matchDate: Date;
   homeTeam?: string;
   awayTeam?: string;
+  competition?: string; // 大会名フィールド（例: "J1リーグ", "ルヴァンカップ"）
   saleStartDate: Date | null;
-  saleStartTime?: string;
   saleEndDate?: Date;
   venue?: string;
   ticketTypes?: string[];
@@ -95,12 +95,12 @@ export class Ticket {
     return this.props.awayTeam;
   }
 
-  get saleStartDate(): Date | null {
-    return this.props.saleStartDate;
+  get competition(): string | undefined {
+    return this.props.competition;
   }
 
-  get saleStartTime(): string | undefined {
-    return this.props.saleStartTime;
+  get saleStartDate(): Date | null {
+    return this.props.saleStartDate;
   }
 
   get saleEndDate(): Date | undefined {
@@ -207,7 +207,6 @@ export class Ticket {
    * saleStartDateが変更された場合にtrueを返す
    */
   needsNotificationReschedule(existing: Ticket): boolean {
-    // saleStartDateが変更された場合、通知時刻の再計算が必要
     return (
       this.saleStartDate?.getTime() !== existing.saleStartDate?.getTime() ||
       !this.areTicketTypesEqual(existing.ticketTypes) ||
@@ -221,7 +220,6 @@ export class Ticket {
   shouldRescheduleNotification(previousTicket: Ticket | null): boolean {
     if (!previousTicket) return false;
 
-    // saleStartDateが変更され、かつ通知対象の場合
     return this.needsNotificationReschedule(previousTicket) && this.shouldScheduleNotification();
   }
 

@@ -89,6 +89,5 @@ export function getDisplayName(type: NotificationType): string {
  * 例: NOTIFICATION_DAY_BEFORE_HOUR=18 で前日18時に変更
  */
 export function getConfigWithEnvironmentOverrides(): typeof NOTIFICATION_TIMING_CONFIG {
-  // 将来的に環境変数での設定上書きを実装可能
   return NOTIFICATION_TIMING_CONFIG;
 }
