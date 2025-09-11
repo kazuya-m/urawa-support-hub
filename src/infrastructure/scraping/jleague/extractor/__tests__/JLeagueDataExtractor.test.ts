@@ -1,4 +1,4 @@
-import { assertEquals } from 'jsr:@std/assert';
+import { assertEquals } from 'testing/asserts.ts';
 import { JLeagueDataExtractor } from '../JLeagueDataExtractor.ts';
 import { MockPlaywrightClient } from '@/shared/testing/mocks/MockPlaywrightClient.ts';
 import { J_LEAGUE_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts';

@@ -1,5 +1,5 @@
 import { IPage, IPlaywrightClient } from '@/infrastructure/clients/interfaces/IPlaywrightClient.ts';
-import type { ElementHandle } from 'npm:playwright@1.40.0';
+import type { ElementHandle } from 'playwright';
 
 /**
  * テスト用MockPage実装
