@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "lib": ["deno.window"],
+    "lib": ["deno.window", "dom"],
     "strict": true,
     "noImplicitAny": true,
     "noImplicitReturns": true
@@ -20,6 +20,7 @@
   "tasks": {
     "start": "supabase start && docker build -f src/cloud-run/urawa-support-hub/Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 urawa-support-hub",
     "stop": "docker stop urawa-support-hub-local && docker rm urawa-support-hub-local && supabase stop",
+    "restart": "docker stop urawa-support-hub-local && docker rm urawa-support-hub-local && docker build -f src/cloud-run/urawa-support-hub/Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 urawa-support-hub",
     "dev": "supabase functions serve --debug",
     "logs": "docker logs urawa-support-hub-local",
     "test": "deno test --allow-env --allow-net=127.0.0.1 --coverage=coverage",
@@ -36,11 +37,15 @@
     "debug:discord": "deno run --allow-env --allow-net --allow-read scripts/debug/test-discord-notification.ts",
     "debug:cron": "deno run --allow-env --allow-net scripts/debug/check-cron-jobs.ts",
     "demo:notification": "deno run --allow-env --allow-net --allow-read scripts/demo/test-local-notification-endpoint.ts",
-    "demo:scraping": "deno run --allow-env --allow-net --allow-read --allow-run scripts/demo/test-scraping.ts",
+    "demo:scraping": "ENABLE_LIVE_SCRAPING=true deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run scripts/demo/test-scraping.ts",
     "demo:line": "deno run --allow-env --allow-net --allow-read scripts/demo/test-line-broadcast.ts",
     "demo:health": "deno run --allow-env --allow-net scripts/demo/test-health-check.ts",
     "demo:cloud-tasks": "deno run --allow-env --allow-net --allow-read --allow-run scripts/demo/test-cloud-tasks-enqueue.ts",
     "demo:data-transform": "deno run --allow-env scripts/demo/test-data-transformation.ts",
+    "demo:collect-ticket": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys tests/integration/collect-tickets-api-test.ts",
+    "demo:full-integration": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run scripts/test/run-full-integration-test.ts",
+    "debug:db-tickets": "deno run --allow-env --allow-net --allow-read scripts/debug/check-tickets-db.ts",
+    "dev:cloud-run": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run src/cloud-run/urawa-support-hub/main.ts",
     "cloud:dequeue": "deno run --allow-env --allow-net --allow-read --allow-run scripts/cloud/dequeue-test-task.ts"
   },
   "lint": {
