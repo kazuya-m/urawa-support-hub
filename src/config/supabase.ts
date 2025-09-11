@@ -33,7 +33,6 @@ export function createSupabaseAdminClient(): SupabaseClient {
     console.warn('WARNING: Using admin client with RLS bypass');
   }
 
-  // Service Roleは長期間有効なので自動リフレッシュ不要
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,

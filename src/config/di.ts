@@ -5,14 +5,12 @@
 
 import { load } from '@std/dotenv';
 
-// .envファイルを読み込み（テスト環境でも本番環境でも対応）
 try {
   await load({ export: true });
 } catch {
-  // .envファイルが存在しない場合は無視（本番環境など）
+  // .env file not found - ignore in production
 }
 
-// Infrastructure imports
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
 import { HealthRepository } from '@/infrastructure/repositories/HealthRepository.ts';
@@ -22,24 +20,22 @@ import { NotificationService } from '@/infrastructure/services/notification/Noti
 import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
 import { LineClient } from '@/infrastructure/clients/LineClient.ts';
 import { DiscordClient } from '@/infrastructure/clients/DiscordClient.ts';
-import { JLeagueTicketScraper } from '@/infrastructure/services/scraping/sources/jleague/JLeagueTicketScraper.ts';
+import { JLeagueScrapingService } from '@/infrastructure/scraping/jleague/JLeagueScrapingService.ts';
+import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
+import { BrowserManager } from '@/infrastructure/services/scraping/shared/BrowserManager.ts';
 import { createSupabaseAdminClient } from '@/config/supabase.ts';
 import { getAppConfig } from '@/config/app-config.ts';
 
-// Domain services
 import { NotificationSchedulingService } from '@/domain/services/NotificationSchedulingService.ts';
 
-// Interfaces
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { INotificationUseCase } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 import { INotificationBatchUseCase } from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
 
-// Application
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 import { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
 import { NotificationBatchUseCase } from '@/application/usecases/NotificationBatchUseCase.ts';
 
-// Controllers
 import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
 import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
 import { NotificationBatchController } from '@/adapters/controllers/NotificationBatchController.ts';
@@ -62,12 +58,13 @@ export const createDependencies = () => {
   const notificationRepository = new NotificationRepository(supabaseClient);
   const healthRepository = new HealthRepository(supabaseClient);
 
-  // Domain services
   const notificationSchedulingService = new NotificationSchedulingService();
 
   // Infrastructure services
-  const jleagueScraper = new JLeagueTicketScraper();
-  const ticketCollectionService = new TicketCollectionService(jleagueScraper);
+  const playwrightClient = new PlaywrightClient();
+  const browserManager = new BrowserManager(playwrightClient);
+  const jleagueScrapingService = new JLeagueScrapingService(browserManager);
+  const ticketCollectionService = new TicketCollectionService([jleagueScrapingService]);
   const notificationSchedulerService = new NotificationSchedulerService(
     cloudTasksClient,
     notificationRepository,
