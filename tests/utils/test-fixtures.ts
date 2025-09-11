@@ -128,7 +128,6 @@ export async function createDynamicTestTicket(options: TestTicketOptions = {}): 
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
     saleStartDate: futureSaleDate,
-    saleStartTime: '10:00',
     venue: venue ?? '味の素スタジアム',
     ticketTypes: ['ビジター席', '一般販売'],
     ticketUrl: `https://example.com/tickets/test${suffix ? '-' + suffix : ''}`,

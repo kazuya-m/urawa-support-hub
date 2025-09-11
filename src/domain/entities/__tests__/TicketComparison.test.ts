@@ -9,7 +9,6 @@ Deno.test('Ticket hasSameBusinessData method', async (t) => {
     homeTeam: 'Urawa',
     awayTeam: 'Away Team',
     saleStartDate: new Date('2025-09-10T10:00:00Z'),
-    saleStartTime: '10:00',
     saleEndDate: new Date('2025-09-15T23:59:59Z'),
     venue: 'Test Stadium',
     ticketTypes: ['General', 'Premium'],
