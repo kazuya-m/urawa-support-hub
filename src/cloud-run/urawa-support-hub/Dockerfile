@@ -1,20 +1,22 @@
 FROM denoland/deno:2.4.5
 RUN apt-get update && apt-get install -y \
-    chromium \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
     libatspi2.0-0 \
+    libcairo2 \
     libcups2 \
     libdrm2 \
-    libgtk-3-0 \
+    libgbm1 \
     libnspr4 \
     libnss3 \
+    libpango-1.0-0 \
     libxcomposite1 \
     libxdamage1 \
+    libxfixes3 \
+    libxkbcommon0 \
     libxrandr2 \
-    xdg-utils \
     ca-certificates \
     curl \
     && rm -rf /var/lib/apt/lists/* \
@@ -29,12 +31,14 @@ COPY src/ ./src/
 RUN deno cache src/cloud-run/urawa-support-hub/main.ts
 
 COPY . .
-ENV PLAYWRIGHT_BROWSERS_PATH=/usr/bin/chromium
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 ENV PORT=8080
 ENV NODE_ENV=production
+
+# Create cache directory for deno user and install Playwright browsers
+RUN mkdir -p /home/deno/.cache && chown deno:deno /home/deno/.cache
 USER deno
+RUN deno run --allow-env --allow-net --allow-read --allow-write --allow-run --allow-sys npm:playwright@1.40.0 install chromium
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
@@ -42,6 +46,7 @@ CMD ["deno", "run", \
      "--allow-net", \
      "--allow-env", \
      "--allow-read", \
+     "--allow-write", \
      "--allow-run", \
      "--allow-sys", \
      "src/cloud-run/urawa-support-hub/main.ts"]
