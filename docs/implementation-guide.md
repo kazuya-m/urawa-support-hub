@@ -1525,6 +1525,60 @@ supabase db push
 echo "Deployment completed successfully!"
 ```
 
+## Import Map and Module Guidelines
+
+### Import Map Configuration
+
+The project uses Deno's import map (`deno.json`) for consistent module resolution:
+
+```json
+{
+  "imports": {
+    "@/": "./src/",
+    "@/tests/": "./tests/",
+    "playwright": "npm:playwright@1.40.0"
+  }
+}
+```
+
+### Import Guidelines
+
+#### ✅ Recommended Patterns
+
+```typescript
+// Good: Use import map aliases
+import { Ticket } from '@/domain/entities/Ticket.ts';
+import { IBrowserManager } from '@/infrastructure/services/scraping/shared/interfaces/IBrowserManager.ts';
+
+// Good: External libraries via deno.json
+import { Page } from 'npm:playwright@1.40.0';
+import { assertEquals } from 'jsr:@std/assert';
+```
+
+#### ❌ Avoid These Patterns
+
+```typescript
+// Bad: Relative path nesting
+import { IBrowserManager } from '../../../../services/scraping/shared/interfaces/IBrowserManager.ts';
+
+// Bad: Inconsistent external imports
+import playwright from 'https://esm.sh/playwright';
+```
+
+### Path Resolution Rules
+
+1. **Project modules**: Always use `@/` prefix
+2. **External packages**: Use npm: or jsr: prefixes as defined in deno.json
+3. **Test utilities**: Use `@/tests/` for shared test code
+4. **Relative imports**: Only for files in the same directory
+
+### Benefits
+
+- **Consistency**: Uniform import paths across the codebase
+- **Refactoring**: Moving files doesn't break imports
+- **Readability**: Clear distinction between internal and external modules
+- **Maintainability**: Centralized dependency management
+
 This implementation guide provides the detailed technical foundation needed to build and maintain
 the urawa-support-hub system with proper architecture patterns, error handling, and testing
 strategies.
