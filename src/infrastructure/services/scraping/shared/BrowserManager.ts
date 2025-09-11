@@ -1,43 +1,43 @@
-import { Browser, chromium, Page } from 'playwright';
+import { IPage, IPlaywrightClient } from '@/infrastructure/clients/interfaces/IPlaywrightClient.ts';
+import { IBrowserManager } from '@/infrastructure/services/scraping/shared/interfaces/IBrowserManager.ts';
+import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 
-export class BrowserManager {
-  private browser: Browser | null = null;
+export class BrowserManager implements IBrowserManager {
+  private playwrightClient: IPlaywrightClient;
+  private isLaunched = false;
+
+  constructor(playwrightClient?: IPlaywrightClient) {
+    this.playwrightClient = playwrightClient ?? new PlaywrightClient();
+  }
 
   async launch(timeout: number): Promise<void> {
-    const isDevelopment = Deno.env.get('NODE_ENV') !== 'production';
-    const debugMode = Deno.env.get('DEBUG_SCRAPING') === 'true';
-
-    this.browser = await chromium.launch({
-      channel: isDevelopment ? 'chrome' : undefined,
-      headless: !debugMode,
-      timeout,
-    });
+    await this.playwrightClient.launch(timeout);
+    this.isLaunched = true;
   }
 
-  async createPage(defaultTimeout: number): Promise<Page> {
-    if (!this.browser) {
-      throw new Error('Browser not initialized');
+  async createPage(defaultTimeout: number): Promise<IPage> {
+    if (!this.isLaunched) {
+      throw new Error('Browser not initialized. Call launch() first.');
     }
 
-    const page = await this.browser.newPage();
-    page.setDefaultTimeout(defaultTimeout);
-    return page;
+    return await this.playwrightClient.createPage(defaultTimeout);
   }
 
-  async navigateToPage(page: Page, url: string): Promise<void> {
-    await page.goto(url, {
-      waitUntil: 'domcontentloaded',
-      timeout: 30000,
-    });
+  async navigateToPage(page: IPage, url: string): Promise<void> {
+    await this.playwrightClient.navigateToPage(page, url);
     await page.waitForTimeout(2000);
   }
 
-  async waitForContent(page: Page, selectors: string[], waitTime: number = 1000): Promise<boolean> {
+  async waitForContent(
+    page: IPage,
+    selectors: string[],
+    waitTime: number = 1000,
+  ): Promise<boolean> {
     await page.waitForTimeout(waitTime);
 
     for (const selector of selectors) {
       try {
-        await page.waitForSelector(selector, { timeout: 5000 });
+        await this.playwrightClient.waitForContent(page, selector, 5000);
         return true;
       } catch (_error) {
         // Continue to next selector
@@ -49,18 +49,18 @@ export class BrowserManager {
   }
 
   async close(): Promise<void> {
-    if (this.browser) {
+    if (this.isLaunched) {
       try {
-        await this.browser.close();
+        await this.playwrightClient.close();
       } catch (error) {
         console.warn('Failed to close browser:', error);
       } finally {
-        this.browser = null;
+        this.isLaunched = false;
       }
     }
   }
 
   isRunning(): boolean {
-    return this.browser !== null;
+    return this.isLaunched;
   }
 }
