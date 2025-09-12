@@ -12,7 +12,7 @@ ticket sales begin.
 | Layer                   | Technology             | Purpose                      | Execution Frequency |
 | ----------------------- | ---------------------- | ---------------------------- | ------------------- |
 | **Application Runtime** | Google Cloud Run       | All business logic execution | On-demand           |
-| **Schedule Trigger**    | Google Cloud Scheduler | Trigger daily scraping       | 12:00 JST daily     |
+| **Schedule Trigger**    | Google Cloud Scheduler | Trigger daily scraping       | 05:00 JST daily     |
 | **Task Queue**          | Google Cloud Tasks     | Asynchronous task scheduling | As scheduled        |
 | **Data Storage**        | Supabase PostgreSQL    | Primary data persistence     | Real-time           |
 | **Data API**            | Supabase PostgREST     | Auto-generated REST API      | On-demand           |
@@ -27,7 +27,7 @@ ticket sales begin.
 ├─────────────────────────────────────────────────────────┤
 │  Cloud Scheduler → Cloud Run → Cloud Tasks             │
 │       ↓              ↓            ↓                     │
-│   (12:00 JST)   (All Logic)   (Async Tasks)            │
+│   (05:00 JST)   (All Logic)   (Async Tasks)            │
 │                      ↓                                  │
 │                 API Endpoints:                          │
 │                 • /api/collect-tickets                  │
@@ -165,7 +165,7 @@ ticket sales begin.
 
 - **Purpose**: Reliable daily trigger mechanism
 - **Configuration**:
-  - Schedule: 0 3 * * * (03:00 UTC = 12:00 JST)
+  - Schedule: 0 20 * * * (20:00 UTC = 05:00 JST next day)
   - Target: Cloud Run service
   - Authentication: OIDC token
 
