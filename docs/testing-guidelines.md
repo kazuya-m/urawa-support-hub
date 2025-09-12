@@ -210,6 +210,124 @@ Deno.test('future disposable test', async () => {
 });
 ```
 
+## 🎭 Mock Implementation Patterns
+
+### Interface-Based Mock Strategy
+
+For dependency injection scenarios, create type-safe mocks using interface implementations:
+
+#### ✅ Recommended Interface Mock Pattern
+
+```typescript
+// 1. Define the interface
+export interface IBrowserManager {
+  launch(timeout: number): Promise<void>;
+  createPage(defaultTimeout: number): Promise<Page>;
+  navigateToPage(page: Page, url: string): Promise<void>;
+  close(): Promise<void>;
+}
+
+// 2. Create interface-based mock
+export class MockBrowserManager implements IBrowserManager {
+  private mockPage: Partial<Page> | null = null;
+
+  async launch(_timeout: number): Promise<void> {
+    // Simple mock: do nothing
+  }
+
+  async createPage(_defaultTimeout: number): Promise<Page> {
+    if (!this.mockPage) {
+      throw new Error('Mock page not set. Call setMockPage() first.');
+    }
+    return this.mockPage as Page;
+  }
+
+  async navigateToPage(_page: Page, _url: string): Promise<void> {
+    // Simple mock: do nothing
+  }
+
+  async close(): Promise<void> {
+    // Simple mock: do nothing
+  }
+
+  // Test helper methods
+  setMockPage(page: Partial<Page>): void {
+    this.mockPage = page;
+  }
+}
+
+// 3. Use in tests
+Deno.test('JLeagueScrapingService with DI Mock', async () => {
+  const mockBrowserManager = new MockBrowserManager();
+  const mockPage = {
+    $: () => Promise.resolve(null),
+    $$: () => Promise.resolve([]),
+    goto: () => Promise.resolve(null),
+  } as Partial<Page>;
+
+  mockBrowserManager.setMockPage(mockPage);
+
+  const service = new JLeagueScrapingService(
+    mockExtractor,
+    mockParser,
+    mockBrowserManager, // Type-safe interface injection
+  );
+
+  const tickets = await service.collectTickets();
+  assertEquals(tickets.length, 0);
+});
+```
+
+#### ❌ Anti-patterns to Avoid
+
+```typescript
+// Bad: any type Mock
+const mockBrowserManager = {} as any;
+
+// Bad: Inheritance-based Mock
+export class MockBrowserManager extends BrowserManager {
+  override async launch() {} // Complex override pattern
+}
+
+// Bad: Incomplete interface implementation
+const mockBrowserManager = {
+  launch: () => Promise.resolve(),
+  // Missing other required methods
+} as IBrowserManager;
+```
+
+### DI Container Testing Pattern
+
+```typescript
+export class TestDIContainer {
+  static createMockService(): JLeagueScrapingService {
+    const mockExtractor = new MockJLeagueDataExtractor();
+    const mockParser = new JLeagueDataParser();
+    const mockBrowserManager = new MockBrowserManager();
+
+    return new JLeagueScrapingService(
+      mockExtractor,
+      mockParser,
+      mockBrowserManager,
+    );
+  }
+}
+
+// Usage in tests
+Deno.test('Service integration with mocks', async () => {
+  const service = TestDIContainer.createMockService();
+  // Test with fully mocked dependencies
+});
+```
+
+### Benefits of Interface-Based Mocks
+
+1. **Type Safety**: Full TypeScript type checking without `any`
+2. **Contract Compliance**: Mocks must implement full interface
+3. **Refactoring Safety**: Interface changes break mocks at compile time
+4. **Clarity**: Explicit mock behavior for each method
+5. **Maintainability**: Simple, predictable mock implementations
+
 ## 📊 Testing Strategy Overview
 
 ### Testing Layers Architecture

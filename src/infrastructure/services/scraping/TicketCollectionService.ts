@@ -1,35 +1,36 @@
-import { ScrapedTicketData } from './types/ScrapedTicketData.ts';
-import { ScrapedDataTransformer } from './transformation/ScrapedDataTransformer.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { ITicketCollectionService } from '@/application/interfaces/services/ITicketCollectionService.ts';
-import { ITicketScraper } from '@/application/interfaces/services/ITicketScraper.ts';
+import type { ISiteScrapingService } from '@/infrastructure/scraping/shared/interfaces/index.ts';
 
+/**
+ * チケット収集サービス（DI対応リファクタリング版）
+ * 複数のサイト固有スクレイピングサービスを統合
+ */
 export class TicketCollectionService implements ITicketCollectionService {
   constructor(
-    private readonly jleagueScraper: ITicketScraper,
+    private readonly scrapingServices: ISiteScrapingService[],
   ) {}
 
   async collectAllTickets(): Promise<Ticket[]> {
-    const allScrapedTickets: ScrapedTicketData[] = [];
-
     try {
-      const jleagueTickets = await this.jleagueScraper.scrapeTickets();
-      allScrapedTickets.push(...jleagueTickets);
-    } catch (error) {
-      console.error('J-League ticket scraping error:', error);
-    }
-
-    const transformResult = await ScrapedDataTransformer.transform(allScrapedTickets);
-
-    if (transformResult.skippedTickets.length > 0) {
-      console.log(
-        `[INFO] ${transformResult.skippedTickets.length} tickets were skipped during transformation`,
+      // 全サイトから並行してチケット収集
+      const results = await Promise.all(
+        this.scrapingServices.map(async (service) => {
+          try {
+            return await service.collectTickets();
+          } catch (error) {
+            console.error(`❌ ${service.serviceName} scraping failed:`, error);
+            return []; // 1サイト失敗しても他サイトの結果は返す
+          }
+        }),
       );
-      transformResult.skippedTickets.forEach((skipped) => {
-        console.log(`[SKIP] ${skipped.matchName}: ${skipped.reason}`);
-      });
-    }
 
-    return transformResult.tickets;
+      // 結果を統合
+      const allTickets = results.flat();
+
+      return allTickets;
+    } catch (error) {
+      throw new Error(`Ticket collection failed: ${error}`);
+    }
   }
 }

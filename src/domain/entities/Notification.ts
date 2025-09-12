@@ -25,7 +25,6 @@ export class Notification {
   private readonly props: NotificationProps;
 
   constructor(props: NotificationProps) {
-    // Validation
     if (!props.id.trim()) {
       throw new Error('Notification ID is required');
     }
@@ -111,22 +110,17 @@ export class Notification {
   }
 
   isExpired(currentTime: Date = new Date()): boolean {
-    // Sent notifications are never expired
     if (this.props.status === 'sent') return false;
 
-    // Notification is expired if it's 2 hours or more past the scheduled time
     const timeSinceScheduled = currentTime.getTime() - this.props.scheduledAt.getTime();
     return timeSinceScheduled >= 2 * 60 * 60 * 1000;
   }
 
   canRetry(currentTime: Date = new Date()): boolean {
-    // Only failed notifications can be retried
     if (this.props.status !== 'failed') return false;
 
-    // Cannot retry if notification is expired
     if (this.isExpired(currentTime)) return false;
 
-    // Cannot retry if last failure was less than 5 minutes ago
     if (this.props.sentAt) {
       const timeSinceFailure = currentTime.getTime() - this.props.sentAt.getTime();
       return timeSinceFailure >= 5 * 60 * 1000;

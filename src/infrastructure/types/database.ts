@@ -6,8 +6,8 @@ export interface TicketRow {
   match_date: string;
   home_team: string | null;
   away_team: string | null;
+  competition: string | null;
   sale_start_date: string | null;
-  sale_start_time: string | null;
   sale_end_date: string | null;
   venue: string | null;
   ticket_types: string[] | null;
@@ -37,8 +37,8 @@ export interface TicketInsert {
   match_date: string;
   home_team?: string | null;
   away_team?: string | null;
+  competition?: string | null;
   sale_start_date?: string | null;
-  sale_start_time?: string | null;
   sale_end_date?: string | null;
   venue?: string | null;
   ticket_types?: string[] | null;

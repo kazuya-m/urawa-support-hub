@@ -11,7 +11,9 @@
  */
 
 import { TicketCollectionService } from '../../src/infrastructure/services/scraping/TicketCollectionService.ts';
-import { JLeagueTicketScraper } from '../../src/infrastructure/services/scraping/sources/jleague/JLeagueTicketScraper.ts';
+import { JLeagueScrapingService } from '../../src/infrastructure/scraping/jleague/JLeagueScrapingService.ts';
+import { PlaywrightClient } from '../../src/infrastructure/clients/PlaywrightClient.ts';
+import { BrowserManager } from '../../src/infrastructure/services/scraping/shared/BrowserManager.ts';
 import { Ticket } from '../../src/domain/entities/Ticket.ts';
 
 // 環境変数チェック
@@ -31,9 +33,11 @@ console.log('='.repeat(50));
 
 async function testScraping() {
   console.log('\n🔄 統合チケット収集サービステスト');
-  // DI対応：Scraperを注入
-  const jleagueScraper = new JLeagueTicketScraper();
-  const collectionService = new TicketCollectionService(jleagueScraper);
+  // 新アーキテクチャ：PlaywrightClient → BrowserManager → JLeagueScrapingService
+  const playwrightClient = new PlaywrightClient();
+  const browserManager = new BrowserManager(playwrightClient);
+  const jleagueScraper = new JLeagueScrapingService(browserManager);
+  const collectionService = new TicketCollectionService([jleagueScraper]);
 
   try {
     console.log('\n📋 浦和レッズアウェイチケット情報を取得中...');
@@ -62,18 +66,26 @@ async function testScraping() {
       console.log(`  購入URL: ${ticket.ticketUrl}`);
     });
 
-    // 統合サービス結果をJSONで出力
+    // 統合サービス結果をJSONで出力（Ticketの全プロパティ）
     const debugOutput = {
       timestamp: new Date().toISOString(),
       ticketCount: result.length,
       tickets: result.map((ticket: Ticket) => ({
+        id: ticket.id,
         matchName: ticket.matchName,
         matchDate: ticket.matchDate.toISOString(),
-        venue: ticket.venue,
-        saleStartDate: ticket.saleStartDate?.toISOString() || null,
-        ticketUrl: ticket.ticketUrl,
         homeTeam: ticket.homeTeam,
         awayTeam: ticket.awayTeam,
+        saleStartDate: ticket.saleStartDate?.toISOString() || null,
+        saleEndDate: ticket.saleEndDate?.toISOString() || null,
+        venue: ticket.venue,
+        ticketTypes: ticket.ticketTypes,
+        ticketUrl: ticket.ticketUrl,
+        saleStatus: ticket.saleStatus,
+        notificationScheduled: ticket.notificationScheduled,
+        createdAt: ticket.createdAt.toISOString(),
+        updatedAt: ticket.updatedAt.toISOString(),
+        scrapedAt: ticket.scrapedAt.toISOString(),
       })),
     };
 

@@ -1,3 +1,44 @@
+/**
+ * J-Leagueシーズンを考慮した年判定ロジック
+ * シーズンは2月〜翌年1月として処理
+ */
+export function determineYear(month: number, referenceDate: Date = new Date()): number {
+  const currentYear = referenceDate.getFullYear();
+  const currentMonth = referenceDate.getMonth() + 1;
+
+  if (currentMonth >= 11 && month <= 6) {
+    return currentYear + 1;
+  } else if (currentMonth <= 2 && month >= 11) {
+    return currentYear - 1;
+  } else if (currentMonth <= 2 && month >= 7 && month <= 10) {
+    return currentYear;
+  } else if (month < currentMonth && currentMonth >= 3) {
+    return currentYear + 1;
+  }
+
+  return currentYear;
+}
+
+/**
+ * 年跨ぎ対応の日付解析関数
+ */
+export function parseMatchDate(
+  month: number,
+  day: number,
+  hour: number = 0,
+  minute: number = 0,
+  referenceDate: Date = new Date(),
+): Date {
+  const year = determineYear(month, referenceDate);
+  const date = new Date(year, month - 1, day, hour, minute);
+
+  if (isNaN(date.getTime())) {
+    throw new Error(`Invalid date: ${year}/${month}/${day} ${hour}:${minute}`);
+  }
+
+  return date;
+}
+
 export function determineSaleStatus(
   saleStartDate: Date | undefined,
   saleEndDate: Date | undefined,
@@ -14,13 +55,14 @@ export function determineSaleStatus(
   return 'on_sale';
 }
 
-export function parseSaleDate(saleText: string): {
+export function parseSaleDate(
+  saleText: string,
+  referenceDate: Date = new Date(),
+): {
   saleStartDate?: Date;
   saleEndDate?: Date;
   saleStatus: 'before_sale' | 'on_sale' | 'ended';
 } {
-  const currentYear = new Date().getFullYear();
-
   const beforeSalePattern = /^(\d{2})\/(\d{2})\([月火水木金土日]\)(\d{2}):(\d{2})〜$/;
   const onSalePattern = /^〜(\d{2})\/(\d{2})\([月火水木金土日]\)(\d{2}):(\d{2})$/;
   const fullRangePattern =
@@ -29,12 +71,12 @@ export function parseSaleDate(saleText: string): {
   const beforeSaleMatch = saleText.match(beforeSalePattern);
   if (beforeSaleMatch) {
     const [, month, day, hour, minute] = beforeSaleMatch;
-    const saleStartDate = new Date(
-      currentYear,
-      parseInt(month) - 1,
+    const saleStartDate = parseMatchDate(
+      parseInt(month),
       parseInt(day),
       parseInt(hour),
       parseInt(minute),
+      referenceDate,
     );
     return { saleStartDate, saleStatus: 'before_sale' };
   }
@@ -42,12 +84,12 @@ export function parseSaleDate(saleText: string): {
   const onSaleMatch = saleText.match(onSalePattern);
   if (onSaleMatch) {
     const [, month, day, hour, minute] = onSaleMatch;
-    const saleEndDate = new Date(
-      currentYear,
-      parseInt(month) - 1,
+    const saleEndDate = parseMatchDate(
+      parseInt(month),
       parseInt(day),
       parseInt(hour),
       parseInt(minute),
+      referenceDate,
     );
     return { saleEndDate, saleStatus: 'on_sale' };
   }
@@ -56,22 +98,21 @@ export function parseSaleDate(saleText: string): {
   if (fullRangeMatch) {
     const [, startMonth, startDay, startHour, startMinute, endMonth, endDay, endHour, endMinute] =
       fullRangeMatch;
-    const saleStartDate = new Date(
-      currentYear,
-      parseInt(startMonth) - 1,
+    const saleStartDate = parseMatchDate(
+      parseInt(startMonth),
       parseInt(startDay),
       parseInt(startHour),
       parseInt(startMinute),
+      referenceDate,
     );
-    const saleEndDate = new Date(
-      currentYear,
-      parseInt(endMonth) - 1,
+    const saleEndDate = parseMatchDate(
+      parseInt(endMonth),
       parseInt(endDay),
       parseInt(endHour),
       parseInt(endMinute),
+      referenceDate,
     );
-    const now = new Date();
-    const saleStatus = determineSaleStatus(saleStartDate, saleEndDate, now);
+    const saleStatus = determineSaleStatus(saleStartDate, saleEndDate, referenceDate);
     return { saleStartDate, saleEndDate, saleStatus };
   }
 

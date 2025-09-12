@@ -12,7 +12,6 @@ Deno.test('Ticket - 新規チケット作成と決定論的ID生成', async () =
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
     saleStartDate: futureSaleDate,
-    saleStartTime: '10:00',
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -81,7 +80,6 @@ Deno.test('Ticket - 既存チケットの復元', () => {
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
     saleStartDate: futureSaleDate,
-    saleStartTime: '10:00',
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -254,7 +252,6 @@ Deno.test('Ticket - homeTeam/awayTeamがundefinedでも作成可能', async () =
     matchDate: futureMatchDate,
     // homeTeam と awayTeam を省略
     saleStartDate: futureSaleDate,
-    saleStartTime: '10:00',
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',

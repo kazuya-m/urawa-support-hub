@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-09 (MVP deployment requirements analysis)\
+**Updated**: 2025-09-12 (Issue #85 completed - improved scraping data quality)\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
@@ -87,6 +87,7 @@
 - **#75** - 依存性注入（DI）パターン導入による単体テストの改善 ✅
 - **#73** - NotificationStatusを'pending'から'scheduled'に変更 ✅
 - **#78** - Cloud Tasks→Cloud Run LINE通知統合完全実装 ✅
+- **#85** - スクレイピングデータ品質向上・日時精度改善実装 ✅
 
 ## Development Progress Rules
 
@@ -118,9 +119,9 @@ Each issue is considered complete when:
 - **Success Criteria**: Automated daily ticket monitoring with LINE/Discord notifications
 - **Remaining**: 4 issues (10% of total scope) - **UPDATED**
 
-## Current Status (2025-09-09) - **UPDATED**
+## Current Status (2025-09-12) - **UPDATED**
 
-### ✅ Completed Issues: 35/40 (88%)
+### ✅ Completed Issues: 36/40 (90%)
 
 **Foundation & Infrastructure:**
 
@@ -163,7 +164,7 @@ Each issue is considered complete when:
 - #32 - Database migration management
 - #34 - Security and permission detailed design
 
-### ❌ Not Started: 5/40 (12%)
+### ❌ Not Started: 4/40 (10%)
 
 **Critical for MVP Launch (Phase 4):**
 
@@ -183,8 +184,9 @@ Each issue is considered complete when:
 - #67 - ヴィッセル神戸オフィシャルサイト対応 (Phase 5)
 - #66 - サンフレッチェ広島オフィシャルサイト対応 (Phase 5)
 - #50 - 本番環境セキュリティ強化：RLSポリシー導入 (Phase 5)
+- #85 - ✅ **COMPLETED** - スクレイピングデータ品質向上・日時精度改善実装
 
-## Next Steps Priority (**UPDATED: 2025-09-09**)
+## Next Steps Priority (**UPDATED: 2025-09-12**)
 
 **MVP Launch Requirements (Phase 4):**
 

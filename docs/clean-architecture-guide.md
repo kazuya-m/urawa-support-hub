@@ -174,6 +174,81 @@ while maintaining detailed testing guidance in a dedicated document.
 - Circular dependencies between services
 - Test files importing Playwright-dependent modules
 
+## Dependency Injection Principles
+
+### Interface-Based Design
+
+#### ✅ Recommended Pattern
+
+```typescript
+// 1. Define interface first
+export interface IBrowserManager {
+  launch(timeout: number): Promise<void>;
+  createPage(defaultTimeout: number): Promise<Page>;
+  close(): Promise<void>;
+}
+
+// 2. Implement concrete class
+export class BrowserManager implements IBrowserManager {
+  async launch(timeout: number): Promise<void> {
+    // Production implementation
+  }
+}
+
+// 3. Service depends on interface
+export class JLeagueScrapingService {
+  constructor(
+    private readonly browserManager: IBrowserManager, // Interface dependency
+  ) {}
+}
+```
+
+#### ❌ Anti-patterns to Avoid
+
+```typescript
+// Bad: Concrete class dependency
+export class JLeagueScrapingService {
+  constructor(
+    private readonly browserManager: BrowserManager, // Concrete dependency
+  ) {}
+}
+```
+
+### Simplified Architecture Pattern
+
+```typescript
+// Infrastructure layer - Internal dependency management
+export class JLeagueScrapingService implements ISiteScrapingService {
+  private readonly dataExtractor: JLeagueDataExtractor;
+  private readonly dataParser: JLeagueDataParser;
+  private readonly browserManager: BrowserManager;
+
+  constructor() {
+    // Internal instantiation for same-layer dependencies
+    this.dataExtractor = new JLeagueDataExtractor(J_LEAGUE_SCRAPING_CONFIG.listPage);
+    this.dataParser = new JLeagueDataParser();
+    this.browserManager = new BrowserManager();
+  }
+}
+
+// Top-level DI - Cross-layer dependency management
+export const createDependencies = () => {
+  const jleagueScrapingService = new JLeagueScrapingService();
+  const ticketCollectionService = new TicketCollectionService([jleagueScrapingService]);
+  // ...
+};
+```
+
+### Benefits of Interface-Based DI
+
+1. **Decoupling**: Services depend on contracts, not implementations
+2. **Testability**: Easy mock injection during testing
+3. **Flexibility**: Easy to swap implementations
+4. **Maintainability**: Clear interface contracts
+
+> **Note**: For detailed mock implementation patterns, see
+> [Testing Guidelines](./testing-guidelines.md)
+
 ## Next Steps Integration
 
 This guide should be referenced when:

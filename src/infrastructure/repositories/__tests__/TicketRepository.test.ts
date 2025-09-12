@@ -15,8 +15,8 @@ Deno.test('SupabaseTicketRepository - findById with null handling', async () => 
     match_date: '2025-03-15T19:30:00+09:00',
     home_team: 'ホームチーム',
     away_team: 'アウェイチーム',
+    competition: 'J1リーグ',
     sale_start_date: '2025-03-01T01:00:00.000Z',
-    sale_start_time: null,
     sale_end_date: null,
     venue: 'テストスタジアム',
     ticket_types: ['ビジター席'],
@@ -35,7 +35,6 @@ Deno.test('SupabaseTicketRepository - findById with null handling', async () => 
 
   assertEquals(result?.id, 'test-id');
   assertEquals(result?.matchName, 'テスト試合');
-  assertEquals(result?.saleStartTime, undefined);
 });
 
 Deno.test('SupabaseTicketRepository - upsert error handling', async () => {
@@ -51,6 +50,7 @@ Deno.test('SupabaseTicketRepository - upsert error handling', async () => {
     matchDate: new Date(),
     homeTeam: 'ホーム',
     awayTeam: 'アウェイ',
+    competition: 'J1リーグ',
     saleStartDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
     venue: 'テストスタジアム',
     ticketTypes: ['test'],
@@ -76,7 +76,6 @@ Deno.test('TicketRepository - upsert creates new ticket', async () => {
     home_team: 'ガンバ大阪',
     away_team: '浦和レッズ',
     sale_start_date: '2025-03-01T01:00:00.000Z',
-    sale_start_time: null,
     sale_end_date: null,
     venue: 'パナソニックスタジアム吹田',
     ticket_types: ['ビジター席'],
@@ -125,7 +124,6 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
     home_team: 'ガンバ大阪',
     away_team: '浦和レッズ',
     sale_start_date: '2025-03-01T01:00:00.000Z',
-    sale_start_time: null,
     sale_end_date: null,
     venue: 'パナソニックスタジアム吹田',
     ticket_types: ['ビジター席'],
@@ -185,7 +183,6 @@ Deno.test('TicketRepository - upsert detects no changes', async () => {
     home_team: 'ガンバ大阪',
     away_team: '浦和レッズ',
     sale_start_date: '2025-03-01T01:00:00.000Z',
-    sale_start_time: null,
     sale_end_date: null,
     venue: 'パナソニックスタジアム吹田',
     ticket_types: ['ビジター席'],
@@ -295,7 +292,6 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     home_team: 'ガンバ大阪',
     away_team: '浦和レッズ',
     sale_start_date: '2025-03-01T01:00:00.000Z',
-    sale_start_time: null,
     sale_end_date: null,
     venue: 'パナソニックスタジアム吹田',
     ticket_types: ['ビジター席'],

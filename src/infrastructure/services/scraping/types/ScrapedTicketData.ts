@@ -4,7 +4,8 @@
  */
 export interface ScrapedTicketData {
   matchName: string;
-  matchDate: string | null; // 試合日（取得できない場合はnull）
+  matchDate: string | null; // 統合日時（例: "2025/09/20 19:00"）または日付のみ（例: "5/15"）
+  competition?: string | null; // 大会名（例: "明治安田Ｊ１リーグ"）
   saleDate: string | null; // 販売開始日時（詳細ページから取得、取得できない場合はnull）
   saleEndDate?: string | null; // 販売終了日時（販売中の場合に存在）
   ticketTypes: string[];
