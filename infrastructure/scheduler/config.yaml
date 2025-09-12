@@ -1,0 +1,31 @@
+# Cloud Scheduler Configuration for Urawa Support Hub
+# This file defines the configuration for daily ticket collection job
+
+job:
+  name: daily-ticket-collection
+  description: Daily ticket collection for Urawa Reds
+  schedule: '0 20 * * *' # 20:00 UTC = 05:00 JST (next day)
+  timeZone: Asia/Tokyo
+  attemptDeadline: 300s # 5 minutes (matches Cloud Run timeout)
+
+http_target:
+  uri: '${CLOUD_RUN_SERVICE_URL}/api/collect-tickets'
+  httpMethod: POST
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "source": "cloud-scheduler",
+      "timestamp": "${TIMESTAMP}"
+    }
+
+auth:
+  serviceAccountEmail: '${SCHEDULER_SERVICE_ACCOUNT}'
+  audience: '${CLOUD_RUN_SERVICE_URL}'
+
+retry_config:
+  retryCount: 3
+  maxRetryDuration: 600s # 10 minutes
+  minBackoffDuration: 30s
+  maxBackoffDuration: 300s
+  maxDoublings: 2
