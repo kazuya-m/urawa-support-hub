@@ -1,6 +1,5 @@
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
-import { AuthHelper } from '@/adapters/helpers/AuthHelper.ts';
 import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
@@ -10,14 +9,10 @@ export class TicketCollectionController {
     private readonly ticketCollectionUseCase: ITicketCollectionUseCase,
   ) {}
 
-  async handleCollectTickets(req: Request): Promise<Response> {
+  async handleCollectTickets(_req: Request): Promise<Response> {
     try {
-      if (!AuthHelper.validateCloudSchedulerRequest(req)) {
-        return HttpResponseBuilder.unauthorized(
-          'Invalid or missing authentication for Cloud Scheduler',
-        );
-      }
-
+      // Cloud RunのOIDC認証により、本番環境では認証済みリクエストのみ到達
+      // 開発環境では認証不要
       const result = await this.ticketCollectionUseCase.execute();
 
       return HttpResponseBuilder.success({

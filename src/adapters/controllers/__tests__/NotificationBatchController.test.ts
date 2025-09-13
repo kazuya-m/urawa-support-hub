@@ -107,35 +107,3 @@ Deno.test('NotificationBatchController should handle UseCase errors properly', a
   const responseBody = await response.json();
   assertEquals(responseBody.error, 'Pending notifications processing failed');
 });
-
-Deno.test('NotificationBatchController should handle authentication in production mode', async () => {
-  // 本番環境での認証テスト
-  const originalNodeEnv = Deno.env.get('NODE_ENV');
-  Deno.env.set('NODE_ENV', 'production');
-
-  try {
-    const mockUseCase = new MockNotificationBatchUseCase();
-    const controller = new NotificationBatchController(mockUseCase);
-
-    const request = new Request('http://localhost/api/process-pending-notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Authorization header無し
-      },
-    });
-
-    const response = await controller.handleProcessPendingNotifications(request);
-
-    assertEquals(response.status, 401);
-    const responseBody = await response.json();
-    assertEquals(responseBody.error, 'Unauthorized');
-  } finally {
-    // 環境変数を元に戻す
-    if (originalNodeEnv === undefined) {
-      Deno.env.delete('NODE_ENV');
-    } else {
-      Deno.env.set('NODE_ENV', originalNodeEnv);
-    }
-  }
-});

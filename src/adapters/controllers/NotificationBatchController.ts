@@ -3,7 +3,6 @@ import {
   INotificationBatchUseCase,
 } from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
-import { AuthHelper } from '@/adapters/helpers/AuthHelper.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
@@ -13,14 +12,10 @@ export class NotificationBatchController {
     private readonly notificationBatchUseCase: INotificationBatchUseCase,
   ) {}
 
-  async handleProcessPendingNotifications(req: Request): Promise<Response> {
+  async handleProcessPendingNotifications(_req: Request): Promise<Response> {
     try {
-      if (!AuthHelper.validateCloudSchedulerRequest(req)) {
-        return HttpResponseBuilder.unauthorized(
-          'Invalid or missing authentication for Cloud Scheduler',
-        );
-      }
-
+      // Cloud RunのOIDC認証により、本番環境では認証済みリクエストのみ到達
+      // 開発環境では認証不要
       const input: BatchExecutionInput = { operation: 'process_pending' };
       const result = await this.notificationBatchUseCase.execute(input);
 
@@ -74,14 +69,10 @@ export class NotificationBatchController {
     }
   }
 
-  async handleCleanupExpiredNotifications(req: Request): Promise<Response> {
+  async handleCleanupExpiredNotifications(_req: Request): Promise<Response> {
     try {
-      if (!AuthHelper.validateCloudSchedulerRequest(req)) {
-        return HttpResponseBuilder.unauthorized(
-          'Invalid or missing authentication for Cloud Scheduler',
-        );
-      }
-
+      // Cloud RunのOIDC認証により、本番環境では認証済みリクエストのみ到達
+      // 開発環境では認証不要
       const input: BatchExecutionInput = { operation: 'cleanup_expired' };
       const result = await this.notificationBatchUseCase.execute(input);
 

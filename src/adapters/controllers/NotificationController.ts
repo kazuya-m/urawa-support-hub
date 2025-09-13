@@ -3,7 +3,6 @@ import {
   NotificationExecutionInput,
 } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
-import { AuthHelper } from '@/adapters/helpers/AuthHelper.ts';
 import { validateNotificationRequest } from '@/adapters/validators/NotificationRequestValidator.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
@@ -16,12 +15,8 @@ export class NotificationController {
 
   async handleSendNotification(req: Request): Promise<Response> {
     try {
-      if (!AuthHelper.validateCloudTasksRequest(req)) {
-        return HttpResponseBuilder.unauthorized(
-          'Invalid or missing authentication for Cloud Tasks',
-        );
-      }
-
+      // Cloud RunのOIDC認証により、本番環境では認証済みリクエストのみ到達
+      // 開発環境では認証不要
       const body = await this.parseRequestBody(req);
       const validation = validateNotificationRequest(body);
 

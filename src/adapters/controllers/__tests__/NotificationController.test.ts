@@ -79,35 +79,6 @@ Deno.test('NotificationController', async (t) => {
     assertEquals(responseBody.error, 'Bad Request');
   });
 
-  await t.step('should handle authentication in production mode', async () => {
-    // 本番環境での認証テスト
-    Deno.env.set('NODE_ENV', 'production');
-
-    const mockUseCase = new MockNotificationUseCase();
-    const controller = new NotificationController(mockUseCase);
-
-    const request = new Request('http://localhost/api/send-notification', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Authorization header無し
-      },
-      body: JSON.stringify({
-        ticketId: 'test-ticket-123',
-        notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
-      }),
-    });
-
-    const response = await controller.handleSendNotification(request);
-
-    assertEquals(response.status, 401);
-    const responseBody = await response.json();
-    assertEquals(responseBody.error, 'Unauthorized');
-
-    // 環境変数を戻す
-    Deno.env.set('NODE_ENV', 'test');
-  });
-
   await t.step('should validate notification type', async () => {
     const mockUseCase = new MockNotificationUseCase();
     const controller = new NotificationController(mockUseCase);
