@@ -25,7 +25,7 @@ async function dequeueTask() {
       location: Deno.env.get('CLOUD_TASKS_LOCATION') || 'asia-northeast1',
       queueName: 'notifications',
       enableDebugLogs: true,
-      denoEnv: Deno.env.get('DENO_ENV') || 'development',
+      nodeEnv: Deno.env.get('NODE_ENV') || 'development',
     };
     const client = new CloudTasksClient(config);
     await client.dequeueTask(taskId);
