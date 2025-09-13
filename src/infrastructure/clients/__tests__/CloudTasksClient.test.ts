@@ -15,7 +15,7 @@ function setupTestEnvironment(): { client: CloudTasksClient; originalEnv: Record
     location: 'asia-northeast1',
     queueName: 'notifications',
     enableDebugLogs: false,
-    denoEnv: 'test',
+    nodeEnv: 'test',
   };
 
   const client = new CloudTasksClient(config);
@@ -62,7 +62,7 @@ Deno.test('CloudTasksClient - should require config with projectId', () => {
           location: 'asia-northeast1',
           queueName: 'notifications',
           enableDebugLogs: false,
-          denoEnv: 'test',
+          nodeEnv: 'test',
         }),
       Error,
       'GOOGLE_CLOUD_PROJECT or GCP_PROJECT_ID environment variable is required',
@@ -81,7 +81,7 @@ Deno.test('CloudTasksClient - should accept custom parameters', () => {
       location: 'us-central1',
       queueName: 'custom-queue',
       enableDebugLogs: false,
-      denoEnv: 'test',
+      nodeEnv: 'test',
     };
     const client = new CloudTasksClient(config);
     assertEquals(typeof client, 'object');

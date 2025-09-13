@@ -12,7 +12,6 @@ export type {
 // Repository interfaces
 export type { ITicketRepository } from './repositories/ITicketRepository.ts';
 export type { INotificationRepository } from './repositories/INotificationRepository.ts';
-export type { IHealthRepository } from './repositories/IHealthRepository.ts';
 
 // Service interfaces
 export type { ITicketCollectionService } from './services/ITicketCollectionService.ts';

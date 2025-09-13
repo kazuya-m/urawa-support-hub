@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketConverter } from './converters/TicketConverter.ts';
-import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
+import { isNotFoundError, throwDatabaseError } from '../utils/database-error-handler.ts';
 import { TicketRow } from '../types/database.ts';
 import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
 
@@ -16,7 +16,11 @@ export class TicketRepository implements ITicketRepository {
       .select('*')
       .order('match_date', { ascending: true });
 
-    if (error) handleSupabaseError('fetch tickets', error);
+    if (error) {
+      throwDatabaseError('TicketRepository', 'findAll', error, {
+        table: 'tickets',
+      });
+    }
     return data.map(TicketConverter.toDomainEntity);
   }
 
@@ -29,7 +33,10 @@ export class TicketRepository implements ITicketRepository {
 
     if (error) {
       if (isNotFoundError(error)) return null;
-      handleSupabaseError('fetch ticket', error);
+      throwDatabaseError('TicketRepository', 'findById', error, {
+        table: 'tickets',
+        ticketId: id,
+      });
     }
 
     if (!data) return null;
@@ -51,7 +58,14 @@ export class TicketRepository implements ITicketRepository {
 
     const { data, error } = await query.order('created_at', { ascending: true });
 
-    if (error) handleSupabaseError('fetch tickets by date range', error);
+    if (error) {
+      throwDatabaseError('TicketRepository', 'findByDateRange', error, {
+        table: 'tickets',
+        column,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+      });
+    }
     return data.map(TicketConverter.toDomainEntity);
   }
 
@@ -67,10 +81,18 @@ export class TicketRepository implements ITicketRepository {
       .select()
       .single();
 
-    if (upsertError) handleSupabaseError('upsert ticket', upsertError);
+    if (upsertError) {
+      throwDatabaseError('TicketRepository', 'upsert', upsertError, {
+        table: 'tickets',
+        ticketId: ticket.id,
+      });
+    }
 
     if (!upsertedData) {
-      throw new Error('Upsert operation did not return data');
+      throwDatabaseError('TicketRepository', 'upsert', {
+        message: 'Upsert operation did not return data',
+        code: 'NO_DATA',
+      }, { table: 'tickets', ticketId: ticket.id });
     }
 
     return TicketConverter.toDomainEntity(upsertedData as TicketRow);

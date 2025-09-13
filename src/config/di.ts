@@ -8,18 +8,16 @@ import { load } from '@std/dotenv';
 try {
   await load({ export: true });
 } catch {
-  // .env file not found - ignore in production
+  // Ignore .env loading errors in production
 }
 
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import { HealthRepository } from '@/infrastructure/repositories/HealthRepository.ts';
 import { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
 import { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
 import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
 import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
 import { LineClient } from '@/infrastructure/clients/LineClient.ts';
-import { DiscordClient } from '@/infrastructure/clients/DiscordClient.ts';
 import { JLeagueScrapingService } from '@/infrastructure/scraping/jleague/JLeagueScrapingService.ts';
 import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { BrowserManager } from '@/infrastructure/services/scraping/shared/BrowserManager.ts';
@@ -47,20 +45,15 @@ import { NotificationBatchController } from '@/adapters/controllers/Notification
 export const createDependencies = () => {
   const config = getAppConfig();
 
-  // Clients
   const supabaseClient = createSupabaseAdminClient();
   const cloudTasksClient = new CloudTasksClient(config.cloudTasks);
   const lineClient = new LineClient(config.line);
-  const discordClient = new DiscordClient(config.discord);
 
-  // Repositories
   const ticketRepository = new TicketRepository(supabaseClient);
   const notificationRepository = new NotificationRepository(supabaseClient);
-  const healthRepository = new HealthRepository(supabaseClient);
 
   const notificationSchedulingService = new NotificationSchedulingService();
 
-  // Infrastructure services
   const playwrightClient = new PlaywrightClient();
   const browserManager = new BrowserManager(playwrightClient);
   const jleagueScrapingService = new JLeagueScrapingService(browserManager);
@@ -73,20 +66,14 @@ export const createDependencies = () => {
     notificationRepository,
     ticketRepository,
     lineClient,
-    discordClient,
   );
 
   return {
-    // Clients
     supabaseClient,
     cloudTasksClient,
     lineClient,
-    discordClient,
-    // Repositories
     ticketRepository,
     notificationRepository,
-    healthRepository,
-    // Services
     ticketCollectionService,
     notificationSchedulerService,
     notificationService,
@@ -94,12 +81,10 @@ export const createDependencies = () => {
   };
 };
 
-// UseCase作成関数
 export const createTicketCollectionUseCase = (): ITicketCollectionUseCase => {
   const deps = createDependencies();
   return new TicketCollectionUseCase(
     deps.ticketCollectionService,
-    deps.healthRepository,
     deps.ticketRepository,
     deps.notificationRepository,
     deps.notificationSchedulingService,
@@ -121,7 +106,6 @@ export const createNotificationBatchUseCase = (): INotificationBatchUseCase => {
   );
 };
 
-// Controller作成関数
 export const createNotificationController = (): NotificationController => {
   const notificationUseCase = createNotificationUseCase();
   return new NotificationController(

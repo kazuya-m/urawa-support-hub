@@ -1,7 +1,6 @@
 // Mock実装のエクスポート
 export { MockTicketRepository } from './MockTicketRepository.ts';
 export { MockNotificationRepository } from './MockNotificationRepository.ts';
-export { MockHealthRepository } from './MockHealthRepository.ts';
 export { MockTicketCollectionService } from './MockTicketCollectionService.ts';
 export { MockNotificationSchedulerService } from './MockNotificationSchedulerService.ts';
 export { MockCloudTasksClient } from './MockCloudTasksClient.ts';
@@ -10,18 +9,15 @@ export { MockNotificationUseCase } from './MockNotificationUseCase.ts';
 export { MockNotificationBatchUseCase } from './MockNotificationBatchUseCase.ts';
 export { MockTicketScraper } from './MockTicketScraper.ts';
 export { MockLineClient } from './MockLineClient.ts';
-export { MockDiscordClient } from './MockDiscordClient.ts';
 
 // テスト用依存関係生成ヘルパー
 import { MockTicketRepository } from './MockTicketRepository.ts';
 import { MockNotificationRepository } from './MockNotificationRepository.ts';
-import { MockHealthRepository } from './MockHealthRepository.ts';
 import { MockTicketCollectionService } from './MockTicketCollectionService.ts';
 import { MockNotificationSchedulerService } from './MockNotificationSchedulerService.ts';
 import { NotificationSchedulingService } from '@/domain/services/NotificationSchedulingService.ts';
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 import type {
-  IHealthRepository,
   INotificationRepository,
   INotificationSchedulerService,
   ITicketCollectionService,
@@ -31,7 +27,6 @@ import type {
 // Test-specific dependency type
 export type TestDependencies = {
   ticketCollectionService: ITicketCollectionService;
-  healthRepository: IHealthRepository;
   ticketRepository: ITicketRepository;
   notificationRepository: INotificationRepository;
   notificationSchedulingService: NotificationSchedulingService;
@@ -47,14 +42,12 @@ export const createMockDependencies = (
 ): TestDependencies => {
   const mockTicketRepository = new MockTicketRepository();
   const mockNotificationRepository = new MockNotificationRepository();
-  const mockHealthRepository = new MockHealthRepository();
   const mockTicketCollectionService = new MockTicketCollectionService();
   const mockNotificationSchedulerService = new MockNotificationSchedulerService();
   const notificationSchedulingService = new NotificationSchedulingService();
 
   return {
     ticketCollectionService: overrides.ticketCollectionService || mockTicketCollectionService,
-    healthRepository: overrides.healthRepository || mockHealthRepository,
     ticketRepository: overrides.ticketRepository || mockTicketRepository,
     notificationRepository: overrides.notificationRepository || mockNotificationRepository,
     notificationSchedulingService: overrides.notificationSchedulingService ||
@@ -76,7 +69,6 @@ export const createMockTicketCollectionUseCase = (
   // DIファイルのcreateTicketCollectionUseCaseWithDepsを使わず、直接UseCaseを作成
   return new TicketCollectionUseCase(
     dependencies.ticketCollectionService,
-    dependencies.healthRepository,
     dependencies.ticketRepository,
     dependencies.notificationRepository,
     dependencies.notificationSchedulingService,
@@ -93,9 +85,6 @@ export const clearAllMocks = (dependencies: ReturnType<typeof createMockDependen
   }
   if (dependencies.notificationRepository instanceof MockNotificationRepository) {
     dependencies.notificationRepository.clear();
-  }
-  if (dependencies.healthRepository instanceof MockHealthRepository) {
-    dependencies.healthRepository.clear();
   }
   if (dependencies.ticketCollectionService instanceof MockTicketCollectionService) {
     dependencies.ticketCollectionService.clear();

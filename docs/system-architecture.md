@@ -45,7 +45,7 @@ ticket sales begin.
 ┌─────────────────────────────────────────────────────────┐
 │                  External Services                      │
 ├─────────────────────────────────────────────────────────┤
-│            LINE API        Discord Webhook              │
+│            LINE API        Cloud Monitoring            │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -280,26 +280,23 @@ CREATE INDEX idx_notification_history_status ON notification_history(status);
 CREATE INDEX idx_notification_history_scheduled_time ON notification_history(scheduled_time);
 ```
 
-#### system_health Table
+#### Cloud Logging Integration
 
-```sql
-CREATE TABLE system_health (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  executed_at TIMESTAMPTZ NOT NULL,
-  tickets_found INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL CHECK (status IN ('success', 'error')),
-  error_message TEXT,
-  execution_duration_ms INTEGER NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
+System health monitoring is now handled via Google Cloud Logging with structured logs:
+
+- **CloudLogger**: Outputs structured JSON logs
+- **Log-based Metrics**: Automatic metric generation from logs
+- **Alert Policies**: Automatic Discord notifications for CRITICAL logs
+- **30-day retention**: Automatic cleanup for cost optimization
+
+See `docs/logging-specification.md` for complete logging implementation details.
 
 ### Data Model Relationships
 
 ```
 tickets (1) ←→ (many) notification_history
    ↓
-system_health (independent monitoring)
+Cloud Logging (structured logs for monitoring)
 ```
 
 ### Key Schema Features (Issue #62)

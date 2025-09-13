@@ -15,7 +15,6 @@ async function checkCronJobs() {
   );
 
   try {
-    // Cronジョブの確認
     const { data: jobs, error: jobsError } = await supabase
       .rpc('sql', {
         query: "SELECT * FROM cron.job WHERE jobname = 'cleanup-old-health-records';",
@@ -29,10 +28,8 @@ async function checkCronJobs() {
       console.log(jobs);
     }
 
-    // 手動クリーンアップ関数のテスト
     console.log('🧹 手動クリーンアップ関数のテスト');
 
-    // まずテストデータを追加
     const { error: insertError } = await supabase
       .from('system_health')
       .insert([
@@ -55,7 +52,6 @@ async function checkCronJobs() {
 
     console.log('✅ テストデータを挿入（31日前と15日前）');
 
-    // クリーンアップ前のレコード数確認
     const { data: beforeData, error: beforeError } = await supabase
       .from('system_health')
       .select('*');
@@ -67,7 +63,6 @@ async function checkCronJobs() {
 
     console.log(`📊 クリーンアップ前のレコード数: ${beforeData.length}`);
 
-    // 手動クリーンアップ実行（30日保持）
     const { data: cleanupResult, error: cleanupError } = await supabase
       .rpc('manual_cleanup_health_records', { retention_days: 30 });
 
@@ -78,7 +73,6 @@ async function checkCronJobs() {
 
     console.log(`🗑️ クリーンアップ実行結果: ${cleanupResult} 件削除`);
 
-    // クリーンアップ後のレコード数確認
     const { data: afterData, error: afterError } = await supabase
       .from('system_health')
       .select('*');
@@ -90,7 +84,6 @@ async function checkCronJobs() {
 
     console.log(`📊 クリーンアップ後のレコード数: ${afterData.length}`);
 
-    // 残っているレコードの詳細
     console.log('\n📋 残存レコード:');
     afterData.forEach((record, index) => {
       const daysAgo = Math.floor(

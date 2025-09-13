@@ -1,6 +1,6 @@
 /**
  * 通知サービス設定
- * LINE Bot および Discord Webhook の設定値管理
+ * LINE Bot の設定値管理
  */
 
 import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
@@ -9,14 +9,8 @@ export interface LineConfig {
   channelAccessToken: string;
 }
 
-export interface DiscordConfig {
-  webhookUrl: string;
-  channelId?: string;
-}
-
 export interface NotificationServiceConfig {
   line: LineConfig;
-  discord: DiscordConfig;
 }
 
 /**
@@ -25,7 +19,6 @@ export interface NotificationServiceConfig {
 export function getNotificationConfig(): NotificationServiceConfig {
   const requiredEnvVars = [
     'LINE_CHANNEL_ACCESS_TOKEN',
-    'DISCORD_WEBHOOK_URL',
   ];
 
   for (const envVar of requiredEnvVars) {
@@ -35,19 +28,14 @@ export function getNotificationConfig(): NotificationServiceConfig {
   }
 
   const lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
-  const discordUrl = Deno.env.get('DISCORD_WEBHOOK_URL');
 
-  if (!lineToken || !discordUrl) {
+  if (!lineToken) {
     throw new Error('Required environment variables are not set');
   }
 
   return {
     line: {
       channelAccessToken: lineToken,
-    },
-    discord: {
-      webhookUrl: discordUrl,
-      channelId: Deno.env.get('DISCORD_CHANNEL_ID'),
     },
   };
 }
@@ -58,25 +46,21 @@ export function getNotificationConfig(): NotificationServiceConfig {
 export const NOTIFICATION_TYPE_STYLES = {
   day_before: {
     color: '#00C851', // 緑（安全・余裕あり）
-    discordColor: 51281, // 0x00C851
     title: '✅ 明日販売開始',
     urgency: '明日',
   },
   hour_before: {
     color: '#E6B800', // 濃い黄色（視認性向上）
-    discordColor: 15055872, // 0xE6B800
     title: '⚠️ 1時間後に販売開始',
     urgency: '1時間後',
   },
   minutes_before: {
     color: '#DC143C', // 浦和レッズの赤色（緊急・危険）
-    discordColor: 14423100, // 0xDC143C
     title: '🚨 まもなく販売開始',
     urgency: '15分後',
   },
 } as const satisfies Record<NotificationType, {
   color: string;
-  discordColor: number;
   title: string;
   urgency: string;
 }>;
@@ -189,52 +173,4 @@ export const LINE_MESSAGE_TEMPLATES = {
       },
     };
   },
-};
-
-/**
- * Discord Embed テンプレート（エラー・システムログ用）
- */
-export const DISCORD_EMBED_TEMPLATES = {
-  /**
-   * システム通知 Embed
-   */
-  systemNotification: (title: string, description: string, color: number = 65280) => ({
-    embeds: [
-      {
-        title,
-        description,
-        color,
-        timestamp: new Date().toISOString(),
-        footer: {
-          text: 'Urawa Support Hub System',
-        },
-      },
-    ],
-  }),
-
-  /**
-   * エラー通知 Embed
-   */
-  errorNotification: (error: string, details?: string) => ({
-    embeds: [
-      {
-        title: '🚨 システムエラー',
-        description: error,
-        color: 16711680, // 赤色 (#FF0000)
-        fields: details
-          ? [
-            {
-              name: '詳細',
-              value: details,
-              inline: false,
-            },
-          ]
-          : undefined,
-        timestamp: new Date().toISOString(),
-        footer: {
-          text: 'Urawa Support Hub Error Alert',
-        },
-      },
-    ],
-  }),
 };

@@ -8,22 +8,18 @@ import { load } from '@std/dotenv';
 import { createSupabaseAdminClient } from '@/config/supabase.ts';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 
-// .envファイルを読み込み
 try {
   await load({ export: true });
 } catch {
-  // .envファイルが存在しない場合は無視
 }
 
 async function checkTicketsInDB(): Promise<void> {
   console.log('🔍 Checking tickets in Supabase database...\n');
 
   try {
-    // Supabaseクライアント初期化
     const supabaseClient = createSupabaseAdminClient();
     const ticketRepository = new TicketRepository(supabaseClient);
 
-    // 全チケット取得
     const allTickets = await ticketRepository.findAll();
 
     console.log(`📊 Total tickets in database: ${allTickets.length}\n`);

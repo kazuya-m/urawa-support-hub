@@ -95,7 +95,7 @@ async function testCloudTasksEnqueue() {
       location: gcpRegion,
       queueName: 'notifications',
       enableDebugLogs: true,
-      denoEnv: Deno.env.get('DENO_ENV') || 'development',
+      nodeEnv: Deno.env.get('NODE_ENV') || 'development',
     };
     const client = new CloudTasksClient(config);
     console.log('✅ Cloud Tasks client initialized successfully');
@@ -176,7 +176,7 @@ async function testCloudTasksEnqueue() {
     console.log(`   2. Wait for ${scheduledTime.toISOString()} to see if the task executes`);
     console.log(`   3. Monitor Cloud Run logs for incoming HTTP requests`);
     console.log(
-      `   4. Check LINE/Discord for notification with ${selectedNotificationType} styling`,
+      `   4. Check LINE for notification with ${selectedNotificationType} styling`,
     );
     console.log(`   5. You can cancel the test task using:`);
     console.log(

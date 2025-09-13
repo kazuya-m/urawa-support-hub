@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Notification } from '@/domain/entities/Notification.ts';
 import { NotificationConverter } from './converters/NotificationConverter.ts';
-import { handleSupabaseError, isNotFoundError } from '../utils/error-handler.ts';
+import { isNotFoundError, throwDatabaseError } from '../utils/database-error-handler.ts';
 import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
 
 export class NotificationRepository implements INotificationRepository {
@@ -15,8 +15,8 @@ export class NotificationRepository implements INotificationRepository {
       .select('*')
       .order('scheduled_at', { ascending: true });
 
-    if (error) handleSupabaseError('fetch notifications', error);
-    return data.map(NotificationConverter.toDomainEntity);
+    if (error) throwDatabaseError('NotificationRepository', 'fetch notifications', error);
+    return (data || []).map(NotificationConverter.toDomainEntity);
   }
 
   async findById(id: string): Promise<Notification | null> {
@@ -28,9 +28,9 @@ export class NotificationRepository implements INotificationRepository {
 
     if (error) {
       if (isNotFoundError(error)) return null;
-      handleSupabaseError('fetch notification', error);
+      throwDatabaseError('NotificationRepository', 'fetch notification', error);
     }
-    return NotificationConverter.toDomainEntity(data);
+    return data ? NotificationConverter.toDomainEntity(data) : null;
   }
 
   async findByTicketId(ticketId: string): Promise<Notification[]> {
@@ -40,8 +40,8 @@ export class NotificationRepository implements INotificationRepository {
       .eq('ticket_id', ticketId)
       .order('scheduled_at', { ascending: true });
 
-    if (error) handleSupabaseError('fetch notifications by ticket', error);
-    return data.map(NotificationConverter.toDomainEntity);
+    if (error) throwDatabaseError('NotificationRepository', 'fetch notifications by ticket', error);
+    return (data || []).map(NotificationConverter.toDomainEntity);
   }
 
   async findByColumn(column: string, value: unknown): Promise<Notification[]> {
@@ -51,8 +51,10 @@ export class NotificationRepository implements INotificationRepository {
       .eq(column, value)
       .order('created_at', { ascending: true });
 
-    if (error) handleSupabaseError(`fetch notifications by ${column}`, error);
-    return data.map(NotificationConverter.toDomainEntity);
+    if (error) {
+      throwDatabaseError('NotificationRepository', `fetch notifications by ${column}`, error);
+    }
+    return (data || []).map(NotificationConverter.toDomainEntity);
   }
 
   async findByDateRange(
@@ -74,8 +76,10 @@ export class NotificationRepository implements INotificationRepository {
 
     const { data, error } = await query.order('created_at', { ascending: true });
 
-    if (error) handleSupabaseError('fetch notifications by date range', error);
-    return data.map(NotificationConverter.toDomainEntity);
+    if (error) {
+      throwDatabaseError('NotificationRepository', 'fetch notifications by date range', error);
+    }
+    return (data || []).map(NotificationConverter.toDomainEntity);
   }
 
   async save(notification: Notification): Promise<void> {
@@ -83,7 +87,7 @@ export class NotificationRepository implements INotificationRepository {
       .from('notifications')
       .insert(NotificationConverter.toDatabaseRow(notification));
 
-    if (error) handleSupabaseError('save notification', error);
+    if (error) throwDatabaseError('NotificationRepository', 'save notification', error);
   }
 
   async update(notification: Notification): Promise<void> {
@@ -92,7 +96,7 @@ export class NotificationRepository implements INotificationRepository {
       .update(NotificationConverter.toDatabaseRow(notification))
       .eq('id', notification.id);
 
-    if (error) handleSupabaseError('update notification', error);
+    if (error) throwDatabaseError('NotificationRepository', 'update notification', error);
   }
 
   async delete(id: string): Promise<void> {
@@ -101,6 +105,6 @@ export class NotificationRepository implements INotificationRepository {
       .delete()
       .eq('id', id);
 
-    if (error) handleSupabaseError('delete notification', error);
+    if (error) throwDatabaseError('NotificationRepository', 'delete notification', error);
   }
 }

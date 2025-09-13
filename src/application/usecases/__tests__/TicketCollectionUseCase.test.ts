@@ -1,10 +1,9 @@
-import { assertEquals } from 'std/assert/mod.ts';
+import { assertEquals, assertRejects } from 'std/assert/mod.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import {
   clearAllMocks,
   createMockDependencies,
   createMockTicketCollectionUseCase,
-  MockHealthRepository,
   MockTicketCollectionService,
 } from '@/shared/testing/mocks/index.ts';
 
@@ -51,56 +50,13 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
     }
 
     const useCase = createMockTicketCollectionUseCase(dependencies);
-    const result = await useCase.execute();
 
-    assertEquals(result.status, 'error');
-    assertEquals(result.ticketsFound, 0);
-    assertEquals(result.errorDetails?.message, 'Mock collection error');
-  });
-
-  await t.step('should record health execution on success', async () => {
-    const mockTicket = Ticket.fromExisting({
-      id: 'test-ticket-2',
-      matchName: 'Test Match 2',
-      matchDate: new Date('2024-12-02'),
-      venue: 'Test Stadium 2',
-      ticketUrl: 'https://test.example.com/tickets/2',
-      saleStartDate: new Date('2024-11-16'),
-      saleStatus: 'before_sale',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      scrapedAt: new Date(),
-      notificationScheduled: false,
-    });
-
-    const dependencies = createMockDependencies();
-    if (dependencies.ticketCollectionService instanceof MockTicketCollectionService) {
-      dependencies.ticketCollectionService.setMockTickets([mockTicket]);
-    }
-
-    const useCase = createMockTicketCollectionUseCase(dependencies);
-    await useCase.execute();
-
-    if (dependencies.healthRepository instanceof MockHealthRepository) {
-      const latestHealth = await dependencies.healthRepository.getLatestHealthRecord();
-      assertEquals(latestHealth?.status, 'success');
-    }
-  });
-
-  await t.step('should record health execution on error', async () => {
-    const dependencies = createMockDependencies();
-    if (dependencies.ticketCollectionService instanceof MockTicketCollectionService) {
-      dependencies.ticketCollectionService.setShouldThrowError(true, 'Test error');
-    }
-
-    const useCase = createMockTicketCollectionUseCase(dependencies);
-    await useCase.execute();
-
-    if (dependencies.healthRepository instanceof MockHealthRepository) {
-      const latestHealth = await dependencies.healthRepository.getLatestHealthRecord();
-      assertEquals(latestHealth?.status, 'error');
-      assertEquals(latestHealth?.errorDetails?.message, 'Test error');
-    }
+    // エラー時は例外が投げられることを検証
+    await assertRejects(
+      () => useCase.execute(),
+      Error,
+      'Mock collection error',
+    );
   });
 
   await t.step('should clean up mocks after each test', () => {

@@ -4,6 +4,8 @@ import {
   BatchExecutionInput,
   INotificationBatchUseCase,
 } from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
 
 export class NotificationBatchUseCase implements INotificationBatchUseCase {
   constructor(
@@ -24,10 +26,23 @@ export class NotificationBatchUseCase implements INotificationBatchUseCase {
       }
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      console.error('Batch notification operation failed:', {
-        operation: input.operation,
-        executionTimeMs: executionTime,
-        error: error instanceof Error ? error.message : String(error),
+      CloudLogger.error('Batch notification operation failed', {
+        category: LogCategory.NOTIFICATION,
+        context: {
+          processingStage: input.operation,
+        },
+        metrics: {
+          totalProcessed: 0,
+          successCount: 0,
+          failureCount: 1,
+          unknownPatterns: 0,
+          processingTimeMs: executionTime,
+        },
+        error: {
+          details: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          recoverable: true,
+        },
       });
 
       if (error instanceof Error && error.message.startsWith('Unknown operation:')) {
@@ -62,8 +77,7 @@ export class NotificationBatchUseCase implements INotificationBatchUseCase {
 
   private cleanupExpiredNotifications(startTime: number): Promise<BatchProcessingResult> {
     try {
-      // TODO: 期限切れ通知のクリーンアップロジック実装
-      // 現時点では未実装のプレースホルダー
+      // 期限切れ通知のクリーンアップ（現在は未実装）
       const cleaned = 0;
 
       const executionTime = Date.now() - startTime;
@@ -76,9 +90,16 @@ export class NotificationBatchUseCase implements INotificationBatchUseCase {
       });
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      console.error('Expired notifications cleanup failed:', {
-        executionTimeMs: executionTime,
-        error: error instanceof Error ? error.message : String(error),
+      CloudLogger.error('Expired notifications cleanup failed', {
+        category: LogCategory.NOTIFICATION,
+        context: {
+          processingStage: 'cleanup_expired',
+        },
+        error: {
+          details: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          recoverable: true,
+        },
       });
 
       return Promise.resolve({

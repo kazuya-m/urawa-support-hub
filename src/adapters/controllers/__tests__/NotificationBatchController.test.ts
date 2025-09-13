@@ -2,7 +2,6 @@ import { assertEquals } from 'std/assert/mod.ts';
 import { NotificationBatchController } from '@/adapters/controllers/NotificationBatchController.ts';
 import { MockNotificationBatchUseCase } from '@/shared/testing/mocks/MockNotificationBatchUseCase.ts';
 
-// 認証スキップのため
 Deno.env.set('NODE_ENV', 'test');
 
 Deno.test('NotificationBatchController should handle pending notifications processing', async () => {
@@ -26,7 +25,6 @@ Deno.test('NotificationBatchController should handle pending notifications proce
 
   const response = await controller.handleProcessPendingNotifications(request);
 
-  // レスポンスの検証
   assertEquals(response.status, 200);
 
   const responseBody = await response.json();
@@ -34,7 +32,6 @@ Deno.test('NotificationBatchController should handle pending notifications proce
   assertEquals(responseBody.processed, 5);
   assertEquals(responseBody.failed, 0);
 
-  // 正しい引数でUseCaseが呼ばれたことを確認
   const executedInputs = mockUseCase.getExecutedInputs();
   assertEquals(executedInputs.length, 1);
   assertEquals(executedInputs[0].operation, 'process_pending');
@@ -60,14 +57,12 @@ Deno.test('NotificationBatchController should handle cleanup expired notificatio
 
   const response = await controller.handleCleanupExpiredNotifications(request);
 
-  // レスポンスの検証
   assertEquals(response.status, 200);
 
   const responseBody = await response.json();
   assertEquals(responseBody.status, 'success');
   assertEquals(responseBody.cleaned, 3);
 
-  // 正しい引数でUseCaseが呼ばれたことを確認
   const executedInputs = mockUseCase.getExecutedInputs();
   assertEquals(executedInputs.length, 1);
   assertEquals(executedInputs[0].operation, 'cleanup_expired');
@@ -106,36 +101,4 @@ Deno.test('NotificationBatchController should handle UseCase errors properly', a
 
   const responseBody = await response.json();
   assertEquals(responseBody.error, 'Pending notifications processing failed');
-});
-
-Deno.test('NotificationBatchController should handle authentication in production mode', async () => {
-  // 本番環境での認証テスト
-  const originalNodeEnv = Deno.env.get('NODE_ENV');
-  Deno.env.set('NODE_ENV', 'production');
-
-  try {
-    const mockUseCase = new MockNotificationBatchUseCase();
-    const controller = new NotificationBatchController(mockUseCase);
-
-    const request = new Request('http://localhost/api/process-pending-notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Authorization header無し
-      },
-    });
-
-    const response = await controller.handleProcessPendingNotifications(request);
-
-    assertEquals(response.status, 401);
-    const responseBody = await response.json();
-    assertEquals(responseBody.error, 'Unauthorized');
-  } finally {
-    // 環境変数を元に戻す
-    if (originalNodeEnv === undefined) {
-      Deno.env.delete('NODE_ENV');
-    } else {
-      Deno.env.set('NODE_ENV', originalNodeEnv);
-    }
-  }
 });

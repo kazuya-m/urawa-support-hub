@@ -3,7 +3,7 @@ import { NotificationRepository } from '../NotificationRepository.ts';
 import { Notification } from '@/domain/entities/index.ts';
 import { NotificationRow } from '@/infrastructure/types/database.ts';
 import { createMockSupabaseClient } from './test-utils/SupabaseMock.ts';
-import { RepositoryError } from '../../utils/error-handler.ts';
+import { DatabaseError } from '@/shared/errors/index.ts';
 
 Deno.test('SupabaseNotificationRepository - findById with error handling', async () => {
   const mockNotificationRow: NotificationRow = {
@@ -47,7 +47,7 @@ Deno.test('SupabaseNotificationRepository - save error handling', async () => {
 
   await assertRejects(
     () => repository.save(testNotification),
-    RepositoryError,
-    'Failed to save notification: Database error',
+    DatabaseError,
+    '[NotificationRepository.save notification] Database error',
   );
 });

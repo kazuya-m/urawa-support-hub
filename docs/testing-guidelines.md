@@ -459,8 +459,8 @@ try {
 
 ```typescript
 // For comprehensive system tests
-Deno.test('System Health Integration Tests', async (t) => {
-  const testTableName = 'system_health';
+Deno.test('Notification Integration Tests', async (t) => {
+  const testTableName = 'notifications';
 
   // Clean slate before tests
   await cleanupTestTable(supabase, testTableName);

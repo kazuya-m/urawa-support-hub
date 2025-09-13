@@ -2,15 +2,16 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-13 (Issue #26 completed - Cloud Scheduler daily execution setup)\
+**Updated**: 2025-09-13 (System architecture refactoring and GCP logging integration completed)\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
 
 - **Completed**: Foundation setup, external services, domain models, database schema, notification
   services, application layer, Cloud Tasks notification scheduling (#25), Cloud Run deployment
-  (#24), Discord notifications (#30), Sale Status Management (#62), Dependency Injection Pattern
-  (#75), Notification status change (#73), Cloud Tasks→Cloud Run notification integration (#78)
+  (#24), Cloud Logging-based monitoring (#64), Sale Status Management (#62), Dependency Injection
+  Pattern (#75), Notification status change (#73), Cloud Tasks→Cloud Run notification integration
+  (#78), System architecture refactoring and error handling unification
 - **In Progress**: MVP deployment planning
 - **Not Started**: CI/CD setup, production environment setup
 
@@ -20,15 +21,15 @@
 
 **Purpose**: Establish minimal development environment
 
-| Issue | Title                                               | Priority    | Status           | Reason                                  |
-| ----- | --------------------------------------------------- | ----------- | ---------------- | --------------------------------------- |
-| #28   | Google Cloud Platform project and account setup     | 🔴 Critical | ✅ **COMPLETED** | Prerequisites for all GCP services      |
-| #29   | LINE Bot and Discord Webhook external service setup | 🔴 Critical | ✅ **COMPLETED** | Prerequisites for notification features |
-| #17   | Environment variables and basic secrets setup       | 🔴 Critical | ✅ **COMPLETED** | Simplified security foundation          |
-| #36   | Basic type definitions and entities                 | 🔴 Critical | ✅ **COMPLETED** | Core domain models                      |
-| #37   | Supabase client and repositories                    | 🔴 Critical | ✅ **COMPLETED** | Data persistence layer                  |
-| #39   | Minimal security configuration                      | 🔴 Critical | ✅ **COMPLETED** | Basic security requirements             |
-| #40   | Initial database schema creation                    | 🔴 Critical | ✅ **COMPLETED** | Database structure                      |
+| Issue | Title                                           | Priority    | Status           | Reason                                  |
+| ----- | ----------------------------------------------- | ----------- | ---------------- | --------------------------------------- |
+| #28   | Google Cloud Platform project and account setup | 🔴 Critical | ✅ **COMPLETED** | Prerequisites for all GCP services      |
+| #29   | LINE Bot external service setup                 | 🔴 Critical | ✅ **COMPLETED** | Prerequisites for notification features |
+| #17   | Environment variables and basic secrets setup   | 🔴 Critical | ✅ **COMPLETED** | Simplified security foundation          |
+| #36   | Basic type definitions and entities             | 🔴 Critical | ✅ **COMPLETED** | Core domain models                      |
+| #37   | Supabase client and repositories                | 🔴 Critical | ✅ **COMPLETED** | Data persistence layer                  |
+| #39   | Minimal security configuration                  | 🔴 Critical | ✅ **COMPLETED** | Basic security requirements             |
+| #40   | Initial database schema creation                | 🔴 Critical | ✅ **COMPLETED** | Database structure                      |
 
 ### Phase 2: Core Feature Implementation (4 days) - **UPDATED**
 
@@ -52,7 +53,7 @@
 | Issue | Title                                                      | Priority    | Status           | Reason                     |
 | ----- | ---------------------------------------------------------- | ----------- | ---------------- | -------------------------- |
 | #27   | LINE notification service implementation                   | 🔴 Critical | ✅ **COMPLETED** | Main notification channel  |
-| #30   | Discord error notification implementation                  | 🟠 High     | ✅ **COMPLETED** | Error alerts only          |
+| #64   | Data quality monitoring via Cloud Logging                  | 🟠 High     | ✅ **COMPLETED** | Error monitoring via GCP   |
 | #13   | Notification management application service implementation | 🔴 Critical | ✅ **COMPLETED** | Notification orchestration |
 
 ### Phase 4: Deployment (3 days) - **UPDATED**
@@ -82,7 +83,7 @@
 - **#27** - LINE APIエンドポイント設定統一化（2025-08-27品質改善） ✅
 - **#70** - リポジトリレイヤーからビジネスロジックを分離し、Impl命名規則を統一 ✅
 - **#24** - Google Cloud Run scraping service implementation ✅
-- **#30** - Discord error notification implementation ✅
+- **#64** - Data quality monitoring via Cloud Logging ✅
 - **#62** - 発売済みチケット状態管理・除外機能実装 ✅
 - **#75** - 依存性注入（DI）パターン導入による単体テストの改善 ✅
 - **#73** - NotificationStatusを'pending'から'scheduled'に変更 ✅
@@ -151,7 +152,7 @@ Each issue is considered complete when:
 - #75 - 依存性注入（DI）パターン導入による単体テストの改善
 - #73 - Notification status名称変更 (pending → scheduled)
 - **#24 - Google Cloud Run scraping service implementation**
-- **#30 - Discord error notification implementation**
+- **#64 - Data quality monitoring via Cloud Logging**
 - **#62 - 発売済みチケット状態管理・除外機能実装**
 - **#78 - Cloud Tasks→Cloud Run LINE通知統合完全実装**
 - **#26 - Cloud Scheduler daily execution setup implementation**

@@ -63,7 +63,7 @@ Required environment variables:
 - **Supabase**: URL, Anon Key, Service Role Key
 - **Google Cloud**: Project ID, Region, Service Names
 - **LINE API**: Channel Access Token
-- **Discord**: Webhook URL
+- **Cloud Monitoring**: Alert Policy for Discord notifications
 
 See [`.env.example`](../.env.example) for complete list with descriptions.
 
