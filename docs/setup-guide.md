@@ -156,14 +156,78 @@ gcloud run deploy urawa-scraper \
   --timeout 300
 ```
 
-### Scheduler Setup
+### Cloud Scheduler Setup
+
+#### Prerequisites
+
+**1. Service Account Creation (Manual)**
+
+Create the scheduler service account **before** CI/CD deployment:
 
 ```bash
-# Create daily trigger
-gcloud scheduler jobs create http daily-scraping \
-  --location asia-northeast1 \
-  --schedule="0 3 * * *" \
-  --uri="your-cloud-run-url/scrape"
+# Set your project ID
+export GCP_PROJECT_ID=your-project-id
+
+# Create service account for scheduler
+gcloud iam service-accounts create urawa-scheduler \
+  --display-name="Urawa Support Hub Scheduler" \
+  --description="Service account for Cloud Scheduler to invoke Cloud Run"
+
+# Grant Cloud Run invoker permission
+gcloud run services add-iam-policy-binding urawa-support-hub \
+  --member="serviceAccount:urawa-scheduler@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/run.invoker" \
+  --region=asia-northeast1
+```
+
+**2. GitHub Secrets Configuration**
+
+Add these secrets for automatic deployment:
+
+- `GCP_PROJECT_ID`: Your GCP project ID
+- `SCHEDULER_SA_EMAIL`: `urawa-scheduler@your-project-id.iam.gserviceaccount.com`
+- `GCP_SA_KEY_CICD`: CI/CD service account key (JSON)
+
+#### Automatic Deployment (Recommended)
+
+The scheduler deploys automatically via GitHub Actions when changes are pushed to:
+
+- `infrastructure/scheduler/**`
+- `.github/workflows/deploy-scheduler.yml`
+
+#### Manual Deployment (Alternative)
+
+```bash
+# Set variables
+export GCP_PROJECT_ID=your-project-id
+export SCHEDULER_SA_EMAIL=urawa-scheduler@${GCP_PROJECT_ID}.iam.gserviceaccount.com
+export CLOUD_RUN_URL=https://urawa-support-hub-xxx-an.a.run.app
+
+# Create scheduler job (05:00 JST daily)
+gcloud scheduler jobs create http daily-ticket-collection \
+  --location=asia-northeast1 \
+  --schedule="0 20 * * *" \
+  --time-zone="Asia/Tokyo" \
+  --uri="${CLOUD_RUN_URL}/api/collect-tickets" \
+  --http-method=POST \
+  --headers="Content-Type=application/json" \
+  --message-body='{"source":"cloud-scheduler"}' \
+  --attempt-deadline="300s" \
+  --max-retry-attempts=3 \
+  --oidc-service-account-email="${SCHEDULER_SA_EMAIL}"
+```
+
+#### Verification
+
+```bash
+# Check scheduler job
+gcloud scheduler jobs describe daily-ticket-collection --location=asia-northeast1
+
+# Test execution
+gcloud scheduler jobs run daily-ticket-collection --location=asia-northeast1
+
+# Check logs
+gcloud logging read 'resource.type=cloud_scheduler_job' --limit=5
 ```
 
 ## Troubleshooting

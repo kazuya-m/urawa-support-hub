@@ -28,7 +28,7 @@ WORKDIR /app
 
 COPY deno.json deno.lock* ./
 COPY src/ ./src/
-RUN deno cache src/cloud-run/urawa-support-hub/main.ts
+RUN deno cache src/main.ts
 
 COPY . .
 
@@ -49,4 +49,4 @@ CMD ["deno", "run", \
      "--allow-write", \
      "--allow-run", \
      "--allow-sys", \
-     "src/cloud-run/urawa-support-hub/main.ts"]
+     "src/main.ts"]
