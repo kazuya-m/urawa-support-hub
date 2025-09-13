@@ -3,6 +3,9 @@ import { parseMatchDate, parseSaleDate } from '@/domain/entities/SaleStatusUtils
 import { J_LEAGUE_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts';
 import { IDataParser } from '../../shared/interfaces/index.ts';
 import { JLeagueRawTicketData } from '../types/JLeagueTypes.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
 
 /**
  * J-League固有のデータパーサー
@@ -22,7 +25,13 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
     // 3. 販売日時処理
     const saleInfo = this.parseSaleInfo(rawData.saleDate || null, referenceDate);
 
-    // 4. 大会名正規化
+    // 4. 販売データ整合性検証とログ出力
+    this.validateSaleDataIntegrity(rawData, saleInfo, referenceDate);
+
+    // 5. 補完情報の検証とWARNINGログ
+    this.validateOptionalFields(rawData);
+
+    // 6. 大会名正規化
     const competition = this.normalizeCompetition(rawData.competition);
 
     return await Ticket.createNew({
@@ -54,9 +63,14 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
    * 詳細ページの情報を優先し、フォールバックも処理
    */
   private parseMatchDateTime(rawData: JLeagueRawTicketData, referenceDate: Date): Date {
+    const context = {
+      matchName: rawData.matchName,
+      ticketUrl: rawData.ticketUrl,
+    };
+
     // 詳細ページの統合日時情報を優先
     if (rawData.enhancedMatchDateTime) {
-      return this.parseEnhancedDateTime(rawData.enhancedMatchDateTime, referenceDate);
+      return this.parseEnhancedDateTime(rawData.enhancedMatchDateTime, referenceDate, context);
     }
 
     // フォールバック: 一覧ページの日付のみ
@@ -72,7 +86,11 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
    * 詳細ページの統合日時形式を解析
    * "2025/03/15 14:00" 形式
    */
-  private parseEnhancedDateTime(dateTimeStr: string, referenceDate: Date): Date {
+  private parseEnhancedDateTime(
+    dateTimeStr: string,
+    referenceDate: Date,
+    context?: { matchName?: string; ticketUrl?: string },
+  ): Date {
     try {
       const parts = dateTimeStr.trim().split(' ');
       if (parts.length !== 2) {
@@ -105,7 +123,27 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
       // 2桁年の場合は年跨ぎロジックを適用
       return parseMatchDate(month, day, hour, minute, referenceDate);
     } catch (_error) {
-      // エラー時は基準日時を返す
+      // 未知のパターン検出（ERROR） - データ品質監視
+      CloudLogger.error('Unknown date pattern detected', {
+        category: LogCategory.PARSING,
+        dataQuality: {
+          issueType: 'UNKNOWN_PATTERN',
+          field: 'matchDateTime',
+          rawValue: dateTimeStr,
+          expectedPattern: 'YYYY/MM/DD HH:MM',
+        },
+        context: {
+          matchName: context?.matchName,
+          ticketUrl: context?.ticketUrl,
+        },
+        error: {
+          code: ErrorCodes.PARSE_MATCH_DATE_UNKNOWN_FORMAT,
+          details: `Unexpected date format: ${dateTimeStr}`,
+          recoverable: true,
+        },
+      });
+
+      // フォールバック処理継続
       return referenceDate;
     }
   }
@@ -211,6 +249,88 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
 
     // 連続する空白文字を単一のスペースに置換
     return venue.trim().replace(/\s+/g, ' ');
+  }
+
+  /**
+   * 販売データ整合性検証
+   * 通知機能に影響する重要な問題をERRORレベルでログ出力
+   */
+  private validateSaleDataIntegrity(
+    rawData: JLeagueRawTicketData,
+    saleInfo: {
+      saleStartDate?: Date;
+      saleEndDate?: Date;
+      saleStatus: 'before_sale' | 'on_sale' | 'ended';
+    } | null,
+    _referenceDate: Date,
+  ): void {
+    const context = {
+      matchName: rawData.matchName,
+      ticketUrl: rawData.ticketUrl,
+      saleStatus: saleInfo?.saleStatus,
+    };
+
+    // 販売前なのに販売開始日が取得できない場合（通知機能阻害）
+    if (saleInfo?.saleStatus === 'before_sale' && !saleInfo?.saleStartDate) {
+      CloudLogger.error('Sale start date missing for pre-sale ticket', {
+        category: LogCategory.VALIDATION,
+        dataQuality: {
+          issueType: 'MISSING_FIELD',
+          field: 'saleStartDate',
+        },
+        context,
+        error: {
+          code: ErrorCodes.PARSE_SALE_START_DATE_MISSING_BEFORE_SALE,
+          details: 'Sale start date is required for pre-sale tickets to enable notifications',
+          recoverable: false,
+        },
+      });
+    }
+  }
+
+  /**
+   * 補完情報の検証
+   * 処理は継続可能だが情報が不完全な場合にWARNINGレベルでログ出力
+   */
+  private validateOptionalFields(rawData: JLeagueRawTicketData): void {
+    const context = {
+      matchName: rawData.matchName,
+      ticketUrl: rawData.ticketUrl,
+    };
+
+    // 会場情報が取得できない
+    if (!rawData.venue?.trim()) {
+      CloudLogger.warning('Venue information is missing', {
+        category: LogCategory.PARSING,
+        dataQuality: {
+          issueType: 'MISSING_FIELD',
+          field: 'venue',
+        },
+        context,
+        error: {
+          code: ErrorCodes.PARSE_VENUE_INFO_MISSING,
+          details: 'Venue information could not be extracted',
+          recoverable: true,
+        },
+      });
+    }
+
+    // 大会名が取得できない
+    if (!rawData.competition?.trim()) {
+      CloudLogger.warning('Competition name is missing', {
+        category: LogCategory.PARSING,
+        dataQuality: {
+          issueType: 'MISSING_FIELD',
+          field: 'competition',
+        },
+        context,
+        error: {
+          code: ErrorCodes.PARSE_COMPETITION_MISSING,
+          details: 'Competition name could not be extracted',
+          recoverable: true,
+        },
+      });
+    }
   }
 
   /**

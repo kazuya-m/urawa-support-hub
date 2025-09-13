@@ -3,18 +3,16 @@ import { Ticket } from '@/domain/entities/Ticket.ts';
 import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
 import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
 import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
-import { DISCORD_EMBED_TEMPLATES, LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
+import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
 import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
 import { ILineClient } from '@/infrastructure/clients/LineClient.ts';
-import { IDiscordClient } from '@/infrastructure/clients/DiscordClient.ts';
 
 export class NotificationService implements INotificationService {
   constructor(
     private readonly notificationRepository: INotificationRepository,
     private readonly ticketRepository: ITicketRepository,
     private readonly lineClient: ILineClient,
-    private readonly discordClient: IDiscordClient,
   ) {}
 
   async processScheduledNotification(input: NotificationExecutionInput): Promise<void> {
@@ -52,8 +50,8 @@ export class NotificationService implements INotificationService {
 
       await this.sendNotification(history, ticket);
     } catch (error) {
-      await this.sendErrorNotification(
-        `Scheduled notification processing failed for ticket ${ticketId}`,
+      console.error(
+        `Scheduled notification processing failed for ticket ${ticketId}:`,
         error instanceof Error ? error.message : String(error),
       );
       throw error;
@@ -155,19 +153,9 @@ export class NotificationService implements INotificationService {
     const failedHistory = history.markAsFailed(error.message);
     await this.notificationRepository.update(failedHistory);
 
-    await this.sendErrorNotification(
-      `Notification failed after ${3} retries`,
-      `Ticket: ${history.ticketId}, Type: ${history.getNotificationTypeDisplayName()}, Error: ${error.message}`,
+    console.error(
+      `Notification failed after ${3} retries - Ticket: ${history.ticketId}, Type: ${history.getNotificationTypeDisplayName()}, Error: ${error.message}`,
     );
-  }
-
-  private async sendErrorNotification(error: string, details: string): Promise<void> {
-    try {
-      const webhookPayload = DISCORD_EMBED_TEMPLATES.errorNotification(error, details);
-      await this.discordClient.sendWebhook(webhookPayload);
-    } catch {
-      // Ignore Discord errors
-    }
   }
 
   private delay(ms: number): Promise<void> {
