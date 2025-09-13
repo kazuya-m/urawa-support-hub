@@ -1,3 +1,5 @@
+import { HttpStatusCodes } from '@/shared/constants/HttpStatusCodes.ts';
+
 interface ErrorResponse {
   error: string;
   details?: unknown;
@@ -22,7 +24,7 @@ export function handleHealthCheck(): Response {
         },
       }),
       {
-        status: allHealthy ? 200 : 503,
+        status: allHealthy ? HttpStatusCodes.OK : HttpStatusCodes.SERVICE_UNAVAILABLE,
         headers: { 'Content-Type': 'application/json' },
       },
     );
@@ -30,7 +32,7 @@ export function handleHealthCheck(): Response {
     return createErrorResponse(
       'Health check failed',
       error instanceof Error ? error.message : String(error),
-      503,
+      HttpStatusCodes.SERVICE_UNAVAILABLE,
     );
   }
 }

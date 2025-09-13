@@ -13,7 +13,7 @@ export interface CloudTasksConfig {
   location: string;
   queueName: string;
   enableDebugLogs: boolean;
-  denoEnv: string;
+  nodeEnv: string;
 }
 
 /**
@@ -32,17 +32,17 @@ export class CloudTasksClient implements ICloudTasksClient {
       throw new Error('GOOGLE_CLOUD_PROJECT or GCP_PROJECT_ID environment variable is required');
     }
 
-    const clientOptions = this.config.denoEnv === 'development'
+    const clientOptions = this.config.nodeEnv === 'development'
       ? { fallback: 'rest' as const }
       : { fallback: true };
 
     this.client = new GoogleCloudTasksClient(clientOptions);
 
-    if (this.config.enableDebugLogs && this.config.denoEnv !== 'production') {
-      console.log(`[CloudTasks] Environment: ${this.config.denoEnv}`);
+    if (this.config.enableDebugLogs && this.config.nodeEnv !== 'production') {
+      console.log(`[CloudTasks] Environment: ${this.config.nodeEnv}`);
       console.log(
         `[CloudTasks] Using: ${
-          this.config.denoEnv === 'development' ? 'REST API (forced)' : 'gRPC with REST fallback'
+          this.config.nodeEnv === 'development' ? 'REST API (forced)' : 'gRPC with REST fallback'
         }`,
       );
     }
