@@ -1,19 +1,20 @@
 import { ITicketCollectionService } from '@/application/interfaces/services/ITicketCollectionService.ts';
-import { IHealthRepository } from '@/application/interfaces/repositories/IHealthRepository.ts';
 import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
 import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
 import { INotificationSchedulerService } from '@/application/interfaces/services/INotificationSchedulerService.ts';
 import { INotificationSchedulingService } from '@/domain/interfaces/services/INotificationSchedulingService.ts';
-import { HealthCheckResult } from '@/domain/entities/SystemHealth.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketCollectionResult, TicketUpsertResult } from '@/application/types/UseCaseResults.ts';
 import { CancellationReason } from '@/domain/entities/Notification.ts';
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
+import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
+import { ErrorCodes as AppErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 
 export class TicketCollectionUseCase implements ITicketCollectionUseCase {
   constructor(
     private readonly ticketCollectionService: ITicketCollectionService,
-    private readonly healthRepository: IHealthRepository,
     private readonly ticketRepository: ITicketRepository,
     private readonly notificationRepository: INotificationRepository,
     private readonly notificationSchedulingService: INotificationSchedulingService,
@@ -22,7 +23,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
 
   async execute(): Promise<TicketCollectionResult> {
     const startTime = Date.now();
-    let executionResult: HealthCheckResult;
+    const sessionId = crypto.randomUUID();
 
     try {
       const tickets = await this.ticketCollectionService.collectAllTickets();
@@ -35,14 +36,24 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
 
       const statistics = this.calculateStatistics(upsertResults);
 
-      executionResult = {
-        executedAt: new Date(),
-        ticketsFound: tickets.length,
-        status: 'success',
-        executionDurationMs: executionDuration,
-      };
-
-      await this.healthRepository.recordDailyExecution(executionResult);
+      // 処理完了メトリクスのログ出力（Log-based Metrics用）
+      CloudLogger.info('Ticket collection completed', {
+        category: LogCategory.TICKET_COLLECTION,
+        metrics: {
+          totalProcessed: tickets.length,
+          successCount: statistics.newTickets + statistics.updatedTickets +
+            statistics.unchangedTickets,
+          failureCount: statistics.failedTickets,
+          unknownPatterns: 0, // JLeagueDataParserで個別カウント
+          processingTimeMs: executionDuration,
+          successRate: tickets.length > 0
+            ? (tickets.length - statistics.failedTickets) / tickets.length
+            : 1.0,
+        },
+        context: {
+          sessionId,
+        },
+      });
 
       return {
         status: 'success',
@@ -56,44 +67,45 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
     } catch (error) {
       const executionDuration = Date.now() - startTime;
 
-      executionResult = {
-        executedAt: new Date(),
-        ticketsFound: 0,
-        status: 'error',
-        executionDurationMs: executionDuration,
-        errorDetails: {
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        },
-      };
-
-      if (Deno.env.get('NODE_ENV') !== 'production') {
-        console.error(
-          'Daily execution failed:',
-          error instanceof Error ? error.message : String(error),
+      // ApplicationErrorとして再ラップ
+      if (error instanceof DatabaseError) {
+        const appError = new ApplicationError(
+          'TicketCollectionUseCase',
+          `Database operation failed: ${error.message}`,
+          AppErrorCodes.TICKET_COLLECTION_FAILED,
+          error,
+          { sessionId, executionDurationMs: executionDuration },
         );
+
+        // 構造化ログ出力
+        CloudLogger.error('Ticket collection service error', {
+          category: LogCategory.TICKET_COLLECTION,
+          error: {
+            details: appError.message,
+            recoverable: true,
+          },
+        });
+        throw appError;
       }
 
-      try {
-        await this.healthRepository.recordDailyExecution(executionResult);
-      } catch (healthError) {
-        if (Deno.env.get('NODE_ENV') !== 'production') {
-          console.error(
-            'CRITICAL: Failed to record health check - Supabase may auto-pause:',
-            healthError,
-          );
-        }
-      }
+      // その他のエラー
+      const appError = new ApplicationError(
+        'TicketCollectionUseCase',
+        `Ticket collection failed: ${error instanceof Error ? error.message : String(error)}`,
+        AppErrorCodes.USECASE_EXECUTION_FAILED,
+        error instanceof Error ? error : undefined,
+        { sessionId, executionDurationMs: executionDuration },
+      );
 
-      return {
-        status: 'error',
-        ticketsFound: 0,
-        executionDurationMs: executionDuration,
-        errorDetails: {
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
+      // 構造化ログ出力
+      CloudLogger.error('Ticket collection failed', {
+        category: LogCategory.TICKET_COLLECTION,
+        error: {
+          details: appError.message,
+          recoverable: false,
         },
-      };
+      });
+      throw appError;
     }
   }
 
@@ -105,10 +117,15 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
         const result = await this.upsertTicket(ticket);
         results.push(result);
       } catch (error) {
-        console.error(
-          `Failed to process ticket (ID: ${ticket.id}):`,
-          error instanceof Error ? error.message : String(error),
-        );
+        CloudLogger.error(`Failed to process ticket (ID: ${ticket.id})`, {
+          category: LogCategory.TICKET_COLLECTION,
+          context: { ticketId: ticket.id },
+          error: {
+            details: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            recoverable: true,
+          },
+        });
         results.push({
           ticket: ticket,
           previousTicket: null,
@@ -183,7 +200,14 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
             }
           }
         } catch (error) {
-          console.error(`Failed to cancel existing notifications for ticket ${ticket.id}:`, error);
+          CloudLogger.warning(`Failed to cancel existing notifications for ticket ${ticket.id}`, {
+            category: LogCategory.NOTIFICATION,
+            context: { ticketId: ticket.id },
+            error: {
+              details: error instanceof Error ? error.message : String(error),
+              recoverable: true,
+            },
+          });
         }
       }
 
@@ -198,7 +222,14 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
         const updatedTicket = ticket.markNotificationScheduled();
         await this.ticketRepository.upsert(updatedTicket);
       } catch (error) {
-        console.error(`Failed to schedule notifications for ticket ${ticket.id}:`, error);
+        CloudLogger.error(`Failed to schedule notifications for ticket ${ticket.id}`, {
+          category: LogCategory.NOTIFICATION,
+          context: { ticketId: ticket.id },
+          error: {
+            details: error instanceof Error ? error.message : String(error),
+            recoverable: true,
+          },
+        });
       }
     }
   }

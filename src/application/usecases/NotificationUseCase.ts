@@ -4,6 +4,8 @@ import {
   INotificationUseCase,
   NotificationExecutionInput,
 } from '@/application/interfaces/usecases/INotificationUseCase.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
 
 export class NotificationUseCase implements INotificationUseCase {
   constructor(
@@ -26,11 +28,17 @@ export class NotificationUseCase implements INotificationUseCase {
       };
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      console.error('Scheduled notification failed:', {
-        ticketId: input.ticketId,
-        notificationType: input.notificationType,
-        executionTimeMs: executionTime,
-        error: error instanceof Error ? error.message : String(error),
+      CloudLogger.error('Scheduled notification failed', {
+        category: LogCategory.NOTIFICATION,
+        context: {
+          ticketId: input.ticketId,
+          processingStage: input.notificationType,
+        },
+        error: {
+          details: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          recoverable: true,
+        },
       });
 
       return {
