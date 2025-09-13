@@ -5,12 +5,10 @@
 
 import { CloudTasksConfig } from '@/infrastructure/clients/CloudTasksClient.ts';
 import { LineClientConfig } from '@/infrastructure/clients/LineClient.ts';
-import { DiscordClientConfig } from '@/infrastructure/clients/DiscordClient.ts';
 
 export interface AppConfig {
   cloudTasks: CloudTasksConfig;
   line: LineClientConfig;
-  discord: DiscordClientConfig;
 }
 
 /**
@@ -24,12 +22,9 @@ export const getAppConfig = (): AppConfig => ({
       'asia-northeast1',
     queueName: 'notifications',
     enableDebugLogs: Deno.env.get('CLOUD_TASKS_DEBUG') === 'true',
-    denoEnv: Deno.env.get('NODE_ENV') || 'development',
+    nodeEnv: Deno.env.get('NODE_ENV') || 'development',
   },
   line: {
     channelAccessToken: Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN') || '',
-  },
-  discord: {
-    webhookUrl: Deno.env.get('DISCORD_WEBHOOK_URL') || '',
   },
 });
