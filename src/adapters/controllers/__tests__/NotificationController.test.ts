@@ -11,9 +11,8 @@ Deno.test('NotificationController', async (t) => {
     SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
   };
 
-  // テスト用環境変数設定
   Deno.env.set('LINE_CHANNEL_ACCESS_TOKEN', 'test-line-token');
-  Deno.env.set('NODE_ENV', 'test'); // 本番でない環境での認証スキップ
+  Deno.env.set('NODE_ENV', 'test');
   Deno.env.set('SUPABASE_URL', 'https://test.supabase.co');
   Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');
 
@@ -108,7 +107,6 @@ Deno.test('NotificationController', async (t) => {
     );
   });
 
-  // 環境変数復元
   Object.entries(originalEnv).forEach(([key, value]) => {
     if (value === undefined) {
       Deno.env.delete(key);

@@ -8,7 +8,6 @@ import { MockNotificationRepository } from '@/shared/testing/mocks/MockNotificat
 import { MockTicketRepository } from '@/shared/testing/mocks/MockTicketRepository.ts';
 import { MockLineClient } from '@/shared/testing/mocks/MockLineClient.ts';
 
-// モック用のfetch関数
 let mockFetchResponse: Response;
 let fetchCallHistory: Array<{
   url: string;
@@ -56,7 +55,6 @@ Deno.test('NotificationService', async (t) => {
     SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
   };
 
-  // テスト用環境変数設定
   Deno.env.set('LINE_CHANNEL_ACCESS_TOKEN', 'test-line-token');
   Deno.env.set('NODE_ENV', 'test');
   Deno.env.set('SUPABASE_URL', 'https://test.supabase.co');
@@ -76,18 +74,14 @@ Deno.test('NotificationService', async (t) => {
       mockLineClient,
     );
 
-    // モックデータは実際の処理をスキップするためのものなので、
-    // ここではservice層の単体テストに留める
     const input: NotificationExecutionInput = {
       ticketId: 'test-ticket-123',
       notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
     };
 
-    // 実際のDB操作は統合テストで検証するため、ここでは例外なく実行されることのみテスト
     try {
       await service.processScheduledNotification(input);
     } catch (error) {
-      // DB関連エラーは想定内（モック環境のため）
       const errorMessage = error instanceof Error ? error.message : String(error);
       assertEquals(typeof errorMessage, 'string');
     }
@@ -181,7 +175,6 @@ Deno.test('NotificationService', async (t) => {
     assertEquals(validInput.notificationType, 'day_before');
   });
 
-  // 環境変数復元
   Object.entries(originalEnv).forEach(([key, value]) => {
     if (value === undefined) {
       Deno.env.delete(key);

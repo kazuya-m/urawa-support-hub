@@ -14,8 +14,6 @@ export class NotificationBatchController {
 
   async handleProcessPendingNotifications(_req: Request): Promise<Response> {
     try {
-      // Cloud RunのOIDC認証により、本番環境では認証済みリクエストのみ到達
-      // 開発環境では認証不要
       const input: BatchExecutionInput = { operation: 'process_pending' };
       const result = await this.notificationBatchUseCase.execute(input);
 
@@ -55,7 +53,6 @@ export class NotificationBatchController {
         );
       }
 
-      // 予期しないエラー
       const errorMessage = error instanceof Error ? error.message : String(error);
       CloudLogger.critical('Unexpected error in NotificationBatchController (pending)', {
         category: LogCategory.NOTIFICATION,
@@ -71,8 +68,6 @@ export class NotificationBatchController {
 
   async handleCleanupExpiredNotifications(_req: Request): Promise<Response> {
     try {
-      // Cloud RunのOIDC認証により、本番環境では認証済みリクエストのみ到達
-      // 開発環境では認証不要
       const input: BatchExecutionInput = { operation: 'cleanup_expired' };
       const result = await this.notificationBatchUseCase.execute(input);
 
@@ -112,7 +107,6 @@ export class NotificationBatchController {
         );
       }
 
-      // 予期しないエラー
       const errorMessage = error instanceof Error ? error.message : String(error);
       CloudLogger.critical('Unexpected error in NotificationBatchController (cleanup)', {
         category: LogCategory.NOTIFICATION,

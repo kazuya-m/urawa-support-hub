@@ -15,8 +15,6 @@ export class NotificationController {
 
   async handleSendNotification(req: Request): Promise<Response> {
     try {
-      // Cloud RunのOIDC認証により、本番環境では認証済みリクエストのみ到達
-      // 開発環境では認証不要
       const body = await this.parseRequestBody(req);
       const validation = validateNotificationRequest(body);
 
@@ -75,7 +73,6 @@ export class NotificationController {
         );
       }
 
-      // 予期しないエラー
       const errorMessage = error instanceof Error ? error.message : String(error);
       CloudLogger.critical('Unexpected error in NotificationController', {
         category: LogCategory.NOTIFICATION,

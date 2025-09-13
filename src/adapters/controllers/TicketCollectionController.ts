@@ -11,8 +11,6 @@ export class TicketCollectionController {
 
   async handleCollectTickets(_req: Request): Promise<Response> {
     try {
-      // Cloud RunのOIDC認証により、本番環境では認証済みリクエストのみ到達
-      // 開発環境では認証不要
       const result = await this.ticketCollectionUseCase.execute();
 
       return HttpResponseBuilder.success({
@@ -51,7 +49,6 @@ export class TicketCollectionController {
         );
       }
 
-      // 予期しないエラー
       const errorMessage = error instanceof Error ? error.message : String(error);
       CloudLogger.critical('Unexpected error in TicketCollectionController', {
         category: LogCategory.SYSTEM,

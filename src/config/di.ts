@@ -8,7 +8,7 @@ import { load } from '@std/dotenv';
 try {
   await load({ export: true });
 } catch {
-  // .env file not found - ignore in production
+  // Ignore .env loading errors in production
 }
 
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
@@ -45,18 +45,15 @@ import { NotificationBatchController } from '@/adapters/controllers/Notification
 export const createDependencies = () => {
   const config = getAppConfig();
 
-  // Clients
   const supabaseClient = createSupabaseAdminClient();
   const cloudTasksClient = new CloudTasksClient(config.cloudTasks);
   const lineClient = new LineClient(config.line);
 
-  // Repositories
   const ticketRepository = new TicketRepository(supabaseClient);
   const notificationRepository = new NotificationRepository(supabaseClient);
 
   const notificationSchedulingService = new NotificationSchedulingService();
 
-  // Infrastructure services
   const playwrightClient = new PlaywrightClient();
   const browserManager = new BrowserManager(playwrightClient);
   const jleagueScrapingService = new JLeagueScrapingService(browserManager);
@@ -72,14 +69,11 @@ export const createDependencies = () => {
   );
 
   return {
-    // Clients
     supabaseClient,
     cloudTasksClient,
     lineClient,
-    // Repositories
     ticketRepository,
     notificationRepository,
-    // Services
     ticketCollectionService,
     notificationSchedulerService,
     notificationService,
@@ -87,7 +81,6 @@ export const createDependencies = () => {
   };
 };
 
-// UseCase作成関数
 export const createTicketCollectionUseCase = (): ITicketCollectionUseCase => {
   const deps = createDependencies();
   return new TicketCollectionUseCase(
@@ -113,7 +106,6 @@ export const createNotificationBatchUseCase = (): INotificationBatchUseCase => {
   );
 };
 
-// Controller作成関数
 export const createNotificationController = (): NotificationController => {
   const notificationUseCase = createNotificationUseCase();
   return new NotificationController(
