@@ -6,7 +6,6 @@ import { MockNotificationUseCase } from '@/shared/testing/mocks/MockNotification
 Deno.test('NotificationController', async (t) => {
   const originalEnv = {
     LINE_CHANNEL_ACCESS_TOKEN: Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN'),
-    DISCORD_WEBHOOK_URL: Deno.env.get('DISCORD_WEBHOOK_URL'),
     NODE_ENV: Deno.env.get('NODE_ENV'),
     SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
     SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
@@ -14,7 +13,6 @@ Deno.test('NotificationController', async (t) => {
 
   // テスト用環境変数設定
   Deno.env.set('LINE_CHANNEL_ACCESS_TOKEN', 'test-line-token');
-  Deno.env.set('DISCORD_WEBHOOK_URL', 'https://discord.com/api/webhooks/test');
   Deno.env.set('NODE_ENV', 'test'); // 本番でない環境での認証スキップ
   Deno.env.set('SUPABASE_URL', 'https://test.supabase.co');
   Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');

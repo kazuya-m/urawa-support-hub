@@ -7,7 +7,6 @@ import type { NotificationExecutionInput } from '@/application/interfaces/usecas
 import { MockNotificationRepository } from '@/shared/testing/mocks/MockNotificationRepository.ts';
 import { MockTicketRepository } from '@/shared/testing/mocks/MockTicketRepository.ts';
 import { MockLineClient } from '@/shared/testing/mocks/MockLineClient.ts';
-import { MockDiscordClient } from '@/shared/testing/mocks/MockDiscordClient.ts';
 
 // モック用のfetch関数
 let mockFetchResponse: Response;
@@ -52,7 +51,6 @@ function mockFetch(input: string | URL | Request, init?: RequestInit): Promise<R
 Deno.test('NotificationService', async (t) => {
   const originalEnv = {
     LINE_CHANNEL_ACCESS_TOKEN: Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN'),
-    DISCORD_WEBHOOK_URL: Deno.env.get('DISCORD_WEBHOOK_URL'),
     NODE_ENV: Deno.env.get('NODE_ENV'),
     SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
     SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
@@ -60,7 +58,6 @@ Deno.test('NotificationService', async (t) => {
 
   // テスト用環境変数設定
   Deno.env.set('LINE_CHANNEL_ACCESS_TOKEN', 'test-line-token');
-  Deno.env.set('DISCORD_WEBHOOK_URL', 'https://discord.com/api/webhooks/test');
   Deno.env.set('NODE_ENV', 'test');
   Deno.env.set('SUPABASE_URL', 'https://test.supabase.co');
   Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');
@@ -73,12 +70,10 @@ Deno.test('NotificationService', async (t) => {
     const mockNotificationRepo = new MockNotificationRepository();
     const mockTicketRepo = new MockTicketRepository();
     const mockLineClient = new MockLineClient();
-    const mockDiscordClient = new MockDiscordClient();
     const service = new NotificationService(
       mockNotificationRepo,
       mockTicketRepo,
       mockLineClient,
-      mockDiscordClient,
     );
 
     // モックデータは実際の処理をスキップするためのものなので、
@@ -116,12 +111,10 @@ Deno.test('NotificationService', async (t) => {
     const mockNotificationRepo = new MockNotificationRepository();
     const mockTicketRepo = new MockTicketRepository();
     const mockLineClient = new MockLineClient();
-    const mockDiscordClient = new MockDiscordClient();
     const service = new NotificationService(
       mockNotificationRepo,
       mockTicketRepo,
       mockLineClient,
-      mockDiscordClient,
     );
 
     const createdAt = new Date();
@@ -171,12 +164,10 @@ Deno.test('NotificationService', async (t) => {
     const mockNotificationRepo = new MockNotificationRepository();
     const mockTicketRepo = new MockTicketRepository();
     const mockLineClient = new MockLineClient();
-    const mockDiscordClient = new MockDiscordClient();
     const _service = new NotificationService(
       mockNotificationRepo,
       mockTicketRepo,
       mockLineClient,
-      mockDiscordClient,
     );
 
     // Serviceの入力検証は実行時に行われるため、

@@ -6,7 +6,7 @@ import {
   createMockSupabaseClient,
   createUpsertMockSupabaseClient,
 } from './test-utils/SupabaseMock.ts';
-import { RepositoryError } from '../../utils/error-handler.ts';
+import { DatabaseError } from '@/shared/errors/index.ts';
 
 Deno.test('SupabaseTicketRepository - findById with null handling', async () => {
   const mockTicketRow: TicketRow = {
@@ -63,8 +63,8 @@ Deno.test('SupabaseTicketRepository - upsert error handling', async () => {
 
   await assertRejects(
     () => repository.upsert(testTicket),
-    RepositoryError,
-    'Failed to upsert ticket: Database error',
+    DatabaseError,
+    '[TicketRepository.upsert] Database error',
   );
 });
 
@@ -249,8 +249,8 @@ Deno.test('TicketRepository - upsert handles database error properly', async () 
 
   await assertRejects(
     () => repository.upsert(testTicket),
-    RepositoryError,
-    'Failed to upsert ticket: table does not exist',
+    DatabaseError,
+    '[TicketRepository.upsert] table does not exist',
   );
 });
 
@@ -279,8 +279,8 @@ Deno.test('TicketRepository - upsert handles upsert error properly', async () =>
 
   await assertRejects(
     () => repository.upsert(testTicket),
-    RepositoryError,
-    'Failed to upsert ticket: duplicate key error',
+    DatabaseError,
+    '[TicketRepository.upsert] duplicate key error',
   );
 });
 
