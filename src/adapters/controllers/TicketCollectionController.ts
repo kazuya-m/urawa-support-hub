@@ -1,6 +1,9 @@
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
-import { TicketCollectionPresenter } from '@/adapters/presenters/TicketCollectionPresenter.ts';
-import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
+import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
+import { AuthHelper } from '@/adapters/helpers/AuthHelper.ts';
+import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
 
 export class TicketCollectionController {
   constructor(
@@ -9,33 +12,61 @@ export class TicketCollectionController {
 
   async handleCollectTickets(req: Request): Promise<Response> {
     try {
-      const isAuthenticated = this.validateCloudSchedulerRequest(req);
-      if (!isAuthenticated) {
-        return TicketCollectionPresenter.toUnauthorizedResponse();
+      if (!AuthHelper.validateCloudSchedulerRequest(req)) {
+        return HttpResponseBuilder.unauthorized(
+          'Invalid or missing authentication for Cloud Scheduler',
+        );
       }
 
       const result = await this.ticketCollectionUseCase.execute();
-      return TicketCollectionPresenter.toSuccessResponse(result);
+
+      return HttpResponseBuilder.success({
+        message: 'Ticket collection completed successfully',
+        ticketsFound: result.ticketsFound,
+        newTickets: result.newTickets,
+        updatedTickets: result.updatedTickets,
+        executionTimeMs: result.executionDurationMs,
+      });
     } catch (error) {
-      if (error instanceof Error) {
-        handleSupabaseError('ticket collection', error);
+      if (error instanceof ApplicationError) {
+        CloudLogger.error('UseCase error in ticket collection', {
+          category: LogCategory.TICKET_COLLECTION,
+          error: {
+            details: error.message,
+            recoverable: true,
+          },
+        });
+        return HttpResponseBuilder.error(
+          error.formatMessage(),
+          error.context,
+        );
       }
 
-      return TicketCollectionPresenter.toErrorResponse(
-        'Ticket collection failed',
-        error instanceof Error ? error.message : String(error),
-        500,
-      );
+      if (error instanceof DatabaseError) {
+        CloudLogger.error('Database error in ticket collection', {
+          category: LogCategory.DATABASE,
+          error: {
+            details: error.message,
+            recoverable: false,
+          },
+        });
+        return HttpResponseBuilder.error(
+          'Database operation failed',
+          { operation: 'ticket collection' },
+        );
+      }
+
+      // 予期しないエラー
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      CloudLogger.critical('Unexpected error in TicketCollectionController', {
+        category: LogCategory.SYSTEM,
+        error: {
+          details: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+          recoverable: false,
+        },
+      });
+      return HttpResponseBuilder.error('Ticket collection failed', errorMessage);
     }
-  }
-
-  public validateCloudSchedulerRequest(req: Request): boolean {
-    const authHeader = req.headers.get('Authorization');
-
-    if (Deno.env.get('NODE_ENV') !== 'production') {
-      return true;
-    }
-
-    return !!authHeader;
   }
 }

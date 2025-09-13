@@ -2,15 +2,12 @@ import {
   INotificationUseCase,
   NotificationExecutionInput,
 } from '@/application/interfaces/usecases/INotificationUseCase.ts';
-import { NotificationPresenter } from '@/adapters/presenters/NotificationPresenter.ts';
-import { isValidNotificationType, NotificationType } from '@/domain/entities/NotificationTypes.ts';
-import { handleSupabaseError } from '@/infrastructure/utils/error-handler.ts';
-import { DISCORD_EMBED_TEMPLATES, getNotificationConfig } from '@/config/notification.ts';
-
-interface CloudTaskRequestBody {
-  ticketId: string;
-  notificationType: string;
-}
+import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
+import { AuthHelper } from '@/adapters/helpers/AuthHelper.ts';
+import { validateNotificationRequest } from '@/adapters/validators/NotificationRequestValidator.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
+import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
 
 export class NotificationController {
   constructor(
@@ -18,48 +15,26 @@ export class NotificationController {
   ) {}
 
   async handleSendNotification(req: Request): Promise<Response> {
-    const startTime = Date.now();
-    let ticketId: string | undefined;
-    let notificationType: string | undefined;
-
     try {
-      const isAuthenticated = this.validateCloudTasksRequest(req);
-      if (!isAuthenticated) {
-        return NotificationPresenter.toUnauthorizedResponse();
-      }
-
-      const requestBody = await this.parseRequestBody(req);
-      if (!requestBody) {
-        return NotificationPresenter.toBadRequestResponse('Invalid request body format');
-      }
-
-      ticketId = requestBody.ticketId;
-      notificationType = requestBody.notificationType;
-
-      if (!ticketId || typeof ticketId !== 'string') {
-        return NotificationPresenter.toBadRequestResponse(
-          'ticketId is required and must be a string',
+      if (!AuthHelper.validateCloudTasksRequest(req)) {
+        return HttpResponseBuilder.unauthorized(
+          'Invalid or missing authentication for Cloud Tasks',
         );
       }
 
-      if (!isValidNotificationType(notificationType)) {
-        return NotificationPresenter.toBadRequestResponse(
-          `Invalid notificationType: ${notificationType}`,
-        );
+      const body = await this.parseRequestBody(req);
+      const validation = validateNotificationRequest(body);
+
+      if (!validation.isValid) {
+        return HttpResponseBuilder.badRequest(validation.error!);
       }
 
-      const inputData: NotificationExecutionInput = {
-        ticketId,
-        notificationType: notificationType as NotificationType,
-      };
+      const inputData: NotificationExecutionInput = validation.data!;
 
       const result = await this.notificationUseCase.execute(inputData);
 
-      const _executionTime = Date.now() - startTime;
-
-      // エラー結果の場合は適切なエラーレスポンスを返す
       if (result.status === 'error') {
-        return NotificationPresenter.toErrorResponse(
+        return HttpResponseBuilder.error(
           'Notification processing failed',
           {
             ticketId: result.ticketId,
@@ -67,92 +42,63 @@ export class NotificationController {
             errorMessage: result.errorMessage,
             executionTimeMs: result.executionDurationMs,
           },
-          500,
         );
       }
 
-      return NotificationPresenter.toSuccessResponse(result);
+      return HttpResponseBuilder.success({
+        message: 'Notification sent successfully',
+        ticketId: result.ticketId,
+        notificationType: result.notificationType,
+        executionTimeMs: result.executionDurationMs,
+      });
     } catch (error) {
-      const _executionTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      if (error instanceof Error) {
-        handleSupabaseError('send notification', error);
+      if (error instanceof ApplicationError) {
+        CloudLogger.error('UseCase error in notification processing', {
+          category: LogCategory.NOTIFICATION,
+          error: {
+            details: error.message,
+            recoverable: true,
+          },
+        });
+        return HttpResponseBuilder.error(
+          error.formatMessage(),
+          error.context,
+        );
       }
 
-      // Discord エラー通知を送信
-      this.sendDiscordErrorAlert({
-        operation: 'Cloud Tasks→Cloud Run notification processing',
-        ticketId,
-        notificationType,
-        error: errorMessage,
-        executionTimeMs: _executionTime,
-      }).catch((_alertError) => {
+      if (error instanceof DatabaseError) {
+        CloudLogger.error('Database error in notification processing', {
+          category: LogCategory.DATABASE,
+          error: {
+            details: error.message,
+            recoverable: false,
+          },
+        });
+        return HttpResponseBuilder.error(
+          'Database operation failed',
+          { operation: 'notification processing' },
+        );
+      }
+
+      // 予期しないエラー
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      CloudLogger.critical('Unexpected error in NotificationController', {
+        category: LogCategory.NOTIFICATION,
+        error: {
+          details: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+          recoverable: false,
+        },
       });
-
-      return NotificationPresenter.toErrorResponse(
-        'Notification delivery failed',
-        errorMessage,
-        500,
-      );
+      return HttpResponseBuilder.error('Internal Server Error', errorMessage);
     }
   }
 
-  private validateCloudTasksRequest(req: Request): boolean {
-    const authHeader = req.headers.get('Authorization');
-
-    if (Deno.env.get('NODE_ENV') !== 'production') {
-      return true;
-    }
-
-    // Cloud Tasks uses OIDC token or service account authentication
-    return !!authHeader && (
-      authHeader.startsWith('Bearer ') ||
-      authHeader.startsWith('OAuth ')
-    );
-  }
-
-  private async parseRequestBody(req: Request): Promise<CloudTaskRequestBody | null> {
+  private async parseRequestBody(req: Request): Promise<unknown> {
     try {
-      const body = await req.json();
-      return body as CloudTaskRequestBody;
+      return await req.json();
     } catch {
       return null;
-    }
-  }
-
-  private async sendDiscordErrorAlert(errorData: {
-    operation: string;
-    ticketId?: string;
-    notificationType?: string;
-    error: string;
-    executionTimeMs: number;
-  }): Promise<void> {
-    try {
-      const config = getNotificationConfig();
-
-      const details = [
-        `Operation: ${errorData.operation}`,
-        errorData.ticketId ? `Ticket ID: ${errorData.ticketId}` : null,
-        errorData.notificationType ? `Notification Type: ${errorData.notificationType}` : null,
-        `Execution Time: ${errorData.executionTimeMs}ms`,
-        `Error: ${errorData.error}`,
-      ].filter(Boolean).join('\n');
-
-      const embed = DISCORD_EMBED_TEMPLATES.errorNotification(
-        '🚨 Cloud Tasks→Cloud Run 通知エラー',
-        details,
-      );
-
-      await fetch(config.discord.webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(embed),
-      });
-    } catch {
-      // Ignore Discord errors
     }
   }
 }
