@@ -30,6 +30,14 @@ jobs:
         with:
           project_id: ${{ secrets.GC_PROJECT_ID }}
 
+      - name: Debug authentication
+        run: |
+          echo "=== Auth Debug ==="
+          gcloud auth list
+          gcloud config list
+          echo "Project: ${{ secrets.GC_PROJECT_ID }}"
+          echo "Region: ${{ secrets.GC_REGION }}"
+
       - name: Configure Docker auth for Artifact Registry
         run: gcloud auth configure-docker ${{ secrets.GC_REGION }}-docker.pkg.dev
 
