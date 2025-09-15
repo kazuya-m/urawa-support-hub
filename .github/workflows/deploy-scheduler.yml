@@ -59,7 +59,7 @@ jobs:
               --time-zone="Asia/Tokyo" \
               --uri="${SERVICE_URL}/api/collect-tickets" \
               --http-method=POST \
-              --headers="Content-Type=application/json" \
+              --update-headers="Content-Type=application/json" \
               --message-body='{"source":"cloud-scheduler"}' \
               --attempt-deadline="300s" \
               --max-retry-attempts=3 \
