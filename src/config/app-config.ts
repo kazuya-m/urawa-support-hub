@@ -17,7 +17,7 @@ export interface AppConfig {
  */
 export const getAppConfig = (): AppConfig => ({
   cloudTasks: {
-    projectId: Deno.env.get('GOOGLE_CLOUD_PROJECT') || Deno.env.get('GCP_PROJECT_ID') || '',
+    projectId: Deno.env.get('GC_PROJECT_ID') || '',
     location: Deno.env.get('CLOUD_TASKS_LOCATION') || Deno.env.get('GCP_REGION') ||
       'asia-northeast1',
     queueName: 'notifications',
