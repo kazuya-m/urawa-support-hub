@@ -30,11 +30,21 @@ jobs:
         with:
           project_id: ${{ secrets.GC_PROJECT_ID }}
 
+      - name: Configure Docker auth for Artifact Registry
+        run: gcloud auth configure-docker ${{ secrets.GC_REGION }}-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
+          IMAGE_URL="${{ secrets.GC_REGION }}-docker.pkg.dev/${{ secrets.GC_PROJECT_ID }}/urawa-support-hub/app:${{ github.sha }}"
+          docker build -t $IMAGE_URL .
+          docker push $IMAGE_URL
+
       - name: Deploy to Cloud Run
         run: |
+          IMAGE_URL="${{ secrets.GC_REGION }}-docker.pkg.dev/${{ secrets.GC_PROJECT_ID }}/urawa-support-hub/app:${{ github.sha }}"
           gcloud run deploy urawa-support-hub \
             --project ${{ secrets.GC_PROJECT_ID }} \
-            --source . \
+            --image $IMAGE_URL \
             --region ${{ secrets.GC_REGION }} \
             --memory 2Gi \
             --timeout 300 \
@@ -43,3 +53,20 @@ jobs:
             --concurrency 1 \
             --service-account ${{ secrets.GC_SA_CLOUD_RUN }} \
             --no-allow-unauthenticated
+
+      - name: Cleanup old images (keep latest 2)
+        run: |
+          # 最新2つ以外のイメージを削除
+          gcloud artifacts docker images list \
+            ${{ secrets.GC_REGION }}-docker.pkg.dev/${{ secrets.GC_PROJECT_ID }}/urawa-support-hub/app \
+            --sort-by=~UPDATE_TIME \
+            --format="value(version)" | \
+          tail -n +3 | \
+          while read version; do
+            if [ -n "$version" ]; then
+              echo "Deleting old image: $version"
+              gcloud artifacts docker images delete \
+                ${{ secrets.GC_REGION }}-docker.pkg.dev/${{ secrets.GC_PROJECT_ID }}/urawa-support-hub/app@$version \
+                --quiet || echo "Failed to delete $version"
+            fi
+          done
