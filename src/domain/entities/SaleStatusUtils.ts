@@ -21,6 +21,7 @@ export function determineYear(month: number, referenceDate: Date = new Date()): 
 
 /**
  * 年跨ぎ対応の日付解析関数
+ * JST（日本標準時）をUTCに変換して返す
  */
 export function parseMatchDate(
   month: number,
@@ -30,13 +31,15 @@ export function parseMatchDate(
   referenceDate: Date = new Date(),
 ): Date {
   const year = determineYear(month, referenceDate);
-  const date = new Date(year, month - 1, day, hour, minute);
 
-  if (isNaN(date.getTime())) {
+  // UTC日時として直接作成（JST時刻をUTC時刻に変換）
+  const utcDate = new Date(Date.UTC(year, month - 1, day, hour - 9, minute));
+
+  if (isNaN(utcDate.getTime())) {
     throw new Error(`Invalid date: ${year}/${month}/${day} ${hour}:${minute}`);
   }
 
-  return date;
+  return utcDate;
 }
 
 export function determineSaleStatus(
