@@ -55,7 +55,7 @@ ticket sales begin.
 
 ```
 ┌─────────────────────────────────────┐
-│     Interface Layer                │  ← Cloud Run Service, Edge Functions
+│     Interface Layer                │  ← Cloud Run Service
 ├─────────────────────────────────────┤
 │     Application Layer              │  ← UseCases: TicketCollectionUseCase
 ├─────────────────────────────────────┤
@@ -523,7 +523,6 @@ interface LogEntry {
 #### Service Health Checks
 
 - **Cloud Run**: `/health` endpoint with dependency checks
-- **Edge Functions**: Built-in health monitoring
 - **Database**: Connection and query performance monitoring
 - **External Services**: API availability and response time tracking
 
