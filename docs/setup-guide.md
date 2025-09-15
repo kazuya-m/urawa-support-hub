@@ -166,7 +166,7 @@ Create the scheduler service account **before** CI/CD deployment:
 
 ```bash
 # Set your project ID
-export GCP_PROJECT_ID=your-project-id
+export GC_PROJECT_ID=your-project-id
 
 # Create service account for scheduler
 gcloud iam service-accounts create urawa-scheduler \
@@ -175,7 +175,7 @@ gcloud iam service-accounts create urawa-scheduler \
 
 # Grant Cloud Run invoker permission
 gcloud run services add-iam-policy-binding urawa-support-hub \
-  --member="serviceAccount:urawa-scheduler@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+  --member="serviceAccount:urawa-scheduler@${GC_PROJECT_ID}.iam.gserviceaccount.com" \
   --role="roles/run.invoker" \
   --region=asia-northeast1
 ```
@@ -184,9 +184,10 @@ gcloud run services add-iam-policy-binding urawa-support-hub \
 
 Add these secrets for automatic deployment:
 
-- `GCP_PROJECT_ID`: Your GCP project ID
-- `SCHEDULER_SA_EMAIL`: `urawa-scheduler@your-project-id.iam.gserviceaccount.com`
-- `GCP_SA_KEY_CICD`: CI/CD service account key (JSON)
+- `GC_PROJECT_ID`: Your GCP project ID
+- `GC_SA_SCHEDULER`: `urawa-scheduler@your-project-id.iam.gserviceaccount.com`
+- `GC_SA_CICID`: CI/CD service account key (JSON)
+- `CLOUD_RUN_URL`: Your Cloud Run service URL
 
 #### Automatic Deployment (Recommended)
 
@@ -199,9 +200,9 @@ The scheduler deploys automatically via GitHub Actions when changes are pushed t
 
 ```bash
 # Set variables
-export GCP_PROJECT_ID=your-project-id
-export SCHEDULER_SA_EMAIL=urawa-scheduler@${GCP_PROJECT_ID}.iam.gserviceaccount.com
-export CLOUD_RUN_URL=https://urawa-support-hub-xxx-an.a.run.app
+export GC_PROJECT_ID=your-project-id
+export GC_SA_SCHEDULER=urawa-scheduler@${GC_PROJECT_ID}.iam.gserviceaccount.com
+export CLOUD_RUN_URL=your-cloud-run-service-url
 
 # Create scheduler job (05:00 JST daily)
 gcloud scheduler jobs create http daily-ticket-collection \
@@ -214,7 +215,7 @@ gcloud scheduler jobs create http daily-ticket-collection \
   --message-body='{"source":"cloud-scheduler"}' \
   --attempt-deadline="300s" \
   --max-retry-attempts=3 \
-  --oidc-service-account-email="${SCHEDULER_SA_EMAIL}"
+  --oidc-service-account-email="${GC_SA_SCHEDULER}"
 ```
 
 #### Verification
