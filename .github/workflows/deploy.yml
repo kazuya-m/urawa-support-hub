@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - 'feature/#33_github-actions-cicd-pipeline' # 一時的なテスト用
   workflow_dispatch:
 
 jobs:
