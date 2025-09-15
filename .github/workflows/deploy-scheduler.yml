@@ -65,7 +65,7 @@ jobs:
               --max-retry-attempts=3 \
               --min-backoff=30s \
               --max-backoff=300s \
-              --oidc-service-account-email="${{ env.SCHEDULER_SA_EMAIL }}" >/dev/null 2>&1
+              --oidc-service-account-email="${{ env.SCHEDULER_SA_EMAIL }}"
           else
             gcloud scheduler jobs create http "daily-ticket-collection" \
               --location="asia-northeast1" \
@@ -80,7 +80,7 @@ jobs:
               --min-backoff=30s \
               --max-backoff=300s \
               --oidc-service-account-email="${{ env.SCHEDULER_SA_EMAIL }}" \
-              --oidc-token-audience="${SERVICE_URL}" >/dev/null 2>&1
+              --oidc-token-audience="${SERVICE_URL}"
           fi
 
           echo "✅ Scheduler job deployment completed"
