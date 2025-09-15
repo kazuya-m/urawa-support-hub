@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-13 (System architecture refactoring and GCP logging integration completed)\
+**Updated**: 2025-09-15 (CI/CD pipeline and GCP production setup completed)\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
@@ -11,9 +11,10 @@
   services, application layer, Cloud Tasks notification scheduling (#25), Cloud Run deployment
   (#24), Cloud Logging-based monitoring (#64), Sale Status Management (#62), Dependency Injection
   Pattern (#75), Notification status change (#73), Cloud Tasks→Cloud Run notification integration
-  (#78), System architecture refactoring and error handling unification
-- **In Progress**: MVP deployment planning
-- **Not Started**: CI/CD setup, production environment setup
+  (#78), System architecture refactoring, error handling unification, CI/CD pipeline (#33), GCP
+  production setup (#82), Data quality improvement (#85)
+- **In Progress**: Production deployment verification
+- **Not Started**: Post-MVP improvements and optimizations
 
 ## Implementation Phases Overview
 
@@ -60,11 +61,12 @@
 
 **Purpose**: Production deployment and automated CI/CD
 
-| Issue | Title                                    | Priority    | Status         | Reason                    |
-| ----- | ---------------------------------------- | ----------- | -------------- | ------------------------- |
-| #33   | **GitHub Actions CI/CD Pipeline実装**    | 🔴 Critical | ❌ Not Started | **MVP自動デプロイ必須**   |
-| #82   | **GCP本番環境構築・Service Account設定** | 🔴 Critical | ❌ Not Started | **MVP認証・権限設定必須** |
-| #83   | **Production Deployment Verification**   | 🔴 Critical | ❌ Not Started | **MVP動作確認必須**       |
+| Issue | Title                                            | Priority    | Status           | Reason                       |
+| ----- | ------------------------------------------------ | ----------- | ---------------- | ---------------------------- |
+| #33   | **GitHub Actions CI/CD Pipeline実装**            | 🔴 Critical | ✅ **COMPLETED** | **MVP自動デプロイ必須**      |
+| #82   | **GCP本番環境構築・Service Account設定**         | 🔴 Critical | ✅ **COMPLETED** | **MVP認証・権限設定必須**    |
+| #97   | **GitHub ActionsにSupabaseマイグレーション追加** | 🟠 High     | 🔄 In Progress   | **DBマイグレーション自動化** |
+| #83   | **Production Deployment Verification**           | 🔴 Critical | 🔄 In Progress   | **MVP動作確認必須**          |
 
 ## Completed Issues (Additional implementations)
 
@@ -89,6 +91,8 @@
 - **#73** - NotificationStatusを'pending'から'scheduled'に変更 ✅
 - **#78** - Cloud Tasks→Cloud Run LINE通知統合完全実装 ✅
 - **#85** - スクレイピングデータ品質向上・日時精度改善実装 ✅
+- **#33** - GitHub Actions CI/CD Pipeline実装 ✅
+- **#82** - GCP本番環境構築・Service Account設定 ✅
 
 ## Development Progress Rules
 
@@ -118,11 +122,11 @@ Each issue is considered complete when:
 
 - **Target**: Complete Google Cloud integration and production deployment
 - **Success Criteria**: Automated daily ticket monitoring with LINE/Discord notifications
-- **Remaining**: 3 issues (7% of total scope) - **UPDATED**
+- **Remaining**: 2 issues (5% of total scope) - **UPDATED**
 
-## Current Status (2025-09-13) - **UPDATED**
+## Current Status (2025-09-15) - **UPDATED**
 
-### ✅ Completed Issues: 37/40 (93%)
+### ✅ Completed Issues: 41/43 (95%)
 
 **Foundation & Infrastructure:**
 
@@ -151,11 +155,12 @@ Each issue is considered complete when:
 - #25 - Google Cloud Tasks notification scheduling implementation
 - #75 - 依存性注入（DI）パターン導入による単体テストの改善
 - #73 - Notification status名称変更 (pending → scheduled)
-- **#24 - Google Cloud Run scraping service implementation**
-- **#64 - Data quality monitoring via Cloud Logging**
-- **#62 - 発売済みチケット状態管理・除外機能実装**
-- **#78 - Cloud Tasks→Cloud Run LINE通知統合完全実装**
-- **#26 - Cloud Scheduler daily execution setup implementation**
+- #24 - Google Cloud Run scraping service implementation
+- #64 - Data quality monitoring via Cloud Logging
+- #62 - 発売済みチケット状態管理・除外機能実装
+- #78 - Cloud Tasks→Cloud Run LINE通知統合完全実装
+- #26 - Cloud Scheduler daily execution setup implementation
+- #85 - スクレイピングデータ品質向上・日時精度改善実装
 
 **Testing & Documentation:**
 
@@ -166,40 +171,57 @@ Each issue is considered complete when:
 - #32 - Database migration management
 - #34 - Security and permission detailed design
 
-### ❌ Not Started: 3/40 (7%)
+**Production Deployment:**
 
-**Critical for MVP Launch (Phase 4):**
+- #33 - GitHub Actions CI/CD Pipeline実装
+- #82 - GCP本番環境構築・Service Account設定
+- #49 - Supabase無料枠自動停止対策：毎日のヘルスチェック記録実装
+- #51 - アーキテクチャ改善: servicesをinfrastructureからapplicationレイヤーに移動
+- #53 - LINE通知をグループ配信からブロードキャスト配信に変更
 
-- #33 - **GitHub Actions CI/CD Pipeline実装** (**Phase 5→4に移動**)
-- #82 - **GCP本番環境構築・Service Account設定** (**NEW**)
-- #83 - **Production Deployment Verification** (**NEW**)
+### 🔄 In Progress: 2/43 (5%)
 
-**Optimization & Improvements:**
+**MVP Final Steps:**
+
+- #97 - GitHub ActionsにSupabaseマイグレーション自動実行を追加
+- #83 - Production Deployment Verification
+
+### ⏳ Post-MVP Improvements (Phase 5): 7 issues
+
+**Optimization & Cost Reduction:**
 
 - #72 - データベースへのクエリ回数を最適化する
 - #68 - データベース履歴とGCPログの料金最適化
-- #64 - スクレイピングデータ品質監視・Discord通知機能実装
+- #80 - Cloud Run APIエンドポイントのセキュリティ強化
+- #50 - 本番環境セキュリティ強化：RLSポリシー導入
 
-**Post-Launch Improvements:**
+**Feature Enhancements:**
 
-- #67 - ヴィッセル神戸オフィシャルサイト対応 (Phase 5)
-- #66 - サンフレッチェ広島オフィシャルサイト対応 (Phase 5)
-- #50 - 本番環境セキュリティ強化：RLSポリシー導入 (Phase 5)
-- #85 - ✅ **COMPLETED** - スクレイピングデータ品質向上・日時精度改善実装
+- #67 - ヴィッセル神戸オフィシャルサイト対応
+- #66 - サンフレッチェ広島オフィシャルサイト対応
+- #86 - スクレイピング最適化検討：サイト負荷軽減を優先した詳細ページアクセス改善
+- #84 - Playwright scraperのmock化対応
 
-## Next Steps Priority (**UPDATED: 2025-09-13**)
+## Next Steps Priority (**UPDATED: 2025-09-15**)
 
-**MVP Launch Requirements (Phase 4):**
+**MVP Final Steps:**
 
-1. **#33** - GitHub Actions CI/CD Pipeline実装 🔴 **自動デプロイ必須**
-2. **#82** - GCP本番環境構築・Service Account設定 🔴 **認証・権限設定必須**
-3. **#83** - Production Deployment Verification 🔴 **動作確認必須**
+1. **#97** - GitHub ActionsにSupabaseマイグレーション自動実行を追加 🔴 **DBマイグレーション自動化**
+2. **#83** - Production Deployment Verification 🔴 **動作確認必須**
 
-**Post-MVP Improvements:**
+**Post-MVP Optimization (Phase 5):**
 
-5. **#64** - スクレイピングデータ品質監視・Discord通知機能実装 🟠 品質向上
-6. **#72** - データベースへのクエリ回数を最適化する 🟡 コスト最適化
-7. **#68** - データベース履歴とGCPログの料金最適化 🟡 コスト最適化
+3. **#72** - データベースへのクエリ回数を最適化する 🟡 コスト最適化
+4. **#68** - データベース履歴とGCPログの料金最適化 🟡 コスト最適化
+5. **#80** - Cloud Run APIエンドポイントのセキュリティ強化 🟠 セキュリティ向上
+6. **#50** - 本番環境セキュリティ強化：RLSポリシー導入 🟠 セキュリティ向上
+
+**Post-MVP Enhancements:**
+
+7. **#86** - スクレイピング最適化検討 🟢 パフォーマンス改善
+8. **#84** - Playwright scraperのmock化対応 🟢 テスト改善
+9. **#67** - ヴィッセル神戸対応 🟢 機能拡張
+10. **#66** - サンフレッチェ広島対応 🟢 機能拡張
 
 ## Progress Tracking
 
