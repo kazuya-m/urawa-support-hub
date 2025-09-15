@@ -45,10 +45,10 @@ Deno.test('parseSaleDate should parse before_sale format correctly', () => {
   const result = parseSaleDate(beforeSaleText);
 
   assertEquals(result.saleStatus, 'before_sale');
-  assertEquals(result.saleStartDate?.getMonth(), 7); // August (0-indexed)
-  assertEquals(result.saleStartDate?.getDate(), 15);
-  assertEquals(result.saleStartDate?.getHours(), 10);
-  assertEquals(result.saleStartDate?.getMinutes(), 0);
+  assertEquals(result.saleStartDate?.getUTCMonth(), 7); // August (0-indexed)
+  assertEquals(result.saleStartDate?.getUTCDate(), 15); // JST 10:00 -> UTC same day 01:00
+  assertEquals(result.saleStartDate?.getUTCHours(), 1); // JST 10:00 = UTC 01:00 (10-9)
+  assertEquals(result.saleStartDate?.getUTCMinutes(), 0);
   assertEquals(result.saleEndDate, undefined);
 });
 
@@ -58,10 +58,10 @@ Deno.test('parseSaleDate should parse on_sale format correctly', () => {
 
   assertEquals(result.saleStatus, 'on_sale');
   assertEquals(result.saleStartDate, undefined);
-  assertEquals(result.saleEndDate?.getMonth(), 8); // September (0-indexed)
-  assertEquals(result.saleEndDate?.getDate(), 12);
-  assertEquals(result.saleEndDate?.getHours(), 23);
-  assertEquals(result.saleEndDate?.getMinutes(), 59);
+  assertEquals(result.saleEndDate?.getUTCMonth(), 8); // September (0-indexed)
+  assertEquals(result.saleEndDate?.getUTCDate(), 12); // JST 23:59 -> UTC same day 14:59
+  assertEquals(result.saleEndDate?.getUTCHours(), 14); // JST 23:59 = UTC 14:59 (23-9)
+  assertEquals(result.saleEndDate?.getUTCMinutes(), 59);
 });
 
 Deno.test('parseSaleDate should parse full range format correctly', () => {
@@ -121,10 +121,10 @@ Deno.test('parseMatchDate - 年跨ぎ対応', () => {
 
   // 翌年3月の試合
   const marchMatch = parseMatchDate(3, 15, 14, 0, referenceDate);
-  assertEquals(marchMatch.getFullYear(), 2025, '12月実行時の3月試合は翌年として処理');
-  assertEquals(marchMatch.getMonth(), 2, '月は正しく設定されるべき'); // 3月 = 2 (0-indexed)
-  assertEquals(marchMatch.getDate(), 15, '日は正しく設定されるべき');
-  assertEquals(marchMatch.getHours(), 14, '時刻は正しく設定されるべき');
+  assertEquals(marchMatch.getUTCFullYear(), 2025, '12月実行時の3月試合は翌年として処理');
+  assertEquals(marchMatch.getUTCMonth(), 2, '月は正しく設定されるべき'); // 3月 = 2 (0-indexed)
+  assertEquals(marchMatch.getUTCDate(), 15, 'JST 14:00 -> UTC same day 05:00'); // JST 3/15 14:00 -> UTC 3/15 05:00
+  assertEquals(marchMatch.getUTCHours(), 5, 'JST 14:00 = UTC 05:00 (14-9)'); // JST 14:00 = UTC 05:00
 });
 
 Deno.test('parseSaleDate - 年跨ぎ対応テスト', () => {
@@ -135,12 +135,12 @@ Deno.test('parseSaleDate - 年跨ぎ対応テスト', () => {
 
   assertEquals(result.saleStatus, 'before_sale');
   assertEquals(
-    result.saleStartDate?.getFullYear(),
+    result.saleStartDate?.getUTCFullYear(),
     2025,
     '販売開始日の年は翌年として設定されるべき',
   );
-  assertEquals(result.saleStartDate?.getMonth(), 2, '販売開始日の月は正しく設定されるべき');
-  assertEquals(result.saleStartDate?.getDate(), 15, '販売開始日の日は正しく設定されるべき');
+  assertEquals(result.saleStartDate?.getUTCMonth(), 2, '販売開始日の月は正しく設定されるべき');
+  assertEquals(result.saleStartDate?.getUTCDate(), 15, 'JST 03/15 10:00 -> UTC 03/15 01:00'); // JST 3/15 10:00 -> UTC 3/15 01:00
 });
 
 Deno.test('parseSaleDate - 年跨ぎフルレンジテスト', () => {
@@ -151,10 +151,36 @@ Deno.test('parseSaleDate - 年跨ぎフルレンジテスト', () => {
 
   assertEquals(result.saleStatus, 'before_sale');
   // 販売開始: 12月なので同年
-  assertEquals(result.saleStartDate?.getFullYear(), 2024);
-  assertEquals(result.saleStartDate?.getMonth(), 11); // 12月 = 11 (0-indexed)
+  assertEquals(result.saleStartDate?.getUTCFullYear(), 2024);
+  assertEquals(result.saleStartDate?.getUTCMonth(), 11); // 12月 = 11 (0-indexed)
 
   // 販売終了: 3月なので翌年
-  assertEquals(result.saleEndDate?.getFullYear(), 2025);
-  assertEquals(result.saleEndDate?.getMonth(), 2); // 3月 = 2 (0-indexed)
+  assertEquals(result.saleEndDate?.getUTCFullYear(), 2025);
+  assertEquals(result.saleEndDate?.getUTCMonth(), 2); // 3月 = 2 (0-indexed)
+});
+
+// JST→UTC変換の具体的テスト
+Deno.test('parseMatchDate - JST to UTC conversion verification', () => {
+  // JST 2025-03-15 10:00 → UTC 2025-03-15 01:00
+  const result = parseMatchDate(3, 15, 10, 0, new Date(2024, 11, 15));
+
+  assertEquals(result.getUTCFullYear(), 2025);
+  assertEquals(result.getUTCMonth(), 2); // March
+  assertEquals(result.getUTCDate(), 15); // JST 3/15 -> UTC 3/15
+  assertEquals(result.getUTCHours(), 1); // JST 10:00 = UTC 01:00
+  assertEquals(result.getUTCMinutes(), 0);
+
+  // UTC時刻でISO文字列を確認
+  assertEquals(result.toISOString(), '2025-03-15T01:00:00.000Z');
+});
+
+Deno.test('parseMatchDate - JST midnight to UTC previous day', () => {
+  // JST 2025-03-15 00:30 → UTC 2025-03-14 15:30
+  const result = parseMatchDate(3, 15, 0, 30, new Date(2024, 11, 15));
+
+  assertEquals(result.getUTCFullYear(), 2025);
+  assertEquals(result.getUTCMonth(), 2); // March
+  assertEquals(result.getUTCDate(), 14); // JST 3/15 00:30 -> UTC 3/14 15:30 (previous day)
+  assertEquals(result.getUTCHours(), 15); // JST 00:30 = UTC 15:30 (previous day)
+  assertEquals(result.getUTCMinutes(), 30);
 });
