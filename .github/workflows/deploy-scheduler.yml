@@ -27,7 +27,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.GC_SA_CICID }}
+          service_account: ${{ secrets.GC_SA_CICD }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
