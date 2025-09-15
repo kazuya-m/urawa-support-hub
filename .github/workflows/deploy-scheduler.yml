@@ -55,7 +55,7 @@ jobs:
             --location="asia-northeast1" >/dev/null 2>&1; then
             gcloud scheduler jobs update http "daily-ticket-collection" \
               --location="asia-northeast1" \
-              --schedule="0 20 * * *" \
+              --schedule="0 5 * * *" \
               --time-zone="Asia/Tokyo" \
               --uri="${SERVICE_URL}/api/collect-tickets" \
               --http-method=POST \
@@ -69,7 +69,7 @@ jobs:
           else
             gcloud scheduler jobs create http "daily-ticket-collection" \
               --location="asia-northeast1" \
-              --schedule="0 20 * * *" \
+              --schedule="0 5 * * *" \
               --time-zone="Asia/Tokyo" \
               --uri="${SERVICE_URL}/api/collect-tickets" \
               --http-method=POST \
