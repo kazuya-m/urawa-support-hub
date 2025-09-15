@@ -51,6 +51,7 @@ jobs:
             --min-instances 0 \
             --concurrency 1 \
             --service-account ${{ secrets.GC_SA_CLOUD_RUN }} \
+            --update-secrets="SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest,LINE_CHANNEL_ACCESS_TOKEN=LINE_CHANNEL_ACCESS_TOKEN:latest" \
             --no-allow-unauthenticated
 
       - name: Cleanup old images (keep latest 2)
