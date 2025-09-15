@@ -28,12 +28,12 @@ jobs:
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ secrets.GC_PROJECT_ID }}
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy urawa-support-hub \
-            --project ${{ secrets.GCP_PROJECT_ID }} \
+            --project ${{ secrets.GC_PROJECT_ID }} \
             --source . \
             --region ${{ secrets.GC_REGION }} \
             --memory 2Gi \
