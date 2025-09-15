@@ -1,0 +1,44 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/#33_github-actions-cicd-pipeline' # 一時的なテスト用
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GC_SA_CICD }}
+
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy urawa-support-hub \
+            --source . \
+            --region ${{ secrets.GC_REGION }} \
+            --memory 2Gi \
+            --timeout 300 \
+            --max-instances 1 \
+            --min-instances 0 \
+            --concurrency 1 \
+            --service-account ${{ secrets.GC_SA_CLOUD_RUN }} \
+            --no-allow-unauthenticated
