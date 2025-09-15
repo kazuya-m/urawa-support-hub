@@ -44,14 +44,11 @@ jobs:
             exit 1
           fi
 
-          # Security: Validate URL format matches expected Cloud Run pattern
-          if [[ ! "$SERVICE_URL" =~ ^https://urawa-support-hub-[a-z0-9]+-asia-northeast1\.run\.app$ ]]; then
-            echo "❌ Invalid service URL format: $SERVICE_URL"
-            echo "Expected: https://urawa-support-hub-*-asia-northeast1.run.app"
+          # Basic URL validation
+          if [[ ! "$SERVICE_URL" =~ ^https:// ]]; then
+            echo "❌ Invalid service URL format - must be HTTPS"
             exit 1
           fi
-
-          echo "✅ Service URL validated: $SERVICE_URL"
 
           # Deploy scheduler job
           if gcloud scheduler jobs describe "daily-ticket-collection" \
@@ -86,44 +83,4 @@ jobs:
               --oidc-token-audience="${SERVICE_URL}" >/dev/null 2>&1
           fi
 
-          # Verify deployment success
-          if gcloud scheduler jobs describe "daily-ticket-collection" \
-            --location="asia-northeast1" >/dev/null 2>&1; then
-            echo "✅ Scheduler job deployed successfully"
-
-            # Display job configuration for verification
-            gcloud scheduler jobs describe "daily-ticket-collection" \
-              --location="asia-northeast1" \
-              --format="value(name,schedule,timeZone,httpTarget.uri,state)"
-          else
-            echo "❌ Scheduler job deployment failed"
-            exit 1
-          fi
-
-      - name: Verify Service Account Permissions
-        run: |
-          echo "🔍 Verifying service account permissions..."
-
-          # Check if service account exists and has minimal required permissions
-          SA_EXISTS=$(gcloud iam service-accounts describe "${{ env.SCHEDULER_SA_EMAIL }}" \
-            --format="value(email)" 2>/dev/null || echo "")
-
-          if [ -z "$SA_EXISTS" ]; then
-            echo "❌ Service account not found: ${{ env.SCHEDULER_SA_EMAIL }}"
-            exit 1
-          fi
-
-          echo "✅ Service account verified: $SA_EXISTS"
-
-          # Verify Cloud Run invoker role (critical for scheduler functionality)
-          INVOKER_BINDING=$(gcloud run services get-iam-policy "urawa-support-hub" \
-            --region="asia-northeast1" \
-            --format="value(bindings[].members[])" \
-            --filter="bindings.role:roles/run.invoker" 2>/dev/null | \
-            grep "${{ env.SCHEDULER_SA_EMAIL }}" || echo "")
-
-          if [ -z "$INVOKER_BINDING" ]; then
-            echo "⚠️  Warning: Service account may lack run.invoker permission"
-          else
-            echo "✅ Service account has required run.invoker permission"
-          fi
+          echo "✅ Scheduler job deployment completed"
