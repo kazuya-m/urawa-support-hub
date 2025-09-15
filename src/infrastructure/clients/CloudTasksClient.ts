@@ -86,6 +86,7 @@ export class CloudTasksClient implements ICloudTasksClient {
         body: btoa(JSON.stringify(payload)),
         oidcToken: {
           serviceAccountEmail: Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
+          audience: targetUrl,
         },
       },
     };
