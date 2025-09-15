@@ -10,6 +10,7 @@ on:
 
 env:
   GCP_PROJECT_ID: ${{ secrets.GC_PROJECT_ID }}
+  GC_REGION: ${{ secrets.GC_REGION }}
   SCHEDULER_SA_EMAIL: ${{ secrets.GC_SA_SCHEDULER }}
 
 jobs:
@@ -26,7 +27,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.GC_SA_CICID }}
+          service_account: ${{ secrets.GC_SA_CICD }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -52,9 +53,9 @@ jobs:
 
           # Deploy scheduler job
           if gcloud scheduler jobs describe "daily-ticket-collection" \
-            --location="asia-northeast1" >/dev/null 2>&1; then
+            --location="${{ env.GC_REGION }}" >/dev/null 2>&1; then
             gcloud scheduler jobs update http "daily-ticket-collection" \
-              --location="asia-northeast1" \
+              --location="${{ env.GC_REGION }}" \
               --schedule="0 5 * * *" \
               --time-zone="Asia/Tokyo" \
               --uri="${SERVICE_URL}/api/collect-tickets" \
@@ -68,7 +69,7 @@ jobs:
               --oidc-service-account-email="${{ env.SCHEDULER_SA_EMAIL }}"
           else
             gcloud scheduler jobs create http "daily-ticket-collection" \
-              --location="asia-northeast1" \
+              --location="${{ env.GC_REGION }}" \
               --schedule="0 5 * * *" \
               --time-zone="Asia/Tokyo" \
               --uri="${SERVICE_URL}/api/collect-tickets" \
