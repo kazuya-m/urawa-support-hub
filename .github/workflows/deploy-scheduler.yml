@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
 
 env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  SCHEDULER_SA_EMAIL: ${{ secrets.SCHEDULER_SA_EMAIL }}
+  GCP_PROJECT_ID: ${{ secrets.GC_PROJECT_ID }}
+  SCHEDULER_SA_EMAIL: ${{ secrets.GC_SA_SCHEDULER }}
 
 jobs:
   deploy-scheduler:
@@ -24,7 +24,7 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY_CICD }}
+          credentials_json: ${{ secrets.GC_SA_CICID }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -33,10 +33,8 @@ jobs:
 
       - name: Deploy Cloud Scheduler Job
         run: |
-          # Get Cloud Run URL safely
-          SERVICE_URL=$(gcloud run services describe "urawa-support-hub" \
-            --region="asia-northeast1" \
-            --format='value(status.url)' 2>/dev/null)
+          # Use Cloud Run URL from GitHub Secrets
+          SERVICE_URL="${{ secrets.CLOUD_RUN_URL }}"
 
           # Validate URL format and prerequisites
           if [ -z "$SERVICE_URL" ] || [ -z "${{ env.SCHEDULER_SA_EMAIL }}" ]; then
