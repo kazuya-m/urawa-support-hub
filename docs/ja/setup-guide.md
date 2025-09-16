@@ -72,7 +72,27 @@ nano .env
 CI/CDと本番デプロイメントでは、GitHub Secretsを設定:
 
 1. リポジトリ設定 → Secrets and variables → Actions に移動
-2. 必要なシークレットを追加（[GitHub Secrets設定ガイド](github-secrets-setup.md)を参照）
+2. 必要なシークレットを追加:
+
+**Supabaseデータベースマイグレーションシークレット:**
+
+- `SUPABASE_ACCESS_TOKEN`: Supabaseダッシュボードからのパーソナルアクセストークン
+- `SUPABASE_DB_PASSWORD`: Supabaseプロジェクトのデータベースパスワード
+- `SUPABASE_PROJECT_ID`: プロジェクト参照ID（プロジェクト設定で確認）
+
+**Google Cloud Platformシークレット:**
+
+- `WIF_PROVIDER`: Workload Identity Federation プロバイダー
+- `GC_SA_CICD`: CI/CDサービスアカウントメール
+- `GC_PROJECT_ID`: GCPプロジェクトID
+- `GC_REGION`: GCPリージョン（例: asia-northeast1）
+- `GC_SA_CLOUD_RUN`: Cloud Runサービスアカウントメール
+
+**外部サービスシークレット:**
+
+- `SUPABASE_SERVICE_ROLE_KEY`: 本番用サービスロールキー
+- `LINE_CHANNEL_ACCESS_TOKEN`: LINE Botチャンネルアクセストークン
+
 3. GitHub Actionsワークフローでシークレットを検証
 
 ⚠️ **セキュリティ注意**:
@@ -141,9 +161,21 @@ curl -X POST 'http://localhost:8080/api/send-notification' \
 
 ### データベースデプロイ
 
+#### 自動デプロイ（推奨）
+
+データベースマイグレーションは以下の条件で自動的にGitHub Actions経由でデプロイされます:
+
+- `main`ブランチの`supabase/migrations/**`ディレクトリに変更がpushされたとき
+- `migrate-database.yml`ワークフローが自動実行
+
+#### 手動マイグレーションデプロイ
+
 ```bash
-# データベーススキーマをデプロイ
+# ローカル手動デプロイ
 supabase db push
+
+# GitHub Actions手動トリガー
+# Actions → "Migrate Supabase Database" → Run workflow に移動
 ```
 
 ### Cloud Runデプロイ
