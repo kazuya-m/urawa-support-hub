@@ -72,7 +72,27 @@ See [`.env.example`](../.env.example) for complete list with descriptions.
 For CI/CD and production deployments, configure GitHub Secrets:
 
 1. Go to Repository Settings → Secrets and variables → Actions
-2. Add required secrets (see [GitHub Secrets Setup Guide](github-secrets-setup.md))
+2. Add required secrets:
+
+**Supabase Database Migration Secrets:**
+
+- `SUPABASE_ACCESS_TOKEN`: Personal access token from Supabase Dashboard
+- `SUPABASE_DB_PASSWORD`: Database password for your Supabase project
+- `SUPABASE_PROJECT_ID`: Project reference ID (found in project settings)
+
+**Google Cloud Platform Secrets:**
+
+- `WIF_PROVIDER`: Workload Identity Federation provider
+- `GC_SA_CICD`: CI/CD service account email
+- `GC_PROJECT_ID`: GCP project ID
+- `GC_REGION`: GCP region (e.g., asia-northeast1)
+- `GC_SA_CLOUD_RUN`: Cloud Run service account email
+
+**External Service Secrets:**
+
+- `SUPABASE_SERVICE_ROLE_KEY`: Service role key for production
+- `LINE_CHANNEL_ACCESS_TOKEN`: LINE Bot channel access token
+
 3. Verify secrets in GitHub Actions workflows
 
 ⚠️ **Security Note**: Never commit `.env` files or secrets to version control
@@ -140,9 +160,21 @@ curl -X POST 'http://localhost:8080/api/send-notification' \
 
 ### Database Deployment
 
+#### Automatic Deployment (Recommended)
+
+Database migrations are automatically deployed via GitHub Actions when:
+
+- Changes are pushed to `main` branch in `supabase/migrations/**` directory
+- The `migrate-database.yml` workflow runs automatically
+
+#### Manual Migration Deployment
+
 ```bash
-# Deploy database schema
+# Local manual deployment
 supabase db push
+
+# GitHub Actions manual trigger
+# Go to Actions → "Migrate Supabase Database" → Run workflow
 ```
 
 ### Cloud Run Deployment

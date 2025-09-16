@@ -1,0 +1,69 @@
+name: Migrate Supabase Database
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+    inputs:
+      include_seed:
+        description: 'Include seed data'
+        required: false
+        default: 'false'
+        type: boolean
+      dry_run:
+        description: 'Dry run (check migration status only)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: production
+
+    permissions:
+      contents: read
+
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to Supabase project
+        run: supabase link --project-ref $SUPABASE_PROJECT_ID
+
+      - name: Check migration status
+        run: supabase migration list
+
+      - name: Run migration (dry run)
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          echo "🔍 Dry run mode - checking migration status only"
+          supabase migration list
+          echo "Migration check completed!"
+
+      - name: Run database migration
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          if [ "${{ github.event.inputs.include_seed }}" == "true" ]; then
+            echo "🌱 Including seed data..."
+            supabase db push --include-seed
+          else
+            supabase db push
+          fi
+
+      - name: Show final migration status
+        if: github.event.inputs.dry_run != 'true'
+        run: supabase migration list
