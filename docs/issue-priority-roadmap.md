@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-15 (CI/CD pipeline and GCP production setup completed)\
+**Updated**: 2025-09-16 (Supabase migration automation completed)\
 **Goal**: Launch MVP by 2025-09-30
 
 ## Implementation Status Summary
@@ -65,7 +65,7 @@
 | ----- | ------------------------------------------------ | ----------- | ---------------- | ---------------------------- |
 | #33   | **GitHub Actions CI/CD Pipeline実装**            | 🔴 Critical | ✅ **COMPLETED** | **MVP自動デプロイ必須**      |
 | #82   | **GCP本番環境構築・Service Account設定**         | 🔴 Critical | ✅ **COMPLETED** | **MVP認証・権限設定必須**    |
-| #97   | **GitHub ActionsにSupabaseマイグレーション追加** | 🟠 High     | 🔄 In Progress   | **DBマイグレーション自動化** |
+| #97   | **GitHub ActionsにSupabaseマイグレーション追加** | 🟠 High     | ✅ **COMPLETED** | **DBマイグレーション自動化** |
 | #83   | **Production Deployment Verification**           | 🔴 Critical | 🔄 In Progress   | **MVP動作確認必須**          |
 
 ## Completed Issues (Additional implementations)
