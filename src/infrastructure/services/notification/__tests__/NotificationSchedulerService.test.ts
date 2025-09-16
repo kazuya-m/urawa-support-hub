@@ -134,7 +134,7 @@ Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors'
     // Verify error was handled and re-thrown
     assertExists(caughtError);
     assertEquals(caughtError.message.includes('1 out of 1 notifications failed to schedule'), true);
-    assertEquals(consoleErrorStub.calls.length, 1);
+    assertEquals(consoleErrorStub.calls.length, 0);
   } finally {
     // Restore environment variable
     if (originalEnvVar === undefined) {

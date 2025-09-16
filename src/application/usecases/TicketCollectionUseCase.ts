@@ -3,6 +3,7 @@ import { ITicketRepository } from '@/application/interfaces/repositories/ITicket
 import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
 import { INotificationSchedulerService } from '@/application/interfaces/services/INotificationSchedulerService.ts';
 import { INotificationSchedulingService } from '@/domain/interfaces/services/INotificationSchedulingService.ts';
+import { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketCollectionResult, TicketUpsertResult } from '@/application/types/UseCaseResults.ts';
 import { CancellationReason } from '@/domain/entities/Notification.ts';
@@ -36,15 +37,17 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
 
       const statistics = this.calculateStatistics(upsertResults);
 
-      // 処理完了メトリクスのログ出力（Log-based Metrics用）
-      CloudLogger.info('Ticket collection completed', {
+      const summaryMessage =
+        `Ticket collection completed: ${statistics.newTickets} new, ${statistics.updatedTickets} updated, ${statistics.unchangedTickets} unchanged, ${statistics.failedTickets} failed`;
+
+      CloudLogger.info(summaryMessage, {
         category: LogCategory.TICKET_COLLECTION,
         metrics: {
           totalProcessed: tickets.length,
           successCount: statistics.newTickets + statistics.updatedTickets +
             statistics.unchangedTickets,
           failureCount: statistics.failedTickets,
-          unknownPatterns: 0, // JLeagueDataParserで個別カウント
+          unknownPatterns: 0,
           processingTimeMs: executionDuration,
           successRate: tickets.length > 0
             ? (tickets.length - statistics.failedTickets) / tickets.length
@@ -116,6 +119,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
       try {
         const result = await this.upsertTicket(ticket);
         results.push(result);
+        this.logTicketUpsertResult(result);
       } catch (error) {
         CloudLogger.error(`Failed to process ticket (ID: ${ticket.id})`, {
           category: LogCategory.TICKET_COLLECTION,
@@ -219,6 +223,9 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
           ticket,
           futureNotificationTimes,
         );
+
+        this.logNotificationScheduling(ticket, futureNotificationTimes);
+
         const updatedTicket = ticket.markNotificationScheduled();
         await this.ticketRepository.upsert(updatedTicket);
       } catch (error) {
@@ -232,6 +239,51 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
         });
       }
     }
+  }
+
+  private logTicketUpsertResult(result: TicketUpsertResult): void {
+    const { ticket, previousTicket, hasChanges, error } = result;
+
+    if (error) {
+      return;
+    }
+
+    let action: string;
+    if (!previousTicket) {
+      action = 'created';
+    } else if (!hasChanges) {
+      action = 'unchanged';
+    } else {
+      action = 'updated';
+    }
+
+    const logPayload = {
+      category: LogCategory.TICKET_COLLECTION,
+      context: {
+        ticketId: ticket.id,
+        matchName: ticket.matchName,
+      },
+    };
+
+    CloudLogger.info(`Ticket ${action}: ${ticket.matchName}`, logPayload);
+  }
+
+  private logNotificationScheduling(ticket: Ticket, scheduledTimes: NotificationTiming[]): void {
+    const notifications = scheduledTimes.map(({ type, scheduledTime }) => ({
+      type,
+      scheduledTime: scheduledTime.toISOString(),
+    }));
+
+    CloudLogger.info(
+      `Notifications scheduled for ${ticket.matchName} (${notifications.length} notifications)`,
+      {
+        category: LogCategory.NOTIFICATION,
+        context: {
+          ticketId: ticket.id,
+          matchName: ticket.matchName,
+        },
+      },
+    );
   }
 
   private calculateStatistics(upsertResults: TicketUpsertResult[]): {

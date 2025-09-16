@@ -1,11 +1,12 @@
 # Logging Specification and Implementation Guide
 
-## 概要
+## Overview
 
-本ドキュメントは、urawa-support-hubプロジェクトにおけるログ出力の仕様と実装ガイドを定義します。 GCP
-Cloud Loggingを活用し、構造化ログによるデータ品質監視とアラート通知を実現します。
+This document defines the logging specification and implementation guide for the urawa-support-hub
+project. It leverages GCP Cloud Logging to implement data quality monitoring and alert notifications
+through structured logs.
 
-## アーキテクチャ概要
+## Architecture Overview
 
 ```
 Cloud Scheduler → Cloud Run → Cloud Logging → Cloud Monitoring
@@ -15,42 +16,43 @@ Cloud Scheduler → Cloud Run → Cloud Logging → Cloud Monitoring
                  Log Explorer              Discord Webhook
 ```
 
-## 基本方針
+## Basic Policies
 
-1. **30日保持ポリシー**: ログは30日間保持し、それ以降は自動削除（課金回避）
-2. **構造化ログ**: JSON形式で出力し、Cloud Loggingで自動解析
-3. **適切なログレベル**: 本番環境ではINFO以上のみ出力
-4. **最小限の情報**: 必要最小限の情報のみログに記録
-5. **GCP完結**: Supabaseのerror_logsテーブルは使用せず、GCPで完結
+1. **30-day Retention Policy**: Logs are retained for 30 days and automatically deleted thereafter
+   (to avoid billing)
+2. **Structured Logs**: Output in JSON format for automatic parsing by Cloud Logging
+3. **Appropriate Log Levels**: Only INFO and above are output in production environments
+4. **Minimal Information**: Only necessary minimal information is recorded in logs
+5. **GCP Complete Solution**: Complete solution within GCP without using Supabase's error_logs table
 
-## ログレベル定義
+## Log Level Definitions
 
-Cloud Loggingの標準severityレベルを使用：
+Using Cloud Logging's standard severity levels:
 
-| レベル   | 用途                   | 出力環境     | 例                                     |
-| -------- | ---------------------- | ------------ | -------------------------------------- |
-| DEBUG    | 開発時の詳細情報       | 開発環境のみ | パターンマッチングの詳細、中間処理結果 |
-| INFO     | 正常な処理情報         | 全環境       | 処理完了、統計情報                     |
-| WARNING  | 警告（処理は継続）     | 全環境       | 未知パターン検出、フォールバック処理   |
-| ERROR    | エラー（個別失敗）     | 全環境       | 必須フィールド欠落、パース失敗         |
-| CRITICAL | 重大エラー（全体停止） | 全環境       | スクレイピング完全失敗、システムエラー |
+| Level    | Purpose                               | Output Environment | Examples                                                  |
+| -------- | ------------------------------------- | ------------------ | --------------------------------------------------------- |
+| DEBUG    | Detailed information for development  | Development only   | Pattern matching details, intermediate processing results |
+| INFO     | Normal processing information         | All environments   | Process completion, statistics                            |
+| WARNING  | Warnings (processing continues)       | All environments   | Unknown pattern detection, fallback processing            |
+| ERROR    | Errors (individual failures)          | All environments   | Missing required fields, parsing failures                 |
+| CRITICAL | Critical errors (system-wide failure) | All environments   | Complete scraping failure, system errors                  |
 
-※ NOTICE, ALERT, EMERGENCYは使用しない（シンプルさのため）
+※ NOTICE, ALERT, EMERGENCY are not used (for simplicity)
 
-## ログ構造仕様
+## Log Structure Specification
 
-### 基本構造
+### Basic Structure
 
 ```typescript
 interface CloudLoggingEntry {
   severity: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
   message: string;
-  // Cloud Logging特殊フィールド（自動設定）
+  // Cloud Logging special fields (automatically set)
   'logging.googleapis.com/labels'?: {
-    service?: string; // K_SERVICE環境変数から
-    revision?: string; // K_REVISION環境変数から
+    service?: string; // From K_SERVICE environment variable
+    revision?: string; // From K_REVISION environment variable
   };
-  // カスタムペイロード
+  // Custom payload
   jsonPayload?: {
     category: LogCategory;
     context?: LogContext;
@@ -61,201 +63,302 @@ interface CloudLoggingEntry {
 }
 ```
 
-### カテゴリ定義
+### Category Definitions
 
 ```typescript
 enum LogCategory {
-  TICKET_COLLECTION = 'TICKET_COLLECTION', // チケット収集処理（スクレイピング等）
-  PARSING = 'PARSING', // データパース処理
-  VALIDATION = 'VALIDATION', // データ検証処理
-  NOTIFICATION = 'NOTIFICATION', // 通知処理
-  DATABASE = 'DATABASE', // データベース処理
-  SYSTEM = 'SYSTEM', // システム全般
+  TICKET_COLLECTION = 'TICKET_COLLECTION', // Ticket collection processing (scraping, etc.)
+  PARSING = 'PARSING', // Data parsing processing
+  VALIDATION = 'VALIDATION', // Data validation processing
+  NOTIFICATION = 'NOTIFICATION', // Notification processing
+  DATABASE = 'DATABASE', // Database processing
+  SYSTEM = 'SYSTEM', // General system
 }
 ```
 
-### データ構造定義
+### Data Structure Definitions
 
 ```typescript
-// コンテキスト情報
+// Context information
 interface LogContext {
-  sessionId?: string; // スクレイピングセッションID
-  ticketId?: string; // チケットID
-  matchName?: string; // 試合名
-  ticketUrl?: string; // チケットURL
-  processingStage?: string; // 処理段階
+  sessionId?: string; // Scraping session ID
+  ticketId?: string; // Ticket ID
+  matchName?: string; // Match name
+  ticketUrl?: string; // Ticket URL
+  processingStage?: string; // Processing stage
 }
 
-// データ品質情報
+// Data quality information
 interface DataQualityInfo {
   issueType: 'MISSING_FIELD' | 'UNKNOWN_PATTERN' | 'INVALID_FORMAT';
-  field: string; // 対象フィールド名
-  rawValue?: any; // 実際の値
-  expectedPattern?: string; // 期待されるパターン
+  field: string; // Target field name
+  rawValue?: any; // Actual value
+  expectedPattern?: string; // Expected pattern
 }
 
-// 処理メトリクス
+// Processing metrics
 interface ProcessingMetrics {
-  totalProcessed: number; // 総処理数
-  successCount: number; // 成功数
-  failureCount: number; // 失敗数
-  unknownPatterns: number; // 未知パターン数
-  processingTimeMs: number; // 処理時間（ミリ秒）
-  successRate?: number; // 成功率 (0.0-1.0)
+  totalProcessed: number; // Total processed count
+  successCount: number; // Success count
+  failureCount: number; // Failure count
+  unknownPatterns: number; // Unknown pattern count
+  processingTimeMs: number; // Processing time (milliseconds)
+  successRate?: number; // Success rate (0.0-1.0)
 }
 
-// エラー情報
+// Error information
 interface ErrorInfo {
-  code?: string; // エラーコード（ErrorCodesの定数を使用）
-  details?: string; // 詳細メッセージ
-  stack?: string; // スタックトレース（開発環境のみ）
-  recoverable: boolean; // 回復可能かどうか
+  code?: string; // Error code (using ErrorCodes constants)
+  details?: string; // Detailed message
+  stack?: string; // Stack trace (development environment only)
+  recoverable: boolean; // Whether recoverable
 }
 ```
 
-## エラーコード定数定義
+## Error Code Constants Definition
 
 ```typescript
 // src/shared/logging/ErrorCodes.ts
 export const ErrorCodes = {
-  // スクレイピング関連 - 具体的な失敗原因
-  SCRAPING_SITE_UNREACHABLE: 'SCR_001', // サイトにアクセスできない
-  SCRAPING_TIMEOUT: 'SCR_002', // タイムアウト
-  SCRAPING_PAGE_STRUCTURE_CHANGED: 'SCR_003', // ページ構造変更
-  SCRAPING_NO_TICKETS_FOUND: 'SCR_004', // チケット情報が見つからない
+  // Scraping related - specific failure causes
+  SCRAPING_SITE_UNREACHABLE: 'SCR_001', // Cannot access site
+  SCRAPING_TIMEOUT: 'SCR_002', // Timeout
+  SCRAPING_PAGE_STRUCTURE_CHANGED: 'SCR_003', // Page structure changed
+  SCRAPING_NO_TICKETS_FOUND: 'SCR_004', // No ticket information found
 
-  // データパース関連 - ERROR（ビジネス機能阻害）
-  PARSE_MATCH_DATE_UNKNOWN_FORMAT: 'PRS_001', // 試合日時の未知フォーマット
-  PARSE_SALE_START_DATE_MISSING_BEFORE_SALE: 'PRS_002', // 販売前なのに販売開始日が取得できない（通知不可）
-  PARSE_TICKET_URL_INVALID: 'PRS_003', // チケットURL不正
-  PARSE_MATCH_NAME_EMPTY: 'PRS_004', // 試合名が空
+  // Data parsing related - ERROR (business function impediment)
+  PARSE_MATCH_DATE_UNKNOWN_FORMAT: 'PRS_001', // Unknown format for match date/time
+  PARSE_SALE_START_DATE_MISSING_BEFORE_SALE: 'PRS_002', // Cannot get sale start date for pre-sale (notification impossible)
+  PARSE_TICKET_URL_INVALID: 'PRS_003', // Invalid ticket URL
+  PARSE_MATCH_NAME_EMPTY: 'PRS_004', // Empty match name
 
-  // データパース関連 - WARNING（補完情報の欠落、処理は継続可能）
-  PARSE_SALE_END_DATE_MISSING_ON_SALE: 'PRS_W001', // 販売中なのに販売終了日が取得できない
-  PARSE_SALE_STATUS_UNKNOWN: 'PRS_W002', // 販売状態が判定できない
-  PARSE_VENUE_INFO_MISSING: 'PRS_W003', // 会場情報が取得できない
-  PARSE_COMPETITION_MISSING: 'PRS_W004', // 大会名が取得できない
-  PARSE_TEAM_INFO_INCOMPLETE: 'PRS_W005', // ホーム/アウェイチーム情報が不完全
+  // Data parsing related - WARNING (missing supplementary information, processing can continue)
+  PARSE_SALE_END_DATE_MISSING_ON_SALE: 'PRS_W001', // Cannot get sale end date for on-sale ticket
+  PARSE_SALE_STATUS_UNKNOWN: 'PRS_W002', // Cannot determine sale status
+  PARSE_VENUE_INFO_MISSING: 'PRS_W003', // Cannot get venue information
+  PARSE_COMPETITION_MISSING: 'PRS_W004', // Cannot get competition name
+  PARSE_TEAM_INFO_INCOMPLETE: 'PRS_W005', // Incomplete home/away team information
 
-  // データベース関連 - 操作別
-  DB_CONNECTION_FAILED: 'DB_001', // 接続失敗
-  DB_SAVE_TICKET_FAILED: 'DB_002', // チケット保存失敗
-  DB_QUERY_TIMEOUT: 'DB_003', // クエリタイムアウト
+  // Database related - by operation
+  DB_CONNECTION_FAILED: 'DB_001', // Connection failure
+  DB_SAVE_TICKET_FAILED: 'DB_002', // Ticket save failure
+  DB_QUERY_TIMEOUT: 'DB_003', // Query timeout
 
-  // 通知関連 - ビジネスロジック
-  NOTIFICATION_LINE_API_ERROR: 'NOT_001', // LINE API エラー
-  NOTIFICATION_SCHEDULE_FAILED: 'NOT_002', // スケジュール失敗
+  // Notification related - business logic
+  NOTIFICATION_LINE_API_ERROR: 'NOT_001', // LINE API error
+  NOTIFICATION_SCHEDULE_FAILED: 'NOT_002', // Schedule failure
 
-  // システム関連 - 重大障害
-  SYS_TOTAL_FAILURE: 'SYS_001', // システム全体停止
-  SYS_RESOURCE_EXHAUSTED: 'SYS_002', // リソース枯渇
-  SYS_UNEXPECTED_ERROR: 'SYS_003', // 予期しない例外
-  EXT_ALL_SERVICES_DOWN: 'EXT_001', // 全外部サービス停止
-  DB_SYSTEM_DOWN: 'DB_999', // データベースシステム完全停止
+  // System related - critical failures
+  SYS_TOTAL_FAILURE: 'SYS_001', // System-wide failure
+  SYS_RESOURCE_EXHAUSTED: 'SYS_002', // Resource exhaustion
+  SYS_UNEXPECTED_ERROR: 'SYS_003', // Unexpected exception
+  EXT_ALL_SERVICES_DOWN: 'EXT_001', // All external services down
+  DB_SYSTEM_DOWN: 'DB_999', // Database system completely down
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
 ```
 
-## ログレベル出力タイミング一覧
+## Log Search Query Examples
 
-### 🔍 DEBUG (開発環境のみ)
+### Cloud Logging Queries
 
-| タイミング             | 状態     | ログ内容                               | エラーコード |
-| ---------------------- | -------- | -------------------------------------- | ------------ |
-| スクレイピング開始     | 処理開始 | "Starting ticket scraping session"     | -            |
-| データ抽出中           | 中間処理 | "Extracted raw data from page element" | -            |
-| パターンマッチング成功 | 正常処理 | "Date pattern matched successfully"    | -            |
-| フォールバック実行     | 代替処理 | "Using fallback parsing method"        | -            |
+#### 📊 **Basic Data Quality Error Search**
 
-### ℹ️ INFO (全環境)
+```sql
+-- Data quality error search
+resource.type="cloud_run_revision"
+jsonPayload.dataQuality.issueType=("UNKNOWN_PATTERN" OR "MISSING_FIELD")
+timestamp>="2025-09-13T00:00:00Z"
 
-| タイミング           | 状態     | ログ内容                                         | エラーコード |
-| -------------------- | -------- | ------------------------------------------------ | ------------ |
-| スクレイピング完了   | 正常完了 | "Ticket collection completed"                    | -            |
-| チケット保存完了     | 正常完了 | "Ticket saved successfully"                      | -            |
-| 通知スケジュール完了 | 正常完了 | "Notification scheduled successfully"            | -            |
-| 日次実行完了         | 正常完了 | "Daily execution completed" (集計メトリクス含む) | -            |
+-- Today's error rate calculation
+resource.type="cloud_run_revision"
+severity>="ERROR"
+timestamp>=timestamp_trunc(@timestamp, DAY)
+| stats count() as error_count by bin(timestamp, 1h)
 
-### ⚠️ WARNING (全環境)
+-- Specific field issue tracking
+resource.type="cloud_run_revision"
+jsonPayload.dataQuality.field="saleStartDate"
+jsonPayload.dataQuality.issueType="MISSING_FIELD"
+```
 
-| タイミング               | 状態           | ログ内容                                   | エラーコード                          |
-| ------------------------ | -------------- | ------------------------------------------ | ------------------------------------- |
-| データ形式異常           | データ品質問題 | "Unexpected ticket URL format"             | `PARSE_TICKET_URL_INVALID`            |
-| **ビジネスロジック関連** |                |                                            |                                       |
-| 販売中で終了日欠落       | 情報不完全     | "Sale end date missing for on-sale ticket" | `PARSE_SALE_END_DATE_MISSING_ON_SALE` |
-| 販売状態不明             | 状況判定不可   | "Sale status could not be determined"      | `PARSE_SALE_STATUS_UNKNOWN`           |
-| 会場情報欠落             | 補完情報不足   | "Venue information is missing"             | `PARSE_VENUE_INFO_MISSING`            |
-| 大会名欠落               | 補完情報不足   | "Competition name is missing"              | `PARSE_COMPETITION_MISSING`           |
-| チーム情報不完全         | 補完情報不足   | "Home/Away team information incomplete"    | `PARSE_TEAM_INFO_INCOMPLETE`          |
-| **システム処理関連**     |                |                                            |                                       |
-| 外部API遅延              | 性能問題       | "External API response slow"               | -                                     |
-| リトライ実行             | 一時的問題     | "Retrying failed operation"                | -                                     |
-| フォールバック使用       | 代替処理       | "Using fallback date parsing"              | -                                     |
+#### 🎫 **Detailed Ticket Collection Log Search (Issue #108)**
 
-### ❌ ERROR (全環境)
+```sql
+-- Individual ticket processing result search
+resource.type="cloud_run_revision"
+jsonPayload.category="TICKET_COLLECTION"
+(message:"Ticket created" OR message:"Ticket updated" OR message:"Ticket unchanged")
+timestamp>=timestamp_trunc(@timestamp, DAY)
 
-| タイミング             | 状態             | ログ内容                                      | エラーコード                                |
-| ---------------------- | ---------------- | --------------------------------------------- | ------------------------------------------- |
-| **スクレイピング関連** |                  |                                               |                                             |
-| サイトアクセス失敗     | 接続不可         | "Unable to reach scraping target site"        | `SCRAPING_SITE_UNREACHABLE`                 |
-| タイムアウト発生       | 処理超過         | "Scraping operation timed out"                | `SCRAPING_TIMEOUT`                          |
-| ページ構造変更         | 構造異常         | "Page structure appears to have changed"      | `SCRAPING_PAGE_STRUCTURE_CHANGED`           |
-| チケット情報なし       | データなし       | "No ticket information found on page"         | `SCRAPING_NO_TICKETS_FOUND`                 |
-| **データパース関連**   |                  |                                               |                                             |
-| 販売前で販売開始日欠落 | ビジネス機能阻害 | "Sale start date missing for pre-sale ticket" | `PARSE_SALE_START_DATE_MISSING_BEFORE_SALE` |
-| 試合名が空             | データ異常       | "Match name is empty or invalid"              | `PARSE_MATCH_NAME_EMPTY`                    |
-| **データベース関連**   |                  |                                               |                                             |
-| 接続失敗               | DB接続不可       | "Database connection failed"                  | `DB_CONNECTION_FAILED`                      |
-| 保存失敗               | DB操作失敗       | "Failed to save ticket data"                  | `DB_SAVE_TICKET_FAILED`                     |
-| クエリタイムアウト     | DB性能問題       | "Database query timed out"                    | `DB_QUERY_TIMEOUT`                          |
-| **通知関連**           |                  |                                               |                                             |
-| LINE API エラー        | 外部API失敗      | "LINE messaging API error"                    | `NOTIFICATION_LINE_API_ERROR`               |
-| 通知スケジュール失敗   | 内部処理失敗     | "Failed to schedule notification"             | `NOTIFICATION_SCHEDULE_FAILED`              |
+-- Specific match processing history tracking
+resource.type="cloud_run_revision"
+jsonPayload.context.matchName:"Yokohama F. Marinos"
 
-### 🚨 CRITICAL (全環境 + Discord即時通知)
+-- Specific ticket ID processing history
+resource.type="cloud_run_revision"
+jsonPayload.context.ticketId="urawa-vs-yokohama-20250315"
 
-| タイミング               | 状態           | ログ内容                                 | エラーコード             |
-| ------------------------ | -------------- | ---------------------------------------- | ------------------------ |
-| システム全体停止         | 完全失敗       | "Ticket collection system failure"       | `SYS_TOTAL_FAILURE`      |
-| データベース完全停止     | DB全停止       | "Database system completely unavailable" | `DB_SYSTEM_DOWN`         |
-| 複数外部API同時失敗      | 外部依存全停止 | "All external services unavailable"      | `EXT_ALL_SERVICES_DOWN`  |
-| メモリ不足・リソース枯渇 | リソース不足   | "System resources exhausted"             | `SYS_RESOURCE_EXHAUSTED` |
-| 予期しない例外           | 不明エラー     | "Unexpected system error occurred"       | `SYS_UNEXPECTED_ERROR`   |
+-- Newly created tickets only
+resource.type="cloud_run_revision"
+message:"Ticket created"
+timestamp>=timestamp_trunc(@timestamp, DAY)
 
-## ログ出力基準と制限
+-- Updated tickets only
+resource.type="cloud_run_revision"
+message:"Ticket updated"
+timestamp>=timestamp_trunc(@timestamp, DAY)
 
-### 🎯 ログ出力の判断基準
+-- Unchanged tickets
+resource.type="cloud_run_revision"
+message:"Ticket unchanged"
+timestamp>=timestamp_trunc(@timestamp, DAY)
+```
 
-- **DEBUG**: 開発者がコードの動作を追跡するための詳細情報
-- **INFO**: 正常な処理の完了や重要な状態変更
-- **WARNING**: 処理は継続するが注意が必要な状況
-- **ERROR**: 個別処理の失敗（システム全体は継続）
-- **CRITICAL**: システム全体に影響する重大な問題（即時対応必要）
+#### 🔔 **Notification Scheduling Log Search**
 
-### 🔄 ログ出力頻度制限
+```sql
+-- Notification scheduling success logs
+resource.type="cloud_run_revision"
+jsonPayload.category="NOTIFICATION"
+message:"Notifications scheduled"
+timestamp>=timestamp_trunc(@timestamp, DAY)
 
-- **DEBUG/INFO**: 制限なし
-- **WARNING**: 同一エラーコードで5分間に最大3回
-- **ERROR**: 同一エラーコードで5分間に最大5回
-- **CRITICAL**: 制限なし（ただしDiscord通知は5分間に1回）
+-- Specific match notification scheduling history
+resource.type="cloud_run_revision"
+jsonPayload.category="NOTIFICATION"
+jsonPayload.context.matchName:"Yokohama F. Marinos"
 
-### 📊 Log-based Metrics対象
+-- Notification related errors
+resource.type="cloud_run_revision"
+jsonPayload.category="NOTIFICATION"
+severity>="ERROR"
 
-- **INFO**: 成功数カウント用
-- **WARNING**: データ品質監視用
-- **ERROR以上**: エラー率計算用
-- **CRITICAL**: 即時アラート用
+-- NotificationSchedulerService errors
+resource.type="cloud_run_revision"
+jsonPayload.category="NOTIFICATION"
+(message:"Failed to schedule" OR message:"dequeue operations failed")
+```
 
-## CloudLoggerクラス実装
+#### 📈 **Collection Processing Statistics and Metrics Search**
+
+```sql
+-- Ticket collection completion summary
+resource.type="cloud_run_revision"
+message:"Ticket collection completed"
+timestamp>=timestamp_trunc(@timestamp, DAY)
+
+-- Collection processing success rate analysis
+resource.type="cloud_run_revision"
+jsonPayload.category="TICKET_COLLECTION"
+jsonPayload.metrics.successRate>=0
+timestamp>=timestamp_trunc(@timestamp, WEEK)
+
+-- Processing time performance analysis
+resource.type="cloud_run_revision"
+jsonPayload.metrics.processingTimeMs>0
+timestamp>=timestamp_trunc(@timestamp, DAY)
+
+-- Daily processing count trends
+resource.type="cloud_run_revision"
+jsonPayload.metrics.totalProcessed>0
+| stats avg(jsonPayload.metrics.totalProcessed) as avg_processed by bin(timestamp, 1d)
+```
+
+#### 🔍 **Debug and Operations Monitoring Queries**
+
+```sql
+-- Session-based processing tracking
+resource.type="cloud_run_revision"
+jsonPayload.context.sessionId="ea7fc161-bfe0-4286-aa04-f7bd852e7f72"
+
+-- Today's processing result summary (by count)
+resource.type="cloud_run_revision"
+jsonPayload.category="TICKET_COLLECTION"
+(message:"Ticket created" OR message:"Ticket updated" OR message:"Ticket unchanged")
+timestamp>=timestamp_trunc(@timestamp, DAY)
+| stats count() by message
+
+-- Error ticket identification
+resource.type="cloud_run_revision"
+jsonPayload.category="TICKET_COLLECTION"
+severity="ERROR"
+jsonPayload.context.ticketId!=""
+
+-- Notification scheduling success rate
+resource.type="cloud_run_revision"
+jsonPayload.category="NOTIFICATION"
+(message:"Notifications scheduled" OR severity="ERROR")
+timestamp>=timestamp_trunc(@timestamp, DAY)
+| stats count() by if(severity="ERROR", "failed", "success")
+```
+
+#### ⚠️ **Alert and Troubleshooting Queries**
+
+```sql
+-- Critical error immediate detection
+resource.type="cloud_run_revision"
+severity="CRITICAL"
+timestamp>=timestamp_sub(@timestamp, interval 5 minute)
+
+-- Data quality issue trend analysis
+resource.type="cloud_run_revision"
+jsonPayload.dataQuality.issueType!=""
+timestamp>=timestamp_trunc(@timestamp, WEEK)
+| stats count() by jsonPayload.dataQuality.issueType, bin(timestamp, 1d)
+
+-- Unrecoverable error monitoring
+resource.type="cloud_run_revision"
+jsonPayload.error.recoverable=false
+severity>="ERROR"
+```
+
+### 🎯 **Practical Operations Query Examples**
+
+#### **Daily Report Generation**
+
+```sql
+-- Today's collection processing summary
+resource.type="cloud_run_revision"
+jsonPayload.category="TICKET_COLLECTION"
+timestamp>=timestamp_trunc(@timestamp, DAY)
+| stats
+    sum(jsonPayload.metrics.totalProcessed) as total,
+    avg(jsonPayload.metrics.processingTimeMs) as avg_time_ms,
+    min(jsonPayload.metrics.successRate) as min_success_rate
+```
+
+#### **Problem Investigation**
+
+```sql
+-- Specific timeframe error concentration investigation
+resource.type="cloud_run_revision"
+severity>="ERROR"
+timestamp>="2025-09-17T12:00:00Z"
+timestamp<="2025-09-17T13:00:00Z"
+| sort by timestamp asc
+```
+
+#### **Performance Analysis**
+
+```sql
+-- Long processing time execution identification
+resource.type="cloud_run_revision"
+jsonPayload.metrics.processingTimeMs>5000
+timestamp>=timestamp_trunc(@timestamp, WEEK)
+| sort by jsonPayload.metrics.processingTimeMs desc
+```
+
+## CloudLogger Class Implementation
 
 ```typescript
 // src/shared/logging/CloudLogger.ts
 export class CloudLogger {
   private static formatEntry(
-    severity: string,
+    severity: LogSeverity,
     message: string,
-    payload?: any,
+    payload?: CloudLoggingEntry['jsonPayload'],
   ): CloudLoggingEntry {
     const entry: CloudLoggingEntry = {
       severity,
@@ -266,7 +369,7 @@ export class CloudLogger {
       entry.jsonPayload = payload;
     }
 
-    // Cloud Runで自動的に設定される環境変数を利用
+    // Utilize environment variables automatically set by Cloud Run
     if (Deno.env.get('K_SERVICE')) {
       entry['logging.googleapis.com/labels'] = {
         service: Deno.env.get('K_SERVICE') || '',
@@ -277,60 +380,65 @@ export class CloudLogger {
     return entry;
   }
 
-  private static shouldLog(severity: string): boolean {
-    const env = Deno.env.get('ENVIRONMENT') || 'production';
+  private static shouldLog(severity: LogSeverity): boolean {
+    const env = Deno.env.get('NODE_ENV') || 'production';
+    // Suppress DEBUG logs in production environment only
     if (env === 'production' && severity === 'DEBUG') {
       return false;
     }
     return true;
   }
 
-  private static log(severity: string, message: string, payload?: any): void {
+  private static log(
+    severity: LogSeverity,
+    message: string,
+    payload?: CloudLoggingEntry['jsonPayload'],
+  ): void {
     if (!this.shouldLog(severity)) return;
 
     const entry = this.formatEntry(severity, message, payload);
 
-    // Cloud Runで自動的に収集される
+    // Automatically collected by Cloud Run
     console.log(JSON.stringify(entry));
   }
 
-  static debug(message: string, payload?: any): void {
+  static debug(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
     this.log('DEBUG', message, payload);
   }
 
-  static info(message: string, payload?: any): void {
+  static info(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
     this.log('INFO', message, payload);
   }
 
-  static warning(message: string, payload?: any): void {
+  static warning(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
     this.log('WARNING', message, payload);
   }
 
-  static error(message: string, payload?: any): void {
+  static error(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
     this.log('ERROR', message, payload);
   }
 
-  static critical(message: string, payload?: any): void {
+  static critical(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
     this.log('CRITICAL', message, payload);
   }
 }
 ```
 
-## 実装パターン
+## Implementation Patterns
 
-### 1. スクレイピングデータ品質監視（JLeagueDataParser）
+### 1. Scraping Data Quality Monitoring (JLeagueDataParser)
 
-**自動記録されるもの（ログ不要）**:
+**Automatically recorded (no logging required)**:
 
-- Cloud Scheduler → Cloud Run のリクエスト/レスポンス
-- Cloud Tasks のエンキュー/実行状況
-- HTTP ステータスコード、処理時間
-- リトライ回数、エラー発生
+- Cloud Scheduler → Cloud Run request/response
+- Cloud Tasks enqueue/execution status
+- HTTP status codes, processing time
+- Retry count, error occurrence
 
-**ログが必要なもの**:
+**Logging required**:
 
-- データ品質問題の詳細
-- ビジネスロジックレベルのエラー
+- Data quality issue details
+- Business logic level errors
 
 ```typescript
 // src/infrastructure/scraping/jleague/parser/JLeagueDataParser.ts
@@ -340,9 +448,9 @@ private parseMatchDateTime(rawData: JLeagueRawTicketData, referenceDate: Date): 
       const result = this.parseEnhancedDateTime(rawData.enhancedMatchDateTime, referenceDate);
       return result;
     } catch (error) {
-      // 未知のパターン検出（ERROR） - これのみログ必要
+      // Unknown pattern detection (ERROR) - only this needs logging
       CloudLogger.error('Unknown date pattern detected', {
-        category: 'PARSING',
+        category: LogCategory.PARSING,
         dataQuality: {
           issueType: 'UNKNOWN_PATTERN',
           field: 'matchDateTime',
@@ -362,10 +470,10 @@ private parseMatchDateTime(rawData: JLeagueRawTicketData, referenceDate: Date): 
       throw error;
     }
   }
-  
-  // 必須データ不足（ERROR）
+
+  // Missing required data (ERROR)
   CloudLogger.error('Sale start date missing for pre-sale ticket', {
-    category: 'VALIDATION',
+    category: LogCategory.VALIDATION,
     dataQuality: {
       issueType: 'MISSING_FIELD',
       field: 'saleStartDate'
@@ -385,44 +493,44 @@ private parseMatchDateTime(rawData: JLeagueRawTicketData, referenceDate: Date): 
 }
 ```
 
-### 2. 重大エラー時のDiscord通知
+### 2. Critical Error Discord Notifications
 
-**Cloud Monitoring経由の自動通知**（コード変更不要）:
+**Automatic notifications via Cloud Monitoring** (no code changes required):
 
-- CRITICALログ検出時にDiscord自動通知
-- Cloud Runの自動ログで外部APIエラーも把握可能
+- Automatic Discord notifications when CRITICAL logs are detected
+- External API errors can also be understood through Cloud Run's automatic logs
 
 ```
-アプリ → CloudLogger.critical() → Cloud Logging → Alert Policy → Discord
+App → CloudLogger.critical() → Cloud Logging → Alert Policy → Discord
 ```
 
-### 3. 集計メトリクス（TicketCollectionUseCase）
+### 3. Aggregation Metrics (TicketCollectionUseCase)
 
-**ログが必要なもの**:
+**Logging required**:
 
-- 処理結果の統計（Log-based Metrics用）
-- データ品質の異常検知
+- Processing result statistics (for Log-based Metrics)
+- Data quality anomaly detection
 
 ```typescript
 // src/application/usecases/TicketCollectionUseCase.ts
 async execute(): Promise<void> {
   try {
     const tickets = await this.scrapingService.collectTickets();
-    // 個別の検証処理は各パーサーでログ出力済み
-    
-    // 集計メトリクスのみログ出力（Log-based Metrics用）
+    // Individual validation processing already logged by each parser
+
+    // Only aggregation metrics logging (for Log-based Metrics)
     CloudLogger.info('Ticket collection completed', {
-      category: 'TICKET_COLLECTION',
+      category: LogCategory.TICKET_COLLECTION,
       metrics: {
         totalProcessed: tickets.length,
         processingTimeMs: Date.now() - startTime
       }
     });
-    
+
   } catch (error) {
-    // システムレベルの失敗のみログ
+    // Only system-level failures are logged
     CloudLogger.critical('Ticket collection system failure', {
-      category: 'SYSTEM',
+      category: LogCategory.SYSTEM,
       error: {
         code: ErrorCodes.SYS_TOTAL_FAILURE,
         details: error.message,
@@ -434,268 +542,85 @@ async execute(): Promise<void> {
 }
 ```
 
-## Log-based Metricsの設定
-
-### カスタムメトリクス定義
-
-```yaml
-# データ品質エラー数
-name: custom.googleapis.com/scraping/data_quality_errors
-description: Count of data quality errors detected
-filter: |
-  resource.type="cloud_run_revision"
-  jsonPayload.dataQuality.issueType="UNKNOWN_PATTERN" OR jsonPayload.dataQuality.issueType="MISSING_FIELD"
-metricDescriptor:
-  metricKind: DELTA
-  valueType: INT64
-  unit: '1'
-labelExtractors:
-  field: EXTRACT(jsonPayload.dataQuality.field)
-  service: EXTRACT(resource.labels.service_name)
-
-# チケット収集処理数
-name: custom.googleapis.com/ticket_collection/processed_count
-description: Count of processed tickets
-filter: |
-  resource.type="cloud_run_revision"
-  jsonPayload.category="TICKET_COLLECTION"
-  jsonPayload.metrics.totalProcessed>=0
-metricDescriptor:
-  metricKind: GAUGE
-  valueType: INT64
-valueExtractor: EXTRACT(jsonPayload.metrics.totalProcessed)
-labelExtractors:
-  service: EXTRACT(resource.labels.service_name)
-
-# エラー発生数
-name: custom.googleapis.com/application/errors
-description: Count of application errors
-filter: |
-  resource.type="cloud_run_revision"
-  severity>="ERROR"
-metricDescriptor:
-  metricKind: DELTA
-  valueType: INT64
-  unit: '1'
-```
-
-## アラートポリシー設定
-
-### Cloud Monitoring Alert Policies
-
-```yaml
-# 重大エラーアラート（即座）
-displayName: 'Critical Scraping Error'
-conditions:
-  - displayName: 'Log severity is CRITICAL'
-    conditionMatchedLog:
-      filter: |
-        resource.type="cloud_run_revision"
-        severity="CRITICAL"
-notificationChannels:
-  - discord_webhook_channel
-alertStrategy:
-  notificationRateLimit:
-    period: 300s # 5分間に1回まで
-
-# データ品質エラーアラート
-displayName: 'Data Quality Error Detected'
-conditions:
-  - displayName: 'Data quality errors > 0'
-    conditionThreshold:
-      filter: |
-        metric.type="custom.googleapis.com/scraping/data_quality_errors"
-        resource.type="cloud_run_revision"
-      comparison: COMPARISON_GT
-      thresholdValue: 0
-      duration: 0s
-notificationChannels:
-  - discord_webhook_channel
-
-# エラー多発アラート
-displayName: 'High Error Rate'
-conditions:
-  - displayName: 'Errors > 5 in 5 minutes'
-    conditionThreshold:
-      filter: |
-        metric.type="custom.googleapis.com/application/errors"
-        resource.type="cloud_run_revision"
-      comparison: COMPARISON_GT
-      thresholdValue: 5
-      duration: 300s
-notificationChannels:
-  - discord_webhook_channel
-```
-
-## Discord 通知の仕組み
-
-**Cloud Monitoring → Discord Webhookへ直接通知**
-
-Cloud Monitoringの通知チャネルとして、Discord WebhookのURLを直接設定。 カスタムCloud
-Functionsは不要で、GCPの標準機能で自動通知されます。
-
-### 設定手順
-
-1. **Discord Webhook URL取得**：Discordサーバーでwebhook作成
-2. **GCP通知チャネル作成**：Cloud MonitoringでWebhook通知チャネル設定
-3. **Alert Policy設定**：各アラートポリシーに通知チャネル紐付け
-
-**コード実装は一切不要**です。
-
-## ログ検索クエリ例
-
-### Cloud Logging クエリ
-
-```sql
--- データ品質エラーの検索
-resource.type="cloud_run_revision"
-jsonPayload.dataQuality.issueType=("UNKNOWN_PATTERN" OR "MISSING_FIELD")
-timestamp>="2025-09-13T00:00:00Z"
-
--- 本日のエラー率計算
-resource.type="cloud_run_revision"
-severity>="ERROR"
-timestamp>=timestamp_trunc(@timestamp, DAY)
-| stats count() as error_count by bin(timestamp, 1h)
-
--- 特定フィールドの問題追跡
-resource.type="cloud_run_revision"
-jsonPayload.dataQuality.field="saleStartDate"
-jsonPayload.dataQuality.issueType="MISSING_FIELD"
-
--- チケット収集処理の統計
-resource.type="cloud_run_revision"
-jsonPayload.category="TICKET_COLLECTION"
-timestamp>=timestamp_trunc(@timestamp, DAY)
-```
-
-## 環境変数設定
+## Environment Variables
 
 ```env
-# ログレベル設定
+# Log level setting
 LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-# 環境設定
+# Environment setting
 ENVIRONMENT=production  # development, staging, production
 
-# Cloud Run自動設定（設定不要）
+# Cloud Run automatic settings (no configuration required)
 # K_SERVICE=ticket-scraping
 # K_REVISION=ticket-scraping-00001-abc
 ```
 
-## セキュリティとプライバシー
+## Security and Privacy
 
-### ログに含めてはいけない情報
+### Information NOT to include in logs
 
-- 個人情報（氏名、メールアドレス、電話番号）
-- 認証情報（パスワード、APIキー、トークン）
-- 支払い情報
-- 内部システムの詳細なパス情報
+- Personal information (names, email addresses, phone numbers)
+- Authentication credentials (passwords, API keys, tokens)
+- Payment information
+- Detailed internal system path information
 
-### ログに含めて良い情報
+### Information OK to include in logs
 
-- チケット公開情報（試合名、日時、会場）
-- 処理統計（件数、成功率）
-- エラーメッセージ（スタックトレースは開発環境のみ）
-- セッションID（追跡用のUUID）
+- Public ticket information (match names, dates, venues)
+- Processing statistics (counts, success rates)
+- Error messages (stack traces in development environment only)
+- Session IDs (UUIDs for tracking)
 
-## コスト見積もり
+## Cost Estimation
 
-### 月間使用量予測
+### Monthly Usage Prediction
 
 ```
 【Cloud Logging】
-- 1日1回スクレイピング実行
-- 1回あたり約100KB のログ
-- 月間: 100KB × 30日 = 3MB
-→ 完全無料（50GB枠の0.006%）
+- Scraping execution once daily
+- Approximately 100KB of logs per execution
+- Monthly: 100KB × 30 days = 3MB
+→ Completely free (0.006% of 50GB quota)
 
 【Cloud Monitoring】
-- Log-based Metrics: 3個
-- データポイント: 1日30個
-- 月間: 約1MB
-→ 完全無料（150MB枠の0.7%）
+- Log-based Metrics: 3 items
+- Data points: 30 per day
+- Monthly: approximately 1MB
+→ Completely free (0.7% of 150MB quota)
 ```
 
-### 月間コスト
+### Monthly Cost
 
 ```
-Cloud Logging:    $0（50GB無料枠内）
-Cloud Monitoring: $0（150MB無料枠内）
+Cloud Logging:    $0 (within 50GB free quota)
+Cloud Monitoring: $0 (within 150MB free quota)
 ━━━━━━━━━━━━━━━━━━━━━━━━
-合計: $0/月
+Total: $0/month
 ```
 
-## 実装チェックリスト
+## Summary
 
-### Phase 1: 基盤実装
+This specification provides:
 
-- [ ] CloudLoggerクラスの実装
-- [ ] 型定義ファイルの作成
-- [ ] 環境変数の設定
+### 🎯 **Significant Implementation Scope Reduction**
 
-### Phase 2: 既存コードへの組み込み（2ファイルのみ）
+- **Code changes**: Only 2 files (JLeagueDataParser + TicketCollectionUseCase)
+- **External API・main.ts**: No changes required (Cloud Run automatically records)
+- **Discord notifications**: Automated via Cloud Monitoring
 
-- [ ] JLeagueDataParserへのデータ品質ログ追加
-- [ ] TicketCollectionUseCaseへのメトリクス集計
+### 📊 **Effective Monitoring**
 
-### Phase 3: GCP設定（コード変更なし）
+1. **Data quality**: Immediate detection of unknown patterns and missing required fields
+2. **Automatic notifications**: Automatic Discord notifications for CRITICAL errors
+3. **Cost efficiency**: Stay within free quota with 30-day retention
+4. **Operational**: 24-hour monitoring with GCP configuration only
 
-- [ ] Discord Webhook通知チャネル作成
-- [ ] Log-based Metricsの作成
-- [ ] Alert Policiesの設定（CRITICALログ → Discord通知）
-- [ ] アラート通知テスト
+### 🚀 **Technical Benefits**
 
-### Phase 4: テストと調整
+- **Structured logs**: Automatic aggregation with Log-based Metrics
+- **Automatic recording utilization**: Maximum use of Cloud Run's standard features
+- **Scalable**: Automatic scaling with GCP managed services
+- **Maintainable**: Maximum effect with minimal code changes
 
-- [ ] ローカル環境でのログ出力確認
-- [ ] Cloud Runでの動作確認
-- [ ] データ品質エラーの発火テスト
-- [ ] Discord通知の確認
-- [ ] Log-based Metricsの動作確認
-
-## トラブルシューティング
-
-### ログが出力されない
-
-1. 環境変数`ENVIRONMENT`を確認
-2. Cloud Runのコンソール出力を確認
-3. `console.log`が正しくJSON文字列を出力しているか確認
-
-### アラートが発火しない
-
-1. Log-based Metricsが正しく作成されているか確認
-2. Alert Policyのフィルタ条件を確認
-3. 通知チャネルが正しく設定されているか確認
-
-### Discord通知が届かない
-
-1. Webhook URLが正しいか確認
-2. Cloud Functionsのログを確認
-3. Discord Webhookの設定を確認
-
-## まとめ
-
-この仕様により：
-
-### 🎯 **実装範囲の大幅削減**
-
-- **コード変更**: たった2ファイル（JLeagueDataParser + TicketCollectionUseCase）
-- **外部API・main.ts**: 変更不要（Cloud Runが自動記録）
-- **Discord通知**: Cloud Monitoring経由で自動化
-
-### 📊 **効果的な監視**
-
-1. **データ品質**: 未知パターン・必須フィールド不足を即座に検知
-2. **自動通知**: CRITICALエラー時にDiscord自動通知
-3. **コスト効率**: 30日保持で無料枠内に収める
-4. **運用性**: GCP設定のみで24時間監視
-
-### 🚀 **技術的メリット**
-
-- **構造化ログ**: Log-based Metricsで自動集計
-- **自動記録活用**: Cloud Runの標準機能を最大限利用
-- **スケーラブル**: GCP管理サービスで自動スケール
-- **保守性**: 最小限のコード変更で最大効果
-
-すべてGCP標準機能で実現し、追加インフラは不要です。
+Everything is achieved with GCP standard features, no additional infrastructure required.

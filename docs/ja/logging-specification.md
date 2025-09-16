@@ -546,6 +546,8 @@ Functionsは不要で、GCPの標準機能で自動通知されます。
 
 ### Cloud Logging クエリ
 
+#### 📊 **基本的なデータ品質エラー検索**
+
 ```sql
 -- データ品質エラーの検索
 resource.type="cloud_run_revision"
@@ -562,11 +564,173 @@ timestamp>=timestamp_trunc(@timestamp, DAY)
 resource.type="cloud_run_revision"
 jsonPayload.dataQuality.field="saleStartDate"
 jsonPayload.dataQuality.issueType="MISSING_FIELD"
+```
 
--- チケット収集処理の統計
+#### 🎫 **チケット収集の詳細ログ検索（Issue #108対応）**
+
+```sql
+-- 個別チケット処理結果の検索
+resource.type="cloud_run_revision"
+jsonPayload.category="TICKET_COLLECTION"
+(message:"Ticket created" OR message:"Ticket updated" OR message:"Ticket unchanged")
+timestamp>=timestamp_trunc(@timestamp, DAY)
+
+-- 特定試合の処理履歴追跡
+resource.type="cloud_run_revision"
+jsonPayload.context.matchName:"横浜F・マリノス戦"
+
+-- 特定チケットIDの処理履歴
+resource.type="cloud_run_revision"
+jsonPayload.context.ticketId="urawa-vs-yokohama-20250315"
+
+-- 新規作成されたチケットのみ
+resource.type="cloud_run_revision"
+message:"Ticket created"
+timestamp>=timestamp_trunc(@timestamp, DAY)
+
+-- 更新されたチケットのみ
+resource.type="cloud_run_revision"
+message:"Ticket updated"
+timestamp>=timestamp_trunc(@timestamp, DAY)
+
+-- 変更がなかったチケット
+resource.type="cloud_run_revision"
+message:"Ticket unchanged"
+timestamp>=timestamp_trunc(@timestamp, DAY)
+```
+
+#### 🔔 **通知スケジューリングログ検索**
+
+```sql
+-- 通知スケジューリング成功ログ
+resource.type="cloud_run_revision"
+jsonPayload.category="NOTIFICATION"
+message:"Notifications scheduled"
+timestamp>=timestamp_trunc(@timestamp, DAY)
+
+-- 特定試合の通知スケジューリング履歴
+resource.type="cloud_run_revision"
+jsonPayload.category="NOTIFICATION"
+jsonPayload.context.matchName:"横浜F・マリノス戦"
+
+-- 通知関連エラー
+resource.type="cloud_run_revision"
+jsonPayload.category="NOTIFICATION"
+severity>="ERROR"
+
+-- NotificationSchedulerServiceのエラー
+resource.type="cloud_run_revision"
+jsonPayload.category="NOTIFICATION"
+(message:"Failed to schedule" OR message:"dequeue operations failed")
+```
+
+#### 📈 **収集処理統計とメトリクス検索**
+
+```sql
+-- チケット収集完了サマリー
+resource.type="cloud_run_revision"
+message:"Ticket collection completed"
+timestamp>=timestamp_trunc(@timestamp, DAY)
+
+-- 収集処理の成功率分析
+resource.type="cloud_run_revision"
+jsonPayload.category="TICKET_COLLECTION"
+jsonPayload.metrics.successRate>=0
+timestamp>=timestamp_trunc(@timestamp, WEEK)
+
+-- 処理時間のパフォーマンス分析
+resource.type="cloud_run_revision"
+jsonPayload.metrics.processingTimeMs>0
+timestamp>=timestamp_trunc(@timestamp, DAY)
+
+-- 処理件数の日次推移
+resource.type="cloud_run_revision"
+jsonPayload.metrics.totalProcessed>0
+| stats avg(jsonPayload.metrics.totalProcessed) as avg_processed by bin(timestamp, 1d)
+```
+
+#### 🔍 **デバッグと運用監視用クエリ**
+
+```sql
+-- セッション別の処理追跡
+resource.type="cloud_run_revision"
+jsonPayload.context.sessionId="ea7fc161-bfe0-4286-aa04-f7bd852e7f72"
+
+-- 今日の処理結果サマリー（件数別）
+resource.type="cloud_run_revision"
+jsonPayload.category="TICKET_COLLECTION"
+(message:"Ticket created" OR message:"Ticket updated" OR message:"Ticket unchanged")
+timestamp>=timestamp_trunc(@timestamp, DAY)
+| stats count() by message
+
+-- エラー発生チケットの特定
+resource.type="cloud_run_revision"
+jsonPayload.category="TICKET_COLLECTION"
+severity="ERROR"
+jsonPayload.context.ticketId!=""
+
+-- 通知スケジューリング成功率
+resource.type="cloud_run_revision"
+jsonPayload.category="NOTIFICATION"
+(message:"Notifications scheduled" OR severity="ERROR")
+timestamp>=timestamp_trunc(@timestamp, DAY)
+| stats count() by if(severity="ERROR", "failed", "success")
+```
+
+#### ⚠️ **アラートとトラブルシューティング用**
+
+```sql
+-- 重大エラーの即座検知
+resource.type="cloud_run_revision"
+severity="CRITICAL"
+timestamp>=timestamp_sub(@timestamp, interval 5 minute)
+
+-- データ品質問題の傾向分析
+resource.type="cloud_run_revision"
+jsonPayload.dataQuality.issueType!=""
+timestamp>=timestamp_trunc(@timestamp, WEEK)
+| stats count() by jsonPayload.dataQuality.issueType, bin(timestamp, 1d)
+
+-- 回復不可能なエラーの監視
+resource.type="cloud_run_revision"
+jsonPayload.error.recoverable=false
+severity>="ERROR"
+```
+
+### 🎯 **実用的な運用クエリ例**
+
+#### **日次レポート作成用**
+
+```sql
+-- 本日の収集処理サマリー
 resource.type="cloud_run_revision"
 jsonPayload.category="TICKET_COLLECTION"
 timestamp>=timestamp_trunc(@timestamp, DAY)
+| stats
+    sum(jsonPayload.metrics.totalProcessed) as total,
+    avg(jsonPayload.metrics.processingTimeMs) as avg_time_ms,
+    min(jsonPayload.metrics.successRate) as min_success_rate
+```
+
+#### **問題調査用**
+
+```sql
+-- 特定時間帯のエラー集中調査
+resource.type="cloud_run_revision"
+severity>="ERROR"
+timestamp>="2025-09-17T12:00:00Z"
+timestamp<="2025-09-17T13:00:00Z"
+| sort by timestamp asc
+```
+
+#### **パフォーマンス分析用**
+
+```sql
+-- 処理時間が長い実行の特定
+resource.type="cloud_run_revision"
+jsonPayload.metrics.processingTimeMs>5000
+timestamp>=timestamp_trunc(@timestamp, WEEK)
+| sort by jsonPayload.metrics.processingTimeMs desc
 ```
 
 ## 環境変数設定
