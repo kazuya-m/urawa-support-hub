@@ -7,6 +7,8 @@ import {
 } from '@/infrastructure/interfaces/clients/ICloudTasksClient.ts';
 import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
 import { INotificationSchedulerService } from '@/application/interfaces/services/INotificationSchedulerService.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
 
 export class NotificationSchedulerService implements INotificationSchedulerService {
   constructor(
@@ -48,7 +50,14 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
 
         return { type, taskId, success: true };
       } catch (error) {
-        console.error(`[NotificationScheduler] Failed to schedule ${type} notification:`, error);
+        CloudLogger.error(`Failed to schedule ${type} notification`, {
+          category: LogCategory.NOTIFICATION,
+          context: { ticketId: ticket.id },
+          error: {
+            details: error instanceof Error ? error.message : String(error),
+            recoverable: true,
+          },
+        });
         return { type, error, success: false };
       }
     });
@@ -57,8 +66,16 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
 
     const failures = results.filter((result) => !result.success);
     if (failures.length > 0) {
-      console.warn(
-        `[NotificationScheduler] ${failures.length} notifications failed to schedule for ticket ${ticket.id}`,
+      CloudLogger.warning(
+        `${failures.length} notifications failed to schedule for ticket ${ticket.id}`,
+        {
+          category: LogCategory.NOTIFICATION,
+          context: { ticketId: ticket.id },
+          error: {
+            details: `${failures.length} out of ${results.length} notifications failed`,
+            recoverable: false,
+          },
+        },
       );
       throw new Error(
         `${failures.length} out of ${results.length} notifications failed to schedule`,
@@ -70,7 +87,13 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
     try {
       await this.cloudTasksClient.dequeueTask(taskId);
     } catch (error) {
-      console.error(`[NotificationScheduler] Failed to dequeue task ${taskId}:`, error);
+      CloudLogger.error(`Failed to dequeue task ${taskId}`, {
+        category: LogCategory.NOTIFICATION,
+        error: {
+          details: error instanceof Error ? error.message : String(error),
+          recoverable: true,
+        },
+      });
       throw error;
     }
   }
@@ -81,7 +104,13 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
         await this.cancelNotification(taskId);
         return { success: true, taskId };
       } catch (error) {
-        console.error(`Failed to dequeue task ${taskId}:`, error);
+        CloudLogger.error(`Failed to dequeue task ${taskId}`, {
+          category: LogCategory.NOTIFICATION,
+          error: {
+            details: error instanceof Error ? error.message : String(error),
+            recoverable: true,
+          },
+        });
         return { success: false, taskId, error };
       }
     });
@@ -90,7 +119,13 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
     const failures = results.filter((result) => !result.success);
 
     if (failures.length > 0) {
-      console.warn(`[NotificationScheduler] ${failures.length} dequeue operations failed`);
+      CloudLogger.warning(`${failures.length} dequeue operations failed`, {
+        category: LogCategory.NOTIFICATION,
+        error: {
+          details: `${failures.length} out of ${taskIds.length} operations failed`,
+          recoverable: false,
+        },
+      });
       throw new Error(`${failures.length} out of ${taskIds.length} dequeue operations failed`);
     }
   }
