@@ -18,7 +18,7 @@
     "@std/dotenv": "jsr:@std/dotenv@^0.225.0"
   },
   "tasks": {
-    "start": "supabase start && docker build -f src/cloud-run/urawa-support-hub/Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 urawa-support-hub",
+    "start": "supabase start && docker build -f Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 urawa-support-hub",
     "stop": "docker stop urawa-support-hub-local && docker rm urawa-support-hub-local && supabase stop",
     "restart": "docker stop urawa-support-hub-local && docker rm urawa-support-hub-local && docker build -f src/cloud-run/urawa-support-hub/Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 urawa-support-hub",
     "dev": "supabase functions serve --debug",
@@ -45,7 +45,7 @@
     "demo:collect-ticket": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys tests/integration/collect-tickets-api-test.ts",
     "demo:full-integration": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run scripts/test/run-full-integration-test.ts",
     "debug:db-tickets": "deno run --allow-env --allow-net --allow-read scripts/debug/check-tickets-db.ts",
-    "dev:cloud-run": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run src/cloud-run/urawa-support-hub/main.ts",
+    "dev:cloud-run": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run src/main.ts",
     "cloud:dequeue": "deno run --allow-env --allow-net --allow-read --allow-run scripts/cloud/dequeue-test-task.ts"
   },
   "lint": {

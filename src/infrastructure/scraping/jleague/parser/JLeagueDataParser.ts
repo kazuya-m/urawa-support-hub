@@ -111,13 +111,13 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
       const hour = parseInt(timeParts[0]);
       const minute = parseInt(timeParts[1]);
 
-      // 4桁年が明示されている場合はそのまま使用
+      // 4桁年が明示されている場合もJST→UTC変換を適用
       if (year >= 1000) {
-        const matchDate = new Date(year, month - 1, day, hour, minute);
-        if (isNaN(matchDate.getTime())) {
+        if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute)) {
           throw new Error(`Invalid date values: ${dateTimeStr}`);
         }
-        return matchDate;
+        // parseMatchDate関数を使用してJST→UTC変換を実行
+        return parseMatchDate(month, day, hour, minute, new Date(year, 0, 1));
       }
 
       // 2桁年の場合は年跨ぎロジックを適用
