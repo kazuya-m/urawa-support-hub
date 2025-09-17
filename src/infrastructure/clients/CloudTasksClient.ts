@@ -125,17 +125,16 @@ export class CloudTasksClient implements ICloudTasksClient {
       }
 
       const createdTaskId = response.name.split('/').pop()!;
-      if (this.config.enableDebugLogs) {
-        CloudLogger.info('Task created successfully', {
-          category: LogCategory.CLOUD_TASKS,
-          context: {
-            taskId: createdTaskId,
-            targetUrl,
-            queueName: this.config.queueName,
-            processingStage: 'enqueue_success',
-          },
-        });
-      }
+
+      CloudLogger.info('Task created successfully', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          taskId: createdTaskId,
+          targetUrl,
+          queueName: this.config.queueName,
+          processingStage: 'enqueue_success',
+        },
+      });
 
       return createdTaskId;
     } catch (error) {
