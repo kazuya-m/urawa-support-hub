@@ -35,9 +35,8 @@ export class CloudTasksClient implements ICloudTasksClient {
       throw new Error('GOOGLE_CLOUD_PROJECT or GCP_PROJECT_ID environment variable is required');
     }
 
-    const clientOptions = this.config.nodeEnv === 'development'
-      ? { fallback: 'rest' as const }
-      : { fallback: true };
+    // 一時的に本番環境でもRESTを使用してgRPC問題を切り分け
+    const clientOptions = { fallback: 'rest' as const };
 
     this.client = new GoogleCloudTasksClient(clientOptions);
 
@@ -92,7 +91,7 @@ export class CloudTasksClient implements ICloudTasksClient {
         body: btoa(JSON.stringify(payload)),
         oidcToken: {
           serviceAccountEmail: Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
-          audience: targetUrl,
+          audience: new URL(targetUrl).origin,
         },
       },
     };
