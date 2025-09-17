@@ -94,10 +94,11 @@ export class CloudTasksClient implements ICloudTasksClient {
           ...headers,
         },
         body: btoa(JSON.stringify(payload)),
-        oidcToken: {
-          serviceAccountEmail: Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
-          audience: new URL(targetUrl).origin,
-        },
+        // 一時的にOIDCトークンを無効化してテスト
+        // oidcToken: {
+        //   serviceAccountEmail: Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
+        //   audience: new URL(targetUrl).origin,
+        // },
       },
     };
 
@@ -133,9 +134,9 @@ export class CloudTasksClient implements ICloudTasksClient {
       const startTime = Date.now();
       console.log('Sending Cloud Tasks API request...');
       console.log('Task payload details:', {
-        hasOIDCToken: !!task.httpRequest?.oidcToken,
-        serviceAccountEmail: task.httpRequest?.oidcToken?.serviceAccountEmail,
-        audience: task.httpRequest?.oidcToken?.audience,
+        hasOIDCToken: false, // OIDCトークン無効化中
+        serviceAccountEmail: 'N/A (OIDC disabled)',
+        audience: 'N/A (OIDC disabled)',
         targetUrl: task.httpRequest?.url,
         scheduleTimeValid: scheduledTime > new Date(),
         scheduleTime: scheduledTime.toISOString(),
