@@ -40,7 +40,7 @@ export class CloudTasksClient implements ICloudTasksClient {
 
     this.client = new GoogleCloudTasksClient(clientOptions);
 
-    if (this.config.enableDebugLogs && this.config.nodeEnv !== 'production') {
+    if (this.config.enableDebugLogs) {
       CloudLogger.debug('CloudTasks client initialized', {
         category: LogCategory.CLOUD_TASKS,
         context: {
@@ -96,17 +96,23 @@ export class CloudTasksClient implements ICloudTasksClient {
       },
     };
 
-    if (this.config.enableDebugLogs) {
-      CloudLogger.debug('Enqueuing task', {
-        category: LogCategory.CLOUD_TASKS,
-        context: {
-          taskId: actualTaskId,
-          targetUrl,
-          queueName: this.config.queueName,
-          processingStage: 'enqueue_start',
-        },
-      });
-    }
+    CloudLogger.debug('Enqueuing task', {
+      category: LogCategory.CLOUD_TASKS,
+      context: {
+        taskId: actualTaskId,
+        targetUrl,
+        queueName: this.config.queueName,
+        processingStage: 'enqueue_start',
+      },
+    });
+
+    // 追加のデバッグ情報をconsoleログで出力
+    console.log('Cloud Tasks Debug Info:', {
+      projectId: this.config.projectId,
+      location: this.config.location,
+      queuePath,
+      serviceAccount: Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
+    });
 
     try {
       const [response] = await this.client.createTask({
