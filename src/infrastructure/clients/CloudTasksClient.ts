@@ -348,6 +348,11 @@ export class CloudTasksClient implements ICloudTasksClient {
     try {
       console.log('Testing Cloud Tasks authentication...');
 
+      // ADC トラブルシューティング: メタデータサーバーテスト
+      if (this.config.nodeEnv === 'production') {
+        await this.testMetadataServer();
+      }
+
       // キューリストでプロジェクトアクセスをテスト
       const queuePath = this.client.locationPath(this.config.projectId, this.config.location);
       const [queues] = await this.client.listQueues({ parent: queuePath });
@@ -363,6 +368,63 @@ export class CloudTasksClient implements ICloudTasksClient {
         error: error instanceof Error ? error.message : String(error),
         projectId: this.config.projectId.substring(0, 8) + '***',
         location: this.config.location,
+      });
+    }
+  }
+
+  /**
+   * メタデータサーバーへのアクセステスト
+   * ADC トラブルシューティングガイドに基づく
+   */
+  private async testMetadataServer(): Promise<void> {
+    try {
+      console.log('Testing metadata server access...');
+
+      // メタデータサーバーからサービスアカウント情報を取得
+      const response = await fetch(
+        'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email',
+        {
+          headers: { 'Metadata-Flavor': 'Google' },
+        },
+      );
+
+      if (response.ok) {
+        const serviceAccount = await response.text();
+        console.log('Metadata server access successful:', {
+          serviceAccount: serviceAccount,
+          status: response.status,
+        });
+
+        // アクセストークンの取得テスト
+        const tokenResponse = await fetch(
+          'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+          {
+            headers: { 'Metadata-Flavor': 'Google' },
+          },
+        );
+
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          console.log('Access token retrieval successful:', {
+            tokenType: tokenData.token_type,
+            expiresIn: tokenData.expires_in,
+            hasToken: !!tokenData.access_token,
+          });
+        } else {
+          console.log('Access token retrieval failed:', {
+            status: tokenResponse.status,
+            statusText: tokenResponse.statusText,
+          });
+        }
+      } else {
+        console.log('Metadata server access failed:', {
+          status: response.status,
+          statusText: response.statusText,
+        });
+      }
+    } catch (error) {
+      console.log('Metadata server test error:', {
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
