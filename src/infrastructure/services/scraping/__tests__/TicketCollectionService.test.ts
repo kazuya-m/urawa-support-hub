@@ -1,5 +1,7 @@
-import { assertEquals } from 'std/assert/mod.ts';
+import { assertEquals, assertStringIncludes } from 'std/assert/mod.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
+import { TicketCollectionService } from '../TicketCollectionService.ts';
+import { TestTicketHelper } from '../TestTicketHelper.ts';
 
 // モック用のTicketCollectionService
 class MockTicketCollectionService {
@@ -88,4 +90,101 @@ Deno.test('TicketCollectionService Tests', async (t) => {
     assertEquals(result[0].matchName, 'FC東京');
     assertEquals(result[1].matchName, 'ガンバ大阪');
   });
+});
+
+Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
+  const originalEnvValue = Deno.env.get('ENABLE_TEST_TICKET');
+  const originalRescheduleValue = Deno.env.get('ENABLE_TEST_RESCHEDULE');
+
+  // クリーンアップ関数
+  const cleanup = () => {
+    if (originalEnvValue !== undefined) {
+      Deno.env.set('ENABLE_TEST_TICKET', originalEnvValue);
+    } else {
+      Deno.env.delete('ENABLE_TEST_TICKET');
+    }
+    if (originalRescheduleValue !== undefined) {
+      Deno.env.set('ENABLE_TEST_RESCHEDULE', originalRescheduleValue);
+    } else {
+      Deno.env.delete('ENABLE_TEST_RESCHEDULE');
+    }
+  };
+
+  await t.step('should not generate test tickets when test mode is disabled', async () => {
+    try {
+      Deno.env.delete('ENABLE_TEST_TICKET');
+      const service = new TicketCollectionService([]);
+      const result = await service.collectAllTickets();
+
+      assertEquals(result.length, 0);
+      assertEquals(result.filter((ticket) => ticket.matchName.includes('[TEST]')).length, 0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  await t.step('should generate test ticket when test mode is enabled', async () => {
+    try {
+      Deno.env.set('ENABLE_TEST_TICKET', 'true');
+      const service = new TicketCollectionService([]);
+      const result = await service.collectAllTickets();
+
+      assertEquals(result.length, 1);
+      assertStringIncludes(result[0].matchName, '[TEST]');
+      assertEquals(result[0].homeTeam, '川崎フロンターレ');
+      assertEquals(result[0].awayTeam, '浦和レッズ');
+      assertEquals(result[0].venue, '等々力陸上競技場');
+      assertEquals(result[0].ticketTypes.includes('ビジター指定席大人'), true);
+      assertEquals(result[0].saleStatus, 'before_sale');
+      assertEquals(result[0].notificationScheduled, false);
+
+      // 販売開始日が明日10:00に設定されているかチェック
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+
+      assertEquals(result[0].saleStartDate?.getDate(), tomorrow.getDate());
+      assertEquals(result[0].saleStartDate?.getHours(), 10);
+    } finally {
+      cleanup();
+    }
+  });
+
+  await t.step(
+    'should generate additional reschedule test ticket when both modes are enabled',
+    async () => {
+      try {
+        Deno.env.set('ENABLE_TEST_TICKET', 'true');
+        Deno.env.set('ENABLE_TEST_RESCHEDULE', 'true');
+        const service = new TicketCollectionService([]);
+        const result = await service.collectAllTickets();
+
+        assertEquals(result.length, 2);
+
+        const baseTestTicket = result.find((ticket) =>
+          ticket.matchName.includes('[TEST]') && !ticket.matchName.includes('RESCHEDULE')
+        );
+        const rescheduleTestTicket = result.find((ticket) =>
+          ticket.matchName.includes('[TEST-RESCHEDULE]')
+        );
+
+        assertEquals(!!baseTestTicket, true);
+        assertEquals(!!rescheduleTestTicket, true);
+        assertEquals(rescheduleTestTicket?.awayTeam, '浦和レッズ');
+        assertEquals(rescheduleTestTicket?.homeTeam, '川崎フロンターレ');
+
+        // 再スケジュール用チケットの販売開始日が2時間前に設定されているかチェック
+        if (
+          baseTestTicket && rescheduleTestTicket && baseTestTicket.saleStartDate &&
+          rescheduleTestTicket.saleStartDate
+        ) {
+          const timeDifference = baseTestTicket.saleStartDate.getTime() -
+            rescheduleTestTicket.saleStartDate.getTime();
+          assertEquals(timeDifference, 2 * 60 * 60 * 1000); // 2時間の差
+        }
+      } finally {
+        cleanup();
+      }
+    },
+  );
 });
