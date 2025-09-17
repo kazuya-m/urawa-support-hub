@@ -40,6 +40,11 @@ export class CloudTasksClient implements ICloudTasksClient {
 
     this.client = new GoogleCloudTasksClient(clientOptions);
 
+    // 認証情報のテスト（本番環境でのみ）
+    if (this.config.nodeEnv === 'production') {
+      this.validateAuthentication();
+    }
+
     if (this.config.enableDebugLogs) {
       CloudLogger.debug('CloudTasks client initialized', {
         category: LogCategory.CLOUD_TASKS,
@@ -106,18 +111,37 @@ export class CloudTasksClient implements ICloudTasksClient {
       },
     });
 
-    // 追加のデバッグ情報をconsoleログで出力
-    console.log('Cloud Tasks Debug Info:', {
-      projectId: this.config.projectId,
+    // 追加のデバッグ情報を構造化ログで出力
+    CloudLogger.debug('Cloud Tasks Configuration Details', {
+      category: LogCategory.CLOUD_TASKS,
+      context: {
+        processingStage: 'config_details',
+        taskId: actualTaskId,
+        queueName: this.config.queueName,
+      },
+    });
+
+    // 設定詳細をconsoleログで出力（型制約のため）
+    console.log('Cloud Tasks Config:', {
+      projectId: this.config.projectId.substring(0, 8) + '***',
       location: this.config.location,
-      queuePath,
-      serviceAccount: Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
+      queuePath: queuePath.replace(this.config.projectId, '***'),
+      serviceAccountSet: !!Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
     });
 
     try {
+      const startTime = Date.now();
+      console.log('Sending Cloud Tasks API request...');
+
       const [response] = await this.client.createTask({
         parent: queuePath,
         task,
+      });
+
+      const duration = Date.now() - startTime;
+      console.log('Cloud Tasks API request completed:', {
+        duration: `${duration}ms`,
+        success: true,
       });
 
       if (!response.name) {
@@ -145,6 +169,32 @@ export class CloudTasksClient implements ICloudTasksClient {
 
       if (error instanceof Error) {
         errorMessage = error.message;
+
+        // Google Cloud エラーの詳細情報を構造化ログで出力
+        CloudLogger.error('Google Cloud Tasks API Error Details', {
+          category: LogCategory.CLOUD_TASKS,
+          context: {
+            processingStage: 'api_error_details',
+            taskId: actualTaskId,
+            queueName: this.config.queueName,
+          },
+          error: {
+            code: 'code' in error ? String(error.code) : ErrorCodes.CLOUD_TASKS_ERROR,
+            details: error.message,
+            recoverable: true,
+          },
+        });
+
+        // エラー詳細をconsoleログで出力（型制約のため）
+        console.log('Google Cloud API Error:', {
+          message: error.message,
+          name: error.name,
+          grpcCode: 'code' in error ? error.code : 'N/A',
+          apiDetails: 'details' in error ? error.details : 'N/A',
+          metadata: 'metadata' in error ? error.metadata : 'N/A',
+          statusDetails: 'statusDetails' in error ? error.statusDetails : 'N/A',
+        });
+
         // Google Cloud エラーの場合、ステータスコードとコードを抽出
         if ('code' in error) {
           errorDetails.grpcCode = error.code;
@@ -278,6 +328,33 @@ export class CloudTasksClient implements ICloudTasksClient {
         },
       });
       return [];
+    }
+  }
+
+  /**
+   * 認証情報の検証
+   * 本番環境でのトークン取得とプロジェクトアクセスをテスト
+   */
+  private async validateAuthentication(): Promise<void> {
+    try {
+      console.log('Testing Cloud Tasks authentication...');
+
+      // キューリストでプロジェクトアクセスをテスト
+      const queuePath = this.client.locationPath(this.config.projectId, this.config.location);
+      const [queues] = await this.client.listQueues({ parent: queuePath });
+
+      console.log('Authentication test successful:', {
+        projectId: this.config.projectId.substring(0, 8) + '***',
+        location: this.config.location,
+        queuesFound: queues.length,
+        targetQueue: this.config.queueName,
+      });
+    } catch (error) {
+      console.log('Authentication test failed:', {
+        error: error instanceof Error ? error.message : String(error),
+        projectId: this.config.projectId.substring(0, 8) + '***',
+        location: this.config.location,
+      });
     }
   }
 
