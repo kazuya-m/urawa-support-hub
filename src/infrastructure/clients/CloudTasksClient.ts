@@ -132,15 +132,15 @@ export class CloudTasksClient implements ICloudTasksClient {
     try {
       const startTime = Date.now();
       console.log('Sending Cloud Tasks API request...');
-    console.log('Task payload details:', {
-      hasOIDCToken: !!task.httpRequest?.oidcToken,
-      serviceAccountEmail: task.httpRequest?.oidcToken?.serviceAccountEmail,
-      audience: task.httpRequest?.oidcToken?.audience,
-      targetUrl: task.httpRequest?.url,
-      scheduleTimeValid: scheduledTime > new Date(),
-      scheduleTime: scheduledTime.toISOString(),
-      currentTime: new Date().toISOString(),
-    });
+      console.log('Task payload details:', {
+        hasOIDCToken: !!task.httpRequest?.oidcToken,
+        serviceAccountEmail: task.httpRequest?.oidcToken?.serviceAccountEmail,
+        audience: task.httpRequest?.oidcToken?.audience,
+        targetUrl: task.httpRequest?.url,
+        scheduleTimeValid: scheduledTime > new Date(),
+        scheduleTime: scheduledTime.toISOString(),
+        currentTime: new Date().toISOString(),
+      });
 
       const [response] = await this.client.createTask({
         parent: queuePath,
