@@ -1,7 +1,6 @@
 import { assertEquals, assertStringIncludes } from 'std/assert/mod.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketCollectionService } from '../TicketCollectionService.ts';
-import { TestTicketHelper } from '../TestTicketHelper.ts';
 
 // モック用のTicketCollectionService
 class MockTicketCollectionService {
