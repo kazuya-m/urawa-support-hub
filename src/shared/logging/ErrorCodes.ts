@@ -32,6 +32,10 @@ export const ErrorCodes = {
   NOTIFICATION_LINE_API_ERROR: 'NOT_001', // LINE API エラー
   NOTIFICATION_SCHEDULE_FAILED: 'NOT_002', // スケジュール失敗
 
+  // Cloud Tasks関連
+  CLOUD_TASKS_ERROR: 'TASKS_001', // Cloud Tasks一般エラー
+  PERMISSION_DENIED: 'TASKS_403', // 権限不足エラー（403）
+
   // システム関連 - 重大障害
   SYS_TOTAL_FAILURE: 'SYS_001', // システム全体停止
   SYS_RESOURCE_EXHAUSTED: 'SYS_002', // リソース枯渇

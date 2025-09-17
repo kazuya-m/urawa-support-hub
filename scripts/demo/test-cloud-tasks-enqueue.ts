@@ -12,7 +12,7 @@ import {
 } from '@/domain/entities/NotificationTypes.ts';
 
 // .envファイルを読み込み
-await load({ export: true });
+await load({ export: true, examplePath: null, allowEmptyValues: true });
 
 /**
  * 通知タイプ選択機能
@@ -50,7 +50,7 @@ async function testCloudTasksEnqueue() {
   console.log();
 
   // 環境変数の確認と設定
-  const gcpProjectId = Deno.env.get('GCP_PROJECT_ID');
+  const gcpProjectId = Deno.env.get('GC_PROJECT_ID');
   const gcpRegion = Deno.env.get('GCP_REGION') || 'asia-northeast1';
   const cloudRunUrl = Deno.env.get('CLOUD_RUN_NOTIFICATION_URL') ||
     `https://${
@@ -68,8 +68,8 @@ async function testCloudTasksEnqueue() {
   console.log(`✅ GCP Project ID: ${gcpProjectId}`);
 
   // 環境変数を設定（CloudTasksClient用）
-  if (!Deno.env.get('GCP_PROJECT_ID')) {
-    Deno.env.set('GCP_PROJECT_ID', gcpProjectId);
+  if (!Deno.env.get('GC_PROJECT_ID')) {
+    Deno.env.set('GC_PROJECT_ID', gcpProjectId);
   }
   if (!Deno.env.get('CLOUD_TASKS_LOCATION')) {
     Deno.env.set('CLOUD_TASKS_LOCATION', gcpRegion);
@@ -108,8 +108,6 @@ async function testCloudTasksEnqueue() {
       ticketId: 'test-ticket-123',
       notificationType: selectedNotificationType,
       testData: true,
-      timestamp: new Date().toISOString(),
-      notificationStyle: notificationConfig.displayName,
     };
 
     console.log('📝 Test task parameters:');

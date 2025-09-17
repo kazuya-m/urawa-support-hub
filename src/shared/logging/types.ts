@@ -15,6 +15,7 @@ export enum LogCategory {
   NOTIFICATION = 'NOTIFICATION', // 通知処理
   DATABASE = 'DATABASE', // データベース処理
   SYSTEM = 'SYSTEM', // システム全般
+  CLOUD_TASKS = 'CLOUD_TASKS', // Cloud Tasksタスク管理
 }
 
 /**
@@ -37,6 +38,9 @@ export interface LogContext {
   ticketUrl?: string; // チケットURL
   processingStage?: string; // 処理段階
   saleStatus?: 'before_sale' | 'on_sale' | 'ended'; // 販売状態
+  taskId?: string; // Cloud TasksのタスクID
+  queueName?: string; // Cloud Tasksのキュー名
+  targetUrl?: string; // Cloud Tasksのターゲットエンドポイント
 }
 
 /**
@@ -65,10 +69,11 @@ export interface ProcessingMetrics {
  * エラー情報
  */
 export interface ErrorInfo {
-  code?: ErrorCode; // エラーコード（ErrorCodesの定数を使用）
+  code?: ErrorCode | string; // エラーコード（ErrorCodesの定数を使用）
   details?: string; // 詳細メッセージ
   stack?: string; // スタックトレース（開発環境のみ）
   recoverable: boolean; // 回復可能かどうか
+  grpcCode?: unknown; // gRPCエラーコード
 }
 
 /**

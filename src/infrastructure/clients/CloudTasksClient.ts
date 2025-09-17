@@ -4,6 +4,9 @@ import {
   ICloudTasksClient,
   Task,
 } from '@/infrastructure/interfaces/clients/ICloudTasksClient.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
+import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
 
 // Re-export types for test files
 export type { EnqueueTaskParams, Task };
@@ -39,12 +42,13 @@ export class CloudTasksClient implements ICloudTasksClient {
     this.client = new GoogleCloudTasksClient(clientOptions);
 
     if (this.config.enableDebugLogs && this.config.nodeEnv !== 'production') {
-      console.log(`[CloudTasks] Environment: ${this.config.nodeEnv}`);
-      console.log(
-        `[CloudTasks] Using: ${
-          this.config.nodeEnv === 'development' ? 'REST API (forced)' : 'gRPC with REST fallback'
-        }`,
-      );
+      CloudLogger.debug('CloudTasks client initialized', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          processingStage: 'initialization',
+          queueName: this.config.queueName,
+        },
+      });
     }
   }
 
@@ -65,6 +69,8 @@ export class CloudTasksClient implements ICloudTasksClient {
 
     // タスクIDを生成（指定がなければUUIDを使用）
     const actualTaskId = taskId || crypto.randomUUID();
+    console.log('Enqueuing task with ID:', actualTaskId);
+    console.log('Payload:', payload);
     const queuePath = this.client.queuePath(
       this.config.projectId,
       this.config.location,
@@ -92,9 +98,15 @@ export class CloudTasksClient implements ICloudTasksClient {
     };
 
     if (this.config.enableDebugLogs) {
-      console.log(`[CloudTasks] Enqueuing task: ${actualTaskId}`);
-      console.log(`[CloudTasks] Target URL: ${targetUrl}`);
-      console.log(`[CloudTasks] Scheduled time: ${scheduledTime.toISOString()}`);
+      CloudLogger.debug('Enqueuing task', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          taskId: actualTaskId,
+          targetUrl,
+          queueName: this.config.queueName,
+          processingStage: 'enqueue_start',
+        },
+      });
     }
 
     try {
@@ -109,14 +121,57 @@ export class CloudTasksClient implements ICloudTasksClient {
 
       const createdTaskId = response.name.split('/').pop()!;
       if (this.config.enableDebugLogs) {
-        console.log(`[CloudTasks] Task created successfully: ${createdTaskId}`);
+        CloudLogger.info('Task created successfully', {
+          category: LogCategory.CLOUD_TASKS,
+          context: {
+            taskId: createdTaskId,
+            targetUrl,
+            queueName: this.config.queueName,
+            processingStage: 'enqueue_success',
+          },
+        });
       }
 
       return createdTaskId;
     } catch (error) {
-      console.error(`[CloudTasks] Failed to enqueue task: ${actualTaskId}`, error);
+      // エラーの詳細情報を構造化ログで出力
+      const errorDetails: Record<string, unknown> = {};
+      let errorMessage = 'Unknown error';
+      let errorCode: string = ErrorCodes.CLOUD_TASKS_ERROR;
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // Google Cloud エラーの場合、ステータスコードとコードを抽出
+        if ('code' in error) {
+          errorDetails.grpcCode = error.code;
+          // 403 Forbiddenの場合
+          if (error.code === 7 || errorMessage.includes('403')) {
+            errorCode = ErrorCodes.PERMISSION_DENIED;
+          }
+        }
+        if ('details' in error) {
+          errorDetails.details = error.details;
+        }
+      }
+
+      CloudLogger.error('Failed to enqueue task', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          taskId: actualTaskId,
+          targetUrl,
+          queueName: this.config.queueName,
+          processingStage: 'enqueue_error',
+        },
+        error: {
+          code: errorCode,
+          details: errorMessage,
+          recoverable: errorCode !== ErrorCodes.PERMISSION_DENIED,
+          ...errorDetails,
+        },
+      });
+
       throw new Error(
-        `Failed to enqueue task: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to enqueue task: ${errorMessage}`,
       );
     }
   }
@@ -130,16 +185,43 @@ export class CloudTasksClient implements ICloudTasksClient {
     );
 
     if (this.config.enableDebugLogs) {
-      console.log(`[CloudTasks] Dequeuing task: ${taskId}`);
+      CloudLogger.debug('Dequeuing task', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          taskId,
+          queueName: this.config.queueName,
+          processingStage: 'dequeue_start',
+        },
+      });
     }
 
     try {
       await this.client.deleteTask({ name: taskName });
       if (this.config.enableDebugLogs) {
-        console.log(`[CloudTasks] Task dequeued successfully: ${taskId}`);
+        CloudLogger.info('Task dequeued successfully', {
+          category: LogCategory.CLOUD_TASKS,
+          context: {
+            taskId,
+            queueName: this.config.queueName,
+            processingStage: 'dequeue_success',
+          },
+        });
       }
     } catch (error) {
-      console.error(`[CloudTasks] Failed to dequeue task: ${taskId}`, error);
+      CloudLogger.error('Failed to dequeue task', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          taskId,
+          queueName: this.config.queueName,
+          processingStage: 'dequeue_error',
+        },
+        error: {
+          code: ErrorCodes.CLOUD_TASKS_ERROR,
+          details: error instanceof Error ? error.message : String(error),
+          recoverable: true,
+        },
+      });
+
       throw new Error(
         `Failed to dequeue task: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -151,7 +233,13 @@ export class CloudTasksClient implements ICloudTasksClient {
     const queuePath = this.client.queuePath(this.config.projectId, this.config.location, queue);
 
     if (this.config.enableDebugLogs) {
-      console.log(`[CloudTasks] Listing tasks in queue: ${queue}`);
+      CloudLogger.debug('Listing tasks in queue', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          queueName: queue,
+          processingStage: 'list_start',
+        },
+      });
     }
 
     try {
@@ -173,7 +261,18 @@ export class CloudTasksClient implements ICloudTasksClient {
         };
       });
     } catch (error) {
-      console.error(`[CloudTasks] Failed to list tasks in queue: ${queue}`, error);
+      CloudLogger.error('Failed to list tasks', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          queueName: queue,
+          processingStage: 'list_error',
+        },
+        error: {
+          code: ErrorCodes.CLOUD_TASKS_ERROR,
+          details: error instanceof Error ? error.message : String(error),
+          recoverable: true,
+        },
+      });
       return [];
     }
   }
@@ -191,7 +290,14 @@ export class CloudTasksClient implements ICloudTasksClient {
     );
 
     if (this.config.enableDebugLogs) {
-      console.log(`[CloudTasks] Getting task: ${taskId}`);
+      CloudLogger.debug('Getting task details', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          taskId,
+          queueName: this.config.queueName,
+          processingStage: 'get_start',
+        },
+      });
     }
 
     try {
@@ -217,7 +323,19 @@ export class CloudTasksClient implements ICloudTasksClient {
         },
       };
     } catch (error) {
-      console.error(`[CloudTasks] Failed to get task: ${taskId}`, error);
+      CloudLogger.error('Failed to get task', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          taskId,
+          queueName: this.config.queueName,
+          processingStage: 'get_error',
+        },
+        error: {
+          code: ErrorCodes.CLOUD_TASKS_ERROR,
+          details: error instanceof Error ? error.message : String(error),
+          recoverable: true,
+        },
+      });
       return null;
     }
   }
