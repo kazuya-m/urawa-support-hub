@@ -26,7 +26,7 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
     const schedulingPromises = scheduledTimes.map(async ({ type, scheduledTime }) => {
       try {
         const enqueueParams: EnqueueTaskParams = {
-          taskId: `${ticket.id}-${type}`,
+          taskId: `${ticket.id}-${type}-${crypto.randomUUID()}`,
           payload: {
             ticketId: ticket.id,
             notificationType: type,
