@@ -73,8 +73,15 @@ export class CloudTasksClient implements ICloudTasksClient {
 
     // タスクIDを生成（指定がなければUUIDを使用）
     const actualTaskId = taskId || crypto.randomUUID();
-    console.log('Enqueuing task with ID:', actualTaskId);
-    console.log('Payload:', payload);
+
+    CloudLogger.info('Cloud Tasks: Enqueuing task', {
+      category: LogCategory.CLOUD_TASKS,
+      context: {
+        processingStage: 'task_enqueue',
+        taskId: actualTaskId,
+        payload,
+      },
+    });
     const queuePath = this.client.queuePath(
       this.config.projectId,
       this.config.location,
@@ -121,25 +128,39 @@ export class CloudTasksClient implements ICloudTasksClient {
       },
     });
 
-    // 設定詳細をconsoleログで出力（型制約のため）
-    console.log('Cloud Tasks Config:', {
-      projectId: this.config.projectId.substring(0, 8) + '***',
-      location: this.config.location,
-      queuePath: queuePath.replace(this.config.projectId, '***'),
-      serviceAccountSet: !!Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
+    // 設定詳細を構造化ログで出力
+    CloudLogger.debug('Cloud Tasks: Configuration details', {
+      category: LogCategory.CLOUD_TASKS,
+      context: {
+        processingStage: 'config_details',
+        taskId: actualTaskId,
+        config: {
+          projectId: this.config.projectId.substring(0, 8) + '***',
+          location: this.config.location,
+          queuePath: queuePath.replace(this.config.projectId, '***'),
+          serviceAccountSet: !!Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
+        },
+      },
     });
 
     try {
       const startTime = Date.now();
-      console.log('Sending Cloud Tasks API request...');
-      console.log('Task payload details:', {
-        hasOIDCToken: true,
-        serviceAccountEmail: Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
-        audience: new URL(targetUrl).origin,
-        targetUrl: task.httpRequest?.url,
-        scheduleTimeValid: scheduledTime > new Date(),
-        scheduleTime: scheduledTime.toISOString(),
-        currentTime: new Date().toISOString(),
+
+      CloudLogger.debug('Cloud Tasks: Sending API request', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          processingStage: 'api_request',
+          taskId: actualTaskId,
+          apiDetails: {
+            hasOIDCToken: true,
+            serviceAccountEmail: Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
+            audience: new URL(targetUrl).origin,
+            targetUrl: task.httpRequest?.url,
+            scheduleTimeValid: scheduledTime > new Date(),
+            scheduleTime: scheduledTime.toISOString(),
+            currentTime: new Date().toISOString(),
+          },
+        },
       });
 
       const [response] = await this.client.createTask({
@@ -148,9 +169,22 @@ export class CloudTasksClient implements ICloudTasksClient {
       });
 
       const duration = Date.now() - startTime;
-      console.log('Cloud Tasks API request completed:', {
-        duration: `${duration}ms`,
-        success: true,
+
+      CloudLogger.info('Cloud Tasks: API request completed', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          processingStage: 'api_success',
+          taskId: actualTaskId,
+          performance: {
+            durationMs: duration,
+          },
+          result: {
+            success: true,
+            taskName: response.name,
+            scheduleTime: response.scheduleTime,
+            createTime: response.createTime,
+          },
+        },
       });
 
       if (!response.name) {
@@ -194,14 +228,21 @@ export class CloudTasksClient implements ICloudTasksClient {
           },
         });
 
-        // エラー詳細をconsoleログで出力（型制約のため）
-        console.log('Google Cloud API Error:', {
-          message: error.message,
-          name: error.name,
-          grpcCode: 'code' in error ? error.code : 'N/A',
-          apiDetails: 'details' in error ? error.details : 'N/A',
-          metadata: 'metadata' in error ? error.metadata : 'N/A',
-          statusDetails: 'statusDetails' in error ? error.statusDetails : 'N/A',
+        // エラー詳細を構造化ログで出力
+        CloudLogger.error('Cloud Tasks: API Error Details', {
+          category: LogCategory.CLOUD_TASKS,
+          context: {
+            processingStage: 'api_error_detailed',
+            taskId: actualTaskId,
+          },
+          error: {
+            message: error.message,
+            name: error.name,
+            grpcCode: 'code' in error ? error.code : 'N/A',
+            apiDetails: 'details' in error ? error.details : 'N/A',
+            metadata: 'metadata' in error ? error.metadata : 'N/A',
+            statusDetails: 'statusDetails' in error ? error.statusDetails : 'N/A',
+          },
         });
 
         // Google Cloud エラーの場合、ステータスコードとコードを抽出
@@ -346,7 +387,12 @@ export class CloudTasksClient implements ICloudTasksClient {
    */
   private async validateAuthentication(): Promise<void> {
     try {
-      console.log('Testing Cloud Tasks authentication...');
+      CloudLogger.debug('Cloud Tasks: Testing authentication', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          processingStage: 'auth_test',
+        },
+      });
 
       // ADC トラブルシューティング: メタデータサーバーテスト
       if (this.config.nodeEnv === 'production') {
@@ -357,17 +403,27 @@ export class CloudTasksClient implements ICloudTasksClient {
       const queuePath = this.client.locationPath(this.config.projectId, this.config.location);
       const [queues] = await this.client.listQueues({ parent: queuePath });
 
-      console.log('Authentication test successful:', {
-        projectId: this.config.projectId.substring(0, 8) + '***',
-        location: this.config.location,
-        queuesFound: queues.length,
-        targetQueue: this.config.queueName,
+      CloudLogger.info('Cloud Tasks: Authentication test successful', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          processingStage: 'auth_success',
+          projectId: this.config.projectId.substring(0, 8) + '***',
+          location: this.config.location,
+          queuesFound: queues.length,
+          targetQueue: this.config.queueName,
+        },
       });
     } catch (error) {
-      console.log('Authentication test failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        projectId: this.config.projectId.substring(0, 8) + '***',
-        location: this.config.location,
+      CloudLogger.error('Cloud Tasks: Authentication test failed', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          processingStage: 'auth_failure',
+          projectId: this.config.projectId.substring(0, 8) + '***',
+        },
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+          recoverable: false,
+        },
       });
     }
   }
@@ -378,7 +434,12 @@ export class CloudTasksClient implements ICloudTasksClient {
    */
   private async testMetadataServer(): Promise<void> {
     try {
-      console.log('Testing metadata server access...');
+      CloudLogger.debug('Cloud Tasks: Testing metadata server access', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          processingStage: 'metadata_test',
+        },
+      });
 
       // メタデータサーバーからサービスアカウント情報を取得
       const response = await fetch(
@@ -390,9 +451,13 @@ export class CloudTasksClient implements ICloudTasksClient {
 
       if (response.ok) {
         const serviceAccount = await response.text();
-        console.log('Metadata server access successful:', {
-          serviceAccount: serviceAccount,
-          status: response.status,
+        CloudLogger.info('Cloud Tasks: Metadata server access successful', {
+          category: LogCategory.CLOUD_TASKS,
+          context: {
+            processingStage: 'metadata_success',
+            serviceAccount: serviceAccount.substring(0, 20) + '***',
+            status: response.status,
+          },
         });
 
         // アクセストークンの取得テスト
@@ -405,26 +470,44 @@ export class CloudTasksClient implements ICloudTasksClient {
 
         if (tokenResponse.ok) {
           const tokenData = await tokenResponse.json();
-          console.log('Access token retrieval successful:', {
-            tokenType: tokenData.token_type,
-            expiresIn: tokenData.expires_in,
-            hasToken: !!tokenData.access_token,
+          CloudLogger.debug('Cloud Tasks: Access token retrieval successful', {
+            category: LogCategory.CLOUD_TASKS,
+            context: {
+              processingStage: 'token_success',
+              tokenType: tokenData.token_type,
+              expiresIn: tokenData.expires_in,
+              hasToken: !!tokenData.access_token,
+            },
           });
         } else {
-          console.log('Access token retrieval failed:', {
-            status: tokenResponse.status,
-            statusText: tokenResponse.statusText,
+          CloudLogger.warn('Cloud Tasks: Access token retrieval failed', {
+            category: LogCategory.CLOUD_TASKS,
+            context: {
+              processingStage: 'token_failure',
+              status: tokenResponse.status,
+              statusText: tokenResponse.statusText,
+            },
           });
         }
       } else {
-        console.log('Metadata server access failed:', {
-          status: response.status,
-          statusText: response.statusText,
+        CloudLogger.warn('Cloud Tasks: Metadata server access failed', {
+          category: LogCategory.CLOUD_TASKS,
+          context: {
+            processingStage: 'metadata_failure',
+            status: response.status,
+            statusText: response.statusText,
+          },
         });
       }
     } catch (error) {
-      console.log('Metadata server test error:', {
-        error: error instanceof Error ? error.message : String(error),
+      CloudLogger.error('Cloud Tasks: Metadata server test error', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          processingStage: 'metadata_error',
+        },
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+        },
       });
     }
   }

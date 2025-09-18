@@ -41,6 +41,8 @@ export interface LogContext {
   taskId?: string; // Cloud TasksのタスクID
   queueName?: string; // Cloud Tasksのキュー名
   targetUrl?: string; // Cloud Tasksのターゲットエンドポイント
+  // その他の任意のコンテキスト情報
+  [key: string]: unknown;
 }
 
 /**
@@ -70,10 +72,13 @@ export interface ProcessingMetrics {
  */
 export interface ErrorInfo {
   code?: ErrorCode | string; // エラーコード（ErrorCodesの定数を使用）
+  message?: string; // エラーメッセージ
   details?: string; // 詳細メッセージ
   stack?: string; // スタックトレース（開発環境のみ）
-  recoverable: boolean; // 回復可能かどうか
+  recoverable?: boolean; // 回復可能かどうか
   grpcCode?: unknown; // gRPCエラーコード
+  // その他の任意のエラー情報
+  [key: string]: unknown;
 }
 
 /**
