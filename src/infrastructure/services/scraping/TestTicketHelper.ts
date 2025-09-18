@@ -1,4 +1,5 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
+import { createJSTDateTime, toJSTDate } from '@/shared/utils/datetime.ts';
 
 /**
  * 本番環境フローテスト用ヘルパー
@@ -9,7 +10,9 @@ export class TestTicketHelper {
    * テストモードが有効かチェック
    */
   static isTestModeEnabled(): boolean {
-    return Deno.env.get('ENABLE_TEST_TICKET') === 'true';
+    const value = Deno.env.get('ENABLE_TEST_TICKET');
+    console.log(`🔍 ENABLE_TEST_TICKET: "${value}" (type: ${typeof value})`);
+    return value === 'true';
   }
 
   /**
@@ -18,22 +21,34 @@ export class TestTicketHelper {
    * ENABLE_TEST_RESCHEDULE=true で販売開始日変更テストも実行
    */
   static async generateTestTickets(): Promise<Ticket[]> {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // 現在時刻から明日の日付をJSTで計算
+    const now = new Date();
+    const today = toJSTDate(now);
 
-    // UTC時刻で明日10:00 JST（UTC 01:00）を作成
-    const tomorrowUTC = new Date(Date.UTC(
-      tomorrow.getFullYear(),
-      tomorrow.getMonth(),
-      tomorrow.getDate(),
-      1,
+    // 明日の日付を計算（JST基準）
+    const tomorrowYear = today.getFullYear();
+    const tomorrowMonth = today.getMonth() + 1; // createJSTDateTimeは1-12月
+    const tomorrowDay = today.getDate() + 1;
+
+    // 明日10:00 JSTでUTC時刻を作成
+    const tomorrowSaleStart = createJSTDateTime(
+      tomorrowYear,
+      tomorrowMonth,
+      tomorrowDay,
+      10,
       0,
       0,
-      0, // UTC 01:00 = JST 10:00
-    ));
+    );
 
-    const matchDate = new Date(tomorrowUTC);
-    matchDate.setDate(matchDate.getDate() + 14); // 試合は2週間後
+    // 試合日は2週間後の同時刻
+    const matchDate = createJSTDateTime(
+      tomorrowYear,
+      tomorrowMonth,
+      tomorrowDay + 14,
+      18,
+      0,
+      0,
+    );
 
     // 基本的なテストチケット（実データに近い形式）
     const baseTicket = await Ticket.createNew({
@@ -42,7 +57,7 @@ export class TestTicketHelper {
       homeTeam: '川崎フロンターレ',
       awayTeam: '浦和レッズ',
       competition: 'J1リーグ',
-      saleStartDate: tomorrowUTC,
+      saleStartDate: tomorrowSaleStart,
       venue: '等々力陸上競技場',
       ticketTypes: ['ビジター指定席大人', 'ビジター指定席小中'],
       ticketUrl: 'https://www.jleague-ticket.jp/test/perform/2528632/001',
@@ -56,8 +71,14 @@ export class TestTicketHelper {
     // 再スケジューリングテストモード
     if (Deno.env.get('ENABLE_TEST_RESCHEDULE') === 'true') {
       // 販売開始日を2時間前に変更したチケット（再スケジューリングテスト用）
-      const rescheduledSaleStart = new Date(tomorrowUTC);
-      rescheduledSaleStart.setUTCHours(rescheduledSaleStart.getUTCHours() - 2);
+      const rescheduledSaleStart = createJSTDateTime(
+        tomorrowYear,
+        tomorrowMonth,
+        tomorrowDay,
+        8, // 10:00 - 2時間 = 8:00 JST
+        0,
+        0,
+      );
 
       const rescheduledTicket = await Ticket.createNew({
         matchName: '[TEST-RESCHEDULE] 川崎フロンターレ vs 浦和レッズ',

@@ -1,6 +1,7 @@
 import { assertEquals, assertStringIncludes } from 'std/assert/mod.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketCollectionService } from '../TicketCollectionService.ts';
+import { toJSTDate } from '@/shared/utils/datetime.ts';
 
 // モック用のTicketCollectionService
 class MockTicketCollectionService {
@@ -137,13 +138,16 @@ Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
       assertEquals(result[0].saleStatus, 'before_sale');
       assertEquals(result[0].notificationScheduled, false);
 
-      // 販売開始日が明日10:00に設定されているかチェック
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(10, 0, 0, 0);
+      // 販売開始日が明日10:00 JSTに設定されているかチェック
+      const now = new Date();
+      const today = toJSTDate(now);
+      const expectedDate = today.getDate() + 1;
 
-      assertEquals(result[0].saleStartDate?.getDate(), tomorrow.getDate());
-      assertEquals(result[0].saleStartDate?.getHours(), 10);
+      // UTC時刻をJST時刻に変換して検証
+      const saleStartJST = toJSTDate(result[0].saleStartDate!);
+
+      assertEquals(saleStartJST.getDate(), expectedDate);
+      assertEquals(saleStartJST.getHours(), 10);
     } finally {
       cleanup();
     }

@@ -1,10 +1,14 @@
+import { createJSTDateTime, toJSTDate } from '@/shared/utils/datetime.ts';
+
 /**
  * J-Leagueシーズンを考慮した年判定ロジック
  * シーズンは2月〜翌年1月として処理
  */
 export function determineYear(month: number, referenceDate: Date = new Date()): number {
-  const currentYear = referenceDate.getFullYear();
-  const currentMonth = referenceDate.getMonth() + 1;
+  // date-fns-tzを使用してJST時刻で判定
+  const jstReferenceDate = toJSTDate(referenceDate);
+  const currentYear = jstReferenceDate.getFullYear();
+  const currentMonth = jstReferenceDate.getMonth() + 1;
 
   if (currentMonth >= 11 && month <= 6) {
     return currentYear + 1;
@@ -32,8 +36,8 @@ export function parseMatchDate(
 ): Date {
   const year = determineYear(month, referenceDate);
 
-  // UTC日時として直接作成（JST時刻をUTC時刻に変換）
-  const utcDate = new Date(Date.UTC(year, month - 1, day, hour - 9, minute));
+  // date-fns-tzを使用してJST→UTC変換
+  const utcDate = createJSTDateTime(year, month, day, hour, minute);
 
   if (isNaN(utcDate.getTime())) {
     throw new Error(`Invalid date: ${year}/${month}/${day} ${hour}:${minute}`);

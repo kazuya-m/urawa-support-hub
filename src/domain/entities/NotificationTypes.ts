@@ -3,6 +3,8 @@
  * Clean Architecture準拠: Domain層でビジネスルールを管理
  */
 
+import { setJSTTimeAndConvertToUTC } from '@/shared/utils/datetime.ts';
+
 export const NOTIFICATION_TYPES = {
   DAY_BEFORE: 'day_before',
   HOUR_BEFORE: 'hour_before',
@@ -26,13 +28,8 @@ export const NOTIFICATION_TIMING_CONFIG = {
   [NOTIFICATION_TYPES.DAY_BEFORE]: {
     displayName: '販売開始前日',
     calculateScheduledTime: (saleStartDate: Date): Date => {
-      const target = new Date(saleStartDate.getTime());
-      target.setDate(target.getDate() - 1);
-
-      const year = target.getFullYear();
-      const month = target.getMonth();
-      const date = target.getDate();
-      return new Date(year, month, date, 20, 0, 0, 0);
+      // 販売開始日の前日20:00 JSTに通知（ビジネスロジック）
+      return setJSTTimeAndConvertToUTC(saleStartDate, 20, 0, 0, -1);
     },
     toleranceMs: 5 * 60 * 1000, // ← ここだけ変更すれば全体に反映
     description: '販売開始日の前日20:00に通知（±5分の幅で送信）',
