@@ -1,5 +1,6 @@
 import { NotificationType, shouldSendNotificationAtTime } from './NotificationTypes.ts';
 import { DataQuality, determineDataQuality } from './DataQuality.ts';
+import { formatDateOnly } from '@/shared/utils/datetime.ts';
 import fastDeepEqual from 'fast-deep-equal';
 
 interface TicketProps {
@@ -46,7 +47,7 @@ export class Ticket {
 
   static async generateId(matchName: string, matchDate: Date): Promise<string> {
     const normalizedName = this.normalizeMatchName(matchName);
-    const dateStr = matchDate.toISOString().split('T')[0];
+    const dateStr = formatDateOnly(matchDate);
 
     const encoder = new TextEncoder();
     const data = encoder.encode(`${normalizedName}-${dateStr}`);
