@@ -21,15 +21,20 @@ export class TestTicketHelper {
    * ENABLE_TEST_RESCHEDULE=true で販売開始日変更テストも実行
    */
   static async generateTestTickets(): Promise<Ticket[]> {
-    // 明日の日付をJSTで取得
-    const tomorrow = toJSTDate(new Date());
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // 現在時刻から明日の日付をJSTで計算
+    const now = new Date();
+    const today = toJSTDate(now);
+
+    // 明日の日付を計算（JST基準）
+    const tomorrowYear = today.getFullYear();
+    const tomorrowMonth = today.getMonth() + 1; // createJSTDateTimeは1-12月
+    const tomorrowDay = today.getDate() + 1;
 
     // 明日10:00 JSTでUTC時刻を作成
     const tomorrowSaleStart = createJSTDateTime(
-      tomorrow.getFullYear(),
-      tomorrow.getMonth() + 1, // createJSTDateTimeは1-12月
-      tomorrow.getDate(),
+      tomorrowYear,
+      tomorrowMonth,
+      tomorrowDay,
       10,
       0,
       0,
@@ -37,9 +42,9 @@ export class TestTicketHelper {
 
     // 試合日は2週間後の同時刻
     const matchDate = createJSTDateTime(
-      tomorrow.getFullYear(),
-      tomorrow.getMonth() + 1,
-      tomorrow.getDate() + 14,
+      tomorrowYear,
+      tomorrowMonth,
+      tomorrowDay + 14,
       18,
       0,
       0,
@@ -67,9 +72,9 @@ export class TestTicketHelper {
     if (Deno.env.get('ENABLE_TEST_RESCHEDULE') === 'true') {
       // 販売開始日を2時間前に変更したチケット（再スケジューリングテスト用）
       const rescheduledSaleStart = createJSTDateTime(
-        tomorrow.getFullYear(),
-        tomorrow.getMonth() + 1,
-        tomorrow.getDate(),
+        tomorrowYear,
+        tomorrowMonth,
+        tomorrowDay,
         8, // 10:00 - 2時間 = 8:00 JST
         0,
         0,
