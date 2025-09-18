@@ -6,6 +6,7 @@ import {
   NotificationType,
   shouldSendNotificationAtTime,
 } from '../NotificationTypes.ts';
+import { toJSTDate } from '@/shared/utils/datetime.ts';
 
 Deno.test('NotificationConfig - day_before設定値テスト', () => {
   const saleStart = new Date('2025-03-15T10:00:00+09:00');
@@ -13,10 +14,13 @@ Deno.test('NotificationConfig - day_before設定値テスト', () => {
 
   const scheduled = config.calculateScheduledTime(saleStart);
 
-  assertEquals(scheduled.getDate(), 14); // 前日
-  assertEquals(scheduled.getHours(), 20); // 20時
-  assertEquals(scheduled.getMinutes(), 0);
-  assertEquals(scheduled.getSeconds(), 0);
+  // JST時刻で検証（UTCからJST時刻に変換）
+  const scheduledJST = toJSTDate(scheduled);
+
+  assertEquals(scheduledJST.getDate(), 14); // 前日
+  assertEquals(scheduledJST.getHours(), 20); // 20時
+  assertEquals(scheduledJST.getMinutes(), 0);
+  assertEquals(scheduledJST.getSeconds(), 0);
   assertEquals(config.toleranceMs, 5 * 60 * 1000); // 5分
   assertEquals(config.displayName, '販売開始前日');
 });
