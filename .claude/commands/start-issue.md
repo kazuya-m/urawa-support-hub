@@ -22,7 +22,24 @@ Select a task to work on from GitHub issues and create branches with proper nami
 - `/start-issue` - Show all open issues and prompt for selection
 - `/start-issue <number>` - Directly start working on the specified issue number
 
-First, retrieve the list of currently open GitHub issues:
+First, update the roadmap with the latest issue status, then retrieve the list of currently open
+GitHub issues:
+
+**STEP 1: Update Issue Priority Roadmap** Update docs/issue-priority-roadmap.md to reflect the
+latest issue status before proceeding with development:
+
+```bash
+# Check latest issue status (all issues - open and closed)
+gh issue list --state all --limit 20
+
+# Update roadmap based on latest status
+# - Mark recently completed issues as ✅ COMPLETED
+# - Add new issues to appropriate priority categories
+# - Update priority order based on current status
+# - Adjust next steps recommendations
+```
+
+**STEP 2: Retrieve Open Issues**
 
 **IMPORTANT**: Only reference GitHub issues with STATUS=Open.
 
@@ -32,11 +49,12 @@ gh issue list --state open --limit 15 --json number,title,labels
 
 If an issue number is provided as argument, proceed directly with that issue. Otherwise:
 
-1. Check if docs/issue-priority-roadmap.md exists for priority context
-2. Display issues with available priority information:
+1. **MANDATORY**: Update roadmap first using STEP 1 above
+2. Check if docs/issue-priority-roadmap.md exists for priority context
+3. Display issues with available priority information:
    - If roadmap exists: Show roadmap-based priorities and phase information
    - If no roadmap: Show issues with label-based priority (priority/high, priority/critical, etc.)
-3. Present recommended next issues based on available information
+4. Present recommended next issues based on available information
 
 After selection, create branches following these naming conventions:
 
@@ -53,14 +71,15 @@ After selection, create branches following these naming conventions:
 
 ### When no issue number is provided:
 
-1. Check issue list with the above command
-2. Check if docs/issue-priority-roadmap.md exists
-3. Display issues with priority context:
+1. **MANDATORY**: Execute STEP 1 - Update roadmap with latest issue status
+2. Check issue list with the above command
+3. Check if docs/issue-priority-roadmap.md exists
+4. Display issues with priority context:
 
    **If roadmap exists:**
    - 🔴 Critical (Phase-based priorities from roadmap)
    - 🟠 High (Phase-based priorities)
-   - 📋 Next Steps priority order from roadmap
+   - 📋 Next Steps priority order from roadmap (updated with latest status)
    - Show completion status and blockers from roadmap
 
    **If no roadmap (fallback):**
@@ -68,14 +87,15 @@ After selection, create branches following these naming conventions:
    - Sort by creation date (newest first) within each priority group
    - Highlight issues with recent activity
 
-4. Recommend next issues based on available information
-5. Prompt user to select one or suggest most urgent task
-6. Create branch based on selected issue
+5. Recommend next issues based on updated roadmap information
+6. Prompt user to select one or suggest most urgent task
+7. Create branch based on selected issue
 
 ### When issue number is provided as argument:
 
-1. Fetch the specific issue details
-2. Create branch directly based on the issue
+1. **OPTIONAL**: Update roadmap if issue status might have changed recently
+2. Fetch the specific issue details
+3. Create branch directly based on the issue
 
 ### Branch Creation:
 
@@ -90,25 +110,28 @@ implementation", always create a new branch from the main branch.
 
 ### Logic Flow:
 
-- If `issue_number` argument provided → fetch that specific issue and create branch
-- If no argument → show prioritized issue list with available context and recommend next steps
+- If `issue_number` argument provided → (optionally update roadmap) → fetch that specific issue and
+  create branch
+- If no argument → update roadmap → show prioritized issue list with available context and recommend
+  next steps
 
 ### Sample Output Examples:
 
 #### When roadmap exists:
 
 ```
-📋 Current Development Status (based on issue-priority-roadmap.md):
+📋 Current Development Status (based on updated issue-priority-roadmap.md):
 
 🔴 CRITICAL - Next Priority Tasks:
-  #28 - Google Cloud Platform project and account setup (BLOCKER)
-  #29 - LINE Bot and Discord Webhook external service setup (BLOCKER)  
-  #17 - Environment variables and basic secrets setup
+  #130 - PostgreSQL セキュリティパッチ適用のためのデータベースアップグレード (NEW)
+  #129 - notificationsテーブルのnotification_scheduledカラム冗長性解決 (NEW)
+  #119 - 構造化ログへの統一: String(error)パターンを置き換え
 
-✅ COMPLETED (5/16 - 31%):
-  #36, #37, #40, #33, local scraping
+✅ RECENTLY COMPLETED:
+  #125 - 日時ライブラリ導入によるタイムゾーン処理の改善
+  #126 - 通知スケジュール管理の不整合とカラム名改善
 
-📈 RECOMMENDED NEXT: Start with #28 (GCP setup) - required for cloud services
+📈 RECOMMENDED NEXT: Start with #130 (PostgreSQL security patch) - security priority
 ```
 
 #### When no roadmap (fallback):

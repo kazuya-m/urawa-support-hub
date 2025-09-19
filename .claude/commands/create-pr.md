@@ -53,8 +53,6 @@ gh pr create --title "<Japanese-title> #<issue-number>" --body "$(cat <<'EOF'
 - [ ] Type check verified
 - [ ] Lint check verified
 
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
 Closes #<issue-number>
 EOF
 )"
@@ -90,8 +88,6 @@ EOF
 ## テスト計画
 
 - Checklist of verified items
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
 
 Closes #<issue-number>
 ```
