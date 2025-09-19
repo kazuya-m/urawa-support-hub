@@ -260,10 +260,10 @@ CREATE INDEX idx_tickets_match_date ON tickets(match_date);
 CREATE INDEX idx_tickets_sale_start_date ON tickets(sale_start_date);
 ```
 
-#### notification_history Table (Enhanced)
+#### notifications Table
 
 ```sql
-CREATE TABLE notification_history (
+CREATE TABLE notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ticket_id TEXT NOT NULL REFERENCES tickets(id),
   notification_type TEXT NOT NULL,
@@ -275,9 +275,9 @@ CREATE TABLE notification_history (
   notification_scheduled BOOLEAN NOT NULL DEFAULT FALSE -- Issue #62
 );
 
-CREATE INDEX idx_notification_history_ticket_id ON notification_history(ticket_id);
-CREATE INDEX idx_notification_history_status ON notification_history(status);
-CREATE INDEX idx_notification_history_scheduled_time ON notification_history(scheduled_time);
+CREATE INDEX idx_notifications_ticket_id ON notifications(ticket_id);
+CREATE INDEX idx_notifications_status ON notifications(status);
+CREATE INDEX idx_notifications_scheduled_time ON notifications(scheduled_time);
 ```
 
 #### Cloud Logging Integration
@@ -294,7 +294,7 @@ See `docs/logging-specification.md` for complete logging implementation details.
 ### Data Model Relationships
 
 ```
-tickets (1) ←→ (many) notification_history
+tickets (1) ←→ (many) notifications
    ↓
 Cloud Logging (structured logs for monitoring)
 ```
