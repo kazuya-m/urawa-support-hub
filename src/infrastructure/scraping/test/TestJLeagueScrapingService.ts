@@ -31,25 +31,15 @@ export class TestJLeagueScrapingService implements ISiteScrapingService {
   async collectTickets(): Promise<Ticket[]> {
     const tickets: Ticket[] = [];
 
-    console.log(`🔍 ENABLE_TEST_RESCHEDULE: ${Deno.env.get('ENABLE_TEST_RESCHEDULE')}`);
-
     if (Deno.env.get('ENABLE_TEST_RESCHEDULE') === 'true') {
       // リスケジューリングテスト: 既存チケットと同じ試合で販売開始日のみ変更
-      console.log('🔄 Generating rescheduled ticket data...');
       const rescheduledTicketData = this.generateRescheduledTicketRawData();
-      console.log(`📅 Rescheduled saleDate: ${rescheduledTicketData.saleDate}`);
       const rescheduledTicket = await this.dataParser.parseToTicket(rescheduledTicketData);
-      console.log(
-        `🎫 Rescheduled ticket saleStartDate: ${rescheduledTicket.saleStartDate?.toISOString()}`,
-      );
       tickets.push(rescheduledTicket);
     } else {
       // 通常テスト: 新規チケット作成
-      console.log('🆕 Generating new ticket data...');
       const newTicketData = this.generateNewTicketRawData();
-      console.log(`📅 New saleDate: ${newTicketData.saleDate}`);
       const newTicket = await this.dataParser.parseToTicket(newTicketData);
-      console.log(`🎫 New ticket saleStartDate: ${newTicket.saleStartDate?.toISOString()}`);
       tickets.push(newTicket);
     }
 
