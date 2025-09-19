@@ -7,6 +7,7 @@ import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
 import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
 import { ILineClient } from '@/infrastructure/clients/LineClient.ts';
+import { formatJST } from '@/shared/utils/datetime.ts';
 
 export class NotificationService implements INotificationService {
   constructor(
@@ -121,21 +122,9 @@ export class NotificationService implements INotificationService {
   ): Promise<void> {
     const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
       ticket.matchName,
-      ticket.matchDate.toLocaleString('ja-JP', {
-        month: 'numeric',
-        day: 'numeric',
-        weekday: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      formatJST(ticket.matchDate, 'M/d(E) HH:mm'),
       ticket.venue || '未定',
-      ticket.saleStartDate?.toLocaleString('ja-JP', {
-        month: 'numeric',
-        day: 'numeric',
-        weekday: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      }) || '未定',
+      ticket.saleStartDate ? formatJST(ticket.saleStartDate, 'M/d(E) HH:mm') : '未定',
       notificationType,
       ticket.ticketUrl,
     );
