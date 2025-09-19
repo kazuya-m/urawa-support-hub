@@ -10,7 +10,7 @@ Deno.test('SupabaseNotificationRepository - findById with error handling', async
     id: 'test-notification-id',
     ticket_id: 'test-ticket-id',
     notification_type: 'day_before',
-    scheduled_at: '2025-03-15T20:00:00+09:00',
+    notification_time: '2025-03-15T20:00:00+09:00',
     sent_at: null,
     status: 'scheduled',
     error_message: null,

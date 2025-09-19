@@ -13,7 +13,7 @@ export class NotificationRepository implements INotificationRepository {
     const { data, error } = await this.client
       .from('notifications')
       .select('*')
-      .order('scheduled_at', { ascending: true });
+      .order('notification_time', { ascending: true });
 
     if (error) throwDatabaseError('NotificationRepository', 'fetch notifications', error);
     return (data || []).map(NotificationConverter.toDomainEntity);
@@ -38,7 +38,7 @@ export class NotificationRepository implements INotificationRepository {
       .from('notifications')
       .select('*')
       .eq('ticket_id', ticketId)
-      .order('scheduled_at', { ascending: true });
+      .order('notification_time', { ascending: true });
 
     if (error) throwDatabaseError('NotificationRepository', 'fetch notifications by ticket', error);
     return (data || []).map(NotificationConverter.toDomainEntity);

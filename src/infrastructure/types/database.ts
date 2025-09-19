@@ -23,7 +23,7 @@ export interface NotificationRow {
   id: string;
   ticket_id: string;
   notification_type: NotificationType;
-  scheduled_at: string;
+  notification_time: string;
   sent_at: string | null;
   status: 'scheduled' | 'sent' | 'failed' | 'cancelled';
   error_message: string | null;
@@ -52,7 +52,7 @@ export interface NotificationInsert {
   id: string;
   ticket_id: string;
   notification_type: NotificationType;
-  scheduled_at: string;
+  notification_time: string;
   sent_at?: string;
   status: 'scheduled' | 'sent' | 'failed' | 'cancelled';
   error_message?: string;
