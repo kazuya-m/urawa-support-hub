@@ -12,6 +12,7 @@
     "@/": "./src/",
     "@/tests/": "./tests/",
     "date-fns": "https://esm.sh/date-fns@4.1.0",
+    "date-fns/locale": "https://esm.sh/date-fns@4.1.0/locale",
     "@date-fns/tz": "https://esm.sh/@date-fns/tz@1.4.1",
     "testing/": "https://deno.land/std@0.208.0/testing/",
     "fast-deep-equal": "npm:fast-deep-equal@3.1.3",
