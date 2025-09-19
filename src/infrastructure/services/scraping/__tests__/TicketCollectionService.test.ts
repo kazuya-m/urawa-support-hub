@@ -165,9 +165,7 @@ Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
         // リスケジュールモードでは1つのチケット（リスケジュール版）のみ返される
         assertEquals(result.length, 1);
 
-        const testTicket = result.find((ticket) =>
-          ticket.matchName.includes('[TEST]')
-        );
+        const testTicket = result.find((ticket) => ticket.matchName.includes('[TEST]'));
 
         assertEquals(!!testTicket, true);
         assertEquals(testTicket?.awayTeam, '浦和レッズ');
