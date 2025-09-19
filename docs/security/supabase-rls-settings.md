@@ -37,25 +37,25 @@ USING (true);
 -- (No policy needed - RLS denies by default)
 ```
 
-### 2. Notification History Table RLS Policies
+### 2. Notifications Table RLS Policies
 
-**Table**: `notification_history` **Purpose**: Track sent notifications to prevent duplicates
+**Table**: `notifications` **Purpose**: Track sent notifications to prevent duplicates
 
 ```sql
--- Enable RLS on notification_history table
-ALTER TABLE notification_history ENABLE ROW LEVEL SECURITY;
+-- Enable RLS on notifications table
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Service role can perform all operations
-CREATE POLICY "Service role full access on notification_history"
-ON notification_history
+CREATE POLICY "Service role full access on notifications"
+ON notifications
 FOR ALL
 TO service_role
 USING (true)
 WITH CHECK (true);
 
 -- Policy: Authenticated users can only read their own notification history
-CREATE POLICY "Authenticated users can read own notification_history"
-ON notification_history
+CREATE POLICY "Authenticated users can read own notifications"
+ON notifications
 FOR SELECT
 TO authenticated
 USING (auth.uid()::text = user_id OR user_id IS NULL);
@@ -63,7 +63,7 @@ USING (auth.uid()::text = user_id OR user_id IS NULL);
 -- Note: user_id IS NULL condition allows reading system-wide notifications
 -- for single-user deployment, but restricts access in multi-user scenarios
 
--- Policy: Anonymous users cannot access notification history
+-- Policy: Anonymous users cannot access notifications
 -- (No policy needed - RLS denies by default)
 ```
 
@@ -228,7 +228,7 @@ FOR SELECT USING (
 ##### B. Service Segregation
 
 - **scraper_service**: tickets INSERT/UPDATE only
-- **notification_service**: tickets SELECT + notification_history full access
+- **notification_service**: tickets SELECT + notifications full access
 - **monitoring_service**: All tables SELECT only
 - **admin_service**: Emergency full access with explicit flag
 
@@ -312,11 +312,11 @@ ORDER BY log_time DESC;
 ```sql
 -- EMERGENCY: Disable RLS temporarily
 ALTER TABLE tickets DISABLE ROW LEVEL SECURITY;
-ALTER TABLE notification_history DISABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
 
 -- Remember to re-enable after fixing issues
 ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notification_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ```
 
 ### 2. Revoke Compromised Keys
@@ -336,5 +336,5 @@ ALTER TABLE notification_history ENABLE ROW LEVEL SECURITY;
 -- Copy and paste the policies defined above
 
 -- Verify policies are active
-SELECT * FROM pg_policies WHERE tablename IN ('tickets', 'notification_history');
+SELECT * FROM pg_policies WHERE tablename IN ('tickets', 'notifications');
 ```

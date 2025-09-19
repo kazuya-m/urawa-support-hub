@@ -30,7 +30,7 @@ async function cleanupTicket(ticketId: string) {
 
 async function cleanupNotification(notificationId: string) {
   try {
-    await cleanupTestData(supabase, 'notification_history', `id = '${notificationId}'`);
+    await cleanupTestData(supabase, 'notifications', `id = '${notificationId}'`);
   } catch (error) {
     console.warn(`Failed to cleanup notification ${notificationId}:`, error);
   }
