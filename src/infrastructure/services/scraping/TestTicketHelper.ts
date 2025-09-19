@@ -70,7 +70,7 @@ export class TestTicketHelper {
 
     // 再スケジューリングテストモード
     if (Deno.env.get('ENABLE_TEST_RESCHEDULE') === 'true') {
-      // 販売開始日を2時間前に変更したチケット（再スケジューリングテスト用）
+      // 既存チケットの販売開始日を変更（リスケジュール）
       const rescheduledSaleStart = createJSTDateTime(
         tomorrowYear,
         tomorrowMonth,
@@ -80,8 +80,9 @@ export class TestTicketHelper {
         0,
       );
 
+      // 同一チケット（同じmatchNameとmatchDate）で販売開始日のみ変更
       const rescheduledTicket = await Ticket.createNew({
-        matchName: '[TEST-RESCHEDULE] 川崎フロンターレ vs 浦和レッズ',
+        matchName: '[TEST] 川崎フロンターレ vs 浦和レッズ',
         matchDate,
         homeTeam: '川崎フロンターレ',
         awayTeam: '浦和レッズ',
@@ -95,7 +96,8 @@ export class TestTicketHelper {
         notificationScheduled: false,
       });
 
-      tickets.push(rescheduledTicket);
+      // 元のチケットをリスケジュール版に置き換え
+      tickets[0] = rescheduledTicket;
     }
 
     return tickets;
