@@ -15,6 +15,10 @@ PUBLIC_API_BASE_URL="https://api.example.com"
 SCRAPING_INTERVAL_HOURS=24
 LOG_LEVEL="info"
 DEFAULT_TIMEZONE="Asia/Tokyo"
+
+# Testing configuration
+ENABLE_TEST_SCRAPING="false"
+ENABLE_TEST_RESCHEDULE="false"
 ```
 
 ### 2. Sensitive Configuration (Never commit)
