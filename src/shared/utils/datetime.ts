@@ -4,6 +4,7 @@
  */
 
 import { format, set, subDays } from 'date-fns';
+import { ja } from 'date-fns/locale';
 import { TZDate } from '@date-fns/tz';
 
 const JST_TIMEZONE = 'Asia/Tokyo';
@@ -50,16 +51,7 @@ export function toJSTDate(date: Date): Date {
 export function formatJST(date: Date, formatStr: string = 'yyyy/MM/dd HH:mm'): string {
   // JST時刻で表示するため、TZDateに変換してフォーマット
   const jstDate = new TZDate(date, JST_TIMEZONE);
-  let result = format(jstDate, formatStr);
-
-  // (E)パターンを日本語曜日に置換
-  if (formatStr.includes('(E)')) {
-    const weekdayMap = ['日', '月', '火', '水', '木', '金', '土'];
-    const weekday = weekdayMap[jstDate.getDay()];
-    result = result.replace(/\([A-Za-z]{3}\)/, `(${weekday})`);
-  }
-
-  return result;
+  return format(jstDate, formatStr, { locale: ja });
 }
 
 /**
