@@ -60,9 +60,9 @@ async function sendNotificationTest(notificationType: NotificationType) {
   // LINE Flex Messageを生成
   const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
     testTicket.matchName,
-    formatJST(testTicket.matchDate, 'M/d(E) HH:mm'),
+    formatJST(testTicket.matchDate, 'M/d(eeeee) HH:mm'),
     testTicket.venue,
-    testTicket.saleStartDate ? formatJST(testTicket.saleStartDate, 'M/d(E) HH:mm') : '未定',
+    testTicket.saleStartDate ? formatJST(testTicket.saleStartDate, 'M/d(eeeee) HH:mm') : '未定',
     notificationType,
     testTicket.ticketUrl,
   );

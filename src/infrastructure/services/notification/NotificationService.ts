@@ -122,9 +122,9 @@ export class NotificationService implements INotificationService {
   ): Promise<void> {
     const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
       ticket.matchName,
-      formatJST(ticket.matchDate, 'M/d(E) HH:mm'),
+      formatJST(ticket.matchDate, 'M/d(eeeee) HH:mm'),
       ticket.venue || '未定',
-      ticket.saleStartDate ? formatJST(ticket.saleStartDate, 'M/d(E) HH:mm') : '未定',
+      ticket.saleStartDate ? formatJST(ticket.saleStartDate, 'M/d(eeeee) HH:mm') : '未定',
       notificationType,
       ticket.ticketUrl,
     );
