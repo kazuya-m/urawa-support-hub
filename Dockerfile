@@ -49,4 +49,5 @@ CMD ["deno", "run", \
      "--allow-write", \
      "--allow-run", \
      "--allow-sys", \
+     "--watch", \
      "src/main.ts"]

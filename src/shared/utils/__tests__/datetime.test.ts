@@ -62,6 +62,24 @@ Deno.test('formatJST - カスタムフォーマット', () => {
   assertEquals(formatted, '2025-03-15 14:30:45');
 });
 
+Deno.test('formatJST - 日本語曜日表示', () => {
+  // 2025-03-15 14:30 JST (土曜日)
+  const utcDate = new Date(Date.UTC(2025, 2, 15, 5, 30, 0));
+
+  const formatted = formatJST(utcDate, 'M/d(eeeee) HH:mm');
+
+  assertEquals(formatted, '3/15(土) 14:30');
+});
+
+Deno.test('formatJST - 異なる曜日の日本語表示', () => {
+  // 2025-03-17 10:00 JST (月曜日)
+  const utcDate = new Date(Date.UTC(2025, 2, 17, 1, 0, 0));
+
+  const formatted = formatJST(utcDate, 'M/d(eeeee) HH:mm');
+
+  assertEquals(formatted, '3/17(月) 10:00');
+});
+
 Deno.test('setJSTTimeAndConvertToUTC - 前日20:00を設定', () => {
   // 販売開始日: 2025年3月15日 10:00 JST
   const saleStartDate = createJSTDateTime(2025, 3, 15, 10, 0);

@@ -15,6 +15,7 @@ import { JLeagueScrapingService } from '../../src/infrastructure/scraping/jleagu
 import { PlaywrightClient } from '../../src/infrastructure/clients/PlaywrightClient.ts';
 import { BrowserManager } from '../../src/infrastructure/services/scraping/shared/BrowserManager.ts';
 import { Ticket } from '../../src/domain/entities/Ticket.ts';
+import { formatJST } from '../../src/shared/utils/datetime.ts';
 
 // 環境変数チェック
 const isLiveScrapingEnabled = Deno.env.get('ENABLE_LIVE_SCRAPING') === 'true';
@@ -60,9 +61,9 @@ async function testScraping() {
     result.forEach((ticket: Ticket, index: number) => {
       console.log(`\n【試合 ${index + 1}】`);
       console.log(`  対戦相手: ${ticket.matchName}`);
-      console.log(`  試合日時: ${ticket.matchDate.toLocaleDateString('ja-JP')}`);
+      console.log(`  試合日時: ${formatJST(ticket.matchDate, 'yyyy/MM/dd')}`);
       console.log(`  会場: ${ticket.venue}`);
-      console.log(`  販売開始: ${ticket.saleStartDate?.toLocaleString('ja-JP') || '未定'}`);
+      console.log(`  販売開始: ${ticket.saleStartDate ? formatJST(ticket.saleStartDate) : '未定'}`);
       console.log(`  購入URL: ${ticket.ticketUrl}`);
     });
 

@@ -9,6 +9,7 @@ import { load } from 'std/dotenv/mod.ts';
 import { LINE_MESSAGE_TEMPLATES, NOTIFICATION_TYPE_STYLES } from '@/config/notification.ts';
 import { URAWA_URL_CONFIG } from '@/config/url.ts';
 import { NOTIFICATION_TYPES, NotificationType } from '@/domain/entities/NotificationTypes.ts';
+import { formatJST } from '@/shared/utils/datetime.ts';
 
 // .envファイルの読み込み
 try {
@@ -59,21 +60,9 @@ async function sendNotificationTest(notificationType: NotificationType) {
   // LINE Flex Messageを生成
   const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
     testTicket.matchName,
-    testTicket.matchDate.toLocaleString('ja-JP', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      weekday: 'short',
-    }),
+    formatJST(testTicket.matchDate, 'M/d(eeeee) HH:mm'),
     testTicket.venue,
-    testTicket.saleStartDate?.toLocaleString('ja-JP', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      weekday: 'short',
-    }) || '未定',
+    testTicket.saleStartDate ? formatJST(testTicket.saleStartDate, 'M/d(eeeee) HH:mm') : '未定',
     notificationType,
     testTicket.ticketUrl,
   );

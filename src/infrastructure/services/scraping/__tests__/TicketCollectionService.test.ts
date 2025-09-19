@@ -154,7 +154,7 @@ Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
   });
 
   await t.step(
-    'should generate additional reschedule test ticket when both modes are enabled',
+    'should generate rescheduled test ticket when both modes are enabled',
     async () => {
       try {
         Deno.env.set('ENABLE_TEST_TICKET', 'true');
@@ -162,28 +162,20 @@ Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
         const service = new TicketCollectionService([]);
         const result = await service.collectAllTickets();
 
-        assertEquals(result.length, 2);
+        // リスケジュールモードでは1つのチケット（リスケジュール版）のみ返される
+        assertEquals(result.length, 1);
 
-        const baseTestTicket = result.find((ticket) =>
-          ticket.matchName.includes('[TEST]') && !ticket.matchName.includes('RESCHEDULE')
-        );
-        const rescheduleTestTicket = result.find((ticket) =>
-          ticket.matchName.includes('[TEST-RESCHEDULE]')
-        );
+        const testTicket = result.find((ticket) => ticket.matchName.includes('[TEST]'));
 
-        assertEquals(!!baseTestTicket, true);
-        assertEquals(!!rescheduleTestTicket, true);
-        assertEquals(rescheduleTestTicket?.awayTeam, '浦和レッズ');
-        assertEquals(rescheduleTestTicket?.homeTeam, '川崎フロンターレ');
+        assertEquals(!!testTicket, true);
+        assertEquals(testTicket?.awayTeam, '浦和レッズ');
+        assertEquals(testTicket?.homeTeam, '川崎フロンターレ');
 
-        // 再スケジュール用チケットの販売開始日が2時間前に設定されているかチェック
-        if (
-          baseTestTicket && rescheduleTestTicket && baseTestTicket.saleStartDate &&
-          rescheduleTestTicket.saleStartDate
-        ) {
-          const timeDifference = baseTestTicket.saleStartDate.getTime() -
-            rescheduleTestTicket.saleStartDate.getTime();
-          assertEquals(timeDifference, 2 * 60 * 60 * 1000); // 2時間の差
+        // リスケジュール版のチケットは8:00 JST（販売開始日が2時間前倒し）になっているかチェック
+        if (testTicket?.saleStartDate) {
+          const saleStartJST = toJSTDate(testTicket.saleStartDate);
+          assertEquals(saleStartJST.getHours(), 8); // 10:00 - 2時間 = 8:00
+          assertEquals(saleStartJST.getMinutes(), 0);
         }
       } finally {
         cleanup();

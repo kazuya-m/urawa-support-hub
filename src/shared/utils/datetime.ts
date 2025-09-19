@@ -4,6 +4,7 @@
  */
 
 import { format, set, subDays } from 'date-fns';
+import { ja } from 'date-fns/locale';
 import { TZDate } from '@date-fns/tz';
 
 const JST_TIMEZONE = 'Asia/Tokyo';
@@ -45,12 +46,12 @@ export function toJSTDate(date: Date): Date {
  * 日時をJSTフォーマットで文字列化
  * @param date Dateオブジェクト
  * @param formatStr フォーマット文字列 (デフォルト: 'yyyy/MM/dd HH:mm')
- * @returns フォーマットされた文字列
+ * @returns フォーマットされた文字列（日本語曜日対応）
  */
 export function formatJST(date: Date, formatStr: string = 'yyyy/MM/dd HH:mm'): string {
   // JST時刻で表示するため、TZDateに変換してフォーマット
   const jstDate = new TZDate(date, JST_TIMEZONE);
-  return format(jstDate, formatStr);
+  return format(jstDate, formatStr, { locale: ja });
 }
 
 /**

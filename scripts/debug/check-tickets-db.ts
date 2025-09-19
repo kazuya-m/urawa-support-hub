@@ -7,6 +7,7 @@
 import { load } from '@std/dotenv';
 import { createSupabaseAdminClient } from '@/config/supabase.ts';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import { formatJST } from '@/shared/utils/datetime.ts';
 
 try {
   await load({ export: true });
@@ -30,19 +31,22 @@ async function checkTicketsInDB(): Promise<void> {
 
       for (const [index, ticket] of allTickets.entries()) {
         console.log(`[${index + 1}] ${ticket.matchName}`);
-        console.log(`    📅 Match Date: ${ticket.matchDate.toLocaleString('ja-JP')}`);
+        console.log(`    🆔 ID: ${ticket.id}`);
+        console.log(`    📅 Match Date: ${formatJST(ticket.matchDate)}`);
         console.log(`    🏟️  Venue: ${ticket.venue}`);
         console.log(
-          `    🎟️  Sale Start: ${ticket.saleStartDate?.toLocaleDateString('ja-JP') || 'Not set'}`,
+          `    🎟️  Sale Start: ${
+            ticket.saleStartDate ? formatJST(ticket.saleStartDate) : 'Not set'
+          }`,
         );
         console.log(
-          `    🚫 Sale End: ${ticket.saleEndDate?.toLocaleDateString('ja-JP') || 'Not set'}`,
+          `    🚫 Sale End: ${ticket.saleEndDate ? formatJST(ticket.saleEndDate) : 'Not set'}`,
         );
         console.log(`    📈 Status: ${ticket.saleStatus}`);
         console.log(`    🔔 Notification Scheduled: ${ticket.notificationScheduled}`);
-        console.log(`    🕒 Created: ${ticket.createdAt.toLocaleString('ja-JP')}`);
-        console.log(`    🔄 Updated: ${ticket.updatedAt.toLocaleString('ja-JP')}`);
-        console.log(`    🕷️  Scraped: ${ticket.scrapedAt.toLocaleString('ja-JP')}`);
+        console.log(`    🕒 Created: ${formatJST(ticket.createdAt)}`);
+        console.log(`    🔄 Updated: ${formatJST(ticket.updatedAt)}`);
+        console.log(`    🕷️  Scraped: ${formatJST(ticket.scrapedAt)}`);
         console.log(`    🔗 URL: ${ticket.ticketUrl}`);
         console.log(`    🎫 Types: ${ticket.ticketTypes.join(', ')}`);
         console.log('');
