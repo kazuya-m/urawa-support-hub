@@ -45,12 +45,21 @@ export function toJSTDate(date: Date): Date {
  * 日時をJSTフォーマットで文字列化
  * @param date Dateオブジェクト
  * @param formatStr フォーマット文字列 (デフォルト: 'yyyy/MM/dd HH:mm')
- * @returns フォーマットされた文字列
+ * @returns フォーマットされた文字列（日本語曜日対応）
  */
 export function formatJST(date: Date, formatStr: string = 'yyyy/MM/dd HH:mm'): string {
   // JST時刻で表示するため、TZDateに変換してフォーマット
   const jstDate = new TZDate(date, JST_TIMEZONE);
-  return format(jstDate, formatStr);
+  let result = format(jstDate, formatStr);
+
+  // (E)パターンを日本語曜日に置換
+  if (formatStr.includes('(E)')) {
+    const weekdayMap = ['日', '月', '火', '水', '木', '金', '土'];
+    const weekday = weekdayMap[jstDate.getDay()];
+    result = result.replace(/\([A-Za-z]{3}\)/, `(${weekday})`);
+  }
+
+  return result;
 }
 
 /**
