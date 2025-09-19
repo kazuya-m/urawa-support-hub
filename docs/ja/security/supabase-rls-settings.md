@@ -38,23 +38,23 @@ USING (true);
 
 ### 2. 通知履歴テーブルのRLSポリシー
 
-**テーブル**: `notification_history` **目的**: 重複防止のための送信済み通知の追跡
+**テーブル**: `notifications` **目的**: 重複防止のための送信済み通知の追跡
 
 ```sql
--- 通知履歴テーブルでRLSを有効化
-ALTER TABLE notification_history ENABLE ROW LEVEL SECURITY;
+-- 通知テーブルでRLSを有効化
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- ポリシー: サービスロールは全操作可能
-CREATE POLICY "Service role full access on notification_history"
-ON notification_history
+CREATE POLICY "Service role full access on notifications"
+ON notifications
 FOR ALL
 TO service_role
 USING (true)
 WITH CHECK (true);
 
 -- ポリシー: 認証ユーザーは自身の通知履歴のみ読み取り可能
-CREATE POLICY "Authenticated users can read own notification_history"
-ON notification_history
+CREATE POLICY "Authenticated users can read own notifications"
+ON notifications
 FOR SELECT
 TO authenticated
 USING (auth.uid()::text = user_id OR user_id IS NULL);
@@ -62,7 +62,7 @@ USING (auth.uid()::text = user_id OR user_id IS NULL);
 -- 注意: user_id IS NULL条件はシステム全体の通知読み取りを許可
 -- シングルユーザーデプロイでは有効、マルチユーザーではアクセス制限
 
--- ポリシー: 匿名ユーザーは通知履歴にアクセス不可
+-- ポリシー: 匿名ユーザーは通知にアクセス不可
 -- （ポリシー不要 - RLSがデフォルトで拒否）
 ```
 
@@ -217,7 +217,7 @@ FOR SELECT USING (
 ##### B. サービス分離
 
 - **scraper_service**: tickets INSERT/UPDATE のみ
-- **notification_service**: tickets SELECT + notification_history 全操作
+- **notification_service**: tickets SELECT + notifications 全操作
 - **monitoring_service**: 全テーブル SELECT のみ
 - **admin_service**: 明示的フラグ付き緊急時全アクセス
 
@@ -301,11 +301,11 @@ ORDER BY log_time DESC;
 ```sql
 -- 緊急時: RLSを一時的に無効化
 ALTER TABLE tickets DISABLE ROW LEVEL SECURITY;
-ALTER TABLE notification_history DISABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
 
 -- 問題修正後は必ず再有効化
 ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notification_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ```
 
 ### 2. 漏洩キーの無効化
@@ -325,5 +325,5 @@ ALTER TABLE notification_history ENABLE ROW LEVEL SECURITY;
 -- 上記で定義したポリシーをコピー＆ペースト
 
 -- ポリシーが有効であることを確認
-SELECT * FROM pg_policies WHERE tablename IN ('tickets', 'notification_history');
+SELECT * FROM pg_policies WHERE tablename IN ('tickets', 'notifications');
 ```

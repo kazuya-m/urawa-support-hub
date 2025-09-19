@@ -872,8 +872,8 @@ CREATE TABLE tickets (
     UNIQUE(match_name, match_date)
 );
 
--- 通知履歴テーブル
-CREATE TABLE notification_history (
+-- 通知テーブル
+CREATE TABLE notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     ticket_id UUID REFERENCES tickets(id) ON DELETE CASCADE,
     notification_type VARCHAR NOT NULL,
@@ -888,14 +888,14 @@ CREATE TABLE notification_history (
 -- パフォーマンス用インデックス
 CREATE INDEX idx_tickets_match_date ON tickets(match_date);
 CREATE INDEX idx_tickets_sale_start_date ON tickets(sale_start_date);
-CREATE INDEX idx_notification_history_status_scheduled ON notification_history(status, scheduled_time);
-CREATE INDEX idx_notification_history_ticket_type ON notification_history(ticket_id, notification_type);
+CREATE INDEX idx_notifications_status_scheduled ON notifications(status, scheduled_time);
+CREATE INDEX idx_notifications_ticket_type ON notifications(ticket_id, notification_type);
 
 -- 自動通知レコード作成トリガー
 CREATE OR REPLACE FUNCTION create_notification_records()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO notification_history 
+  INSERT INTO notifications 
     (ticket_id, notification_type, scheduled_time, status)
   VALUES
     (NEW.id, 'day_before', NEW.sale_start_date - interval '1 day' + time '20:00', 'scheduled'),
@@ -1074,8 +1074,8 @@ export class MockPlaywrightClient implements PlaywrightClient {
 const RECOMMENDED_INDEXES = [
   'CREATE INDEX IF NOT EXISTS idx_tickets_match_date ON tickets(match_date)',
   'CREATE INDEX IF NOT EXISTS idx_tickets_sale_start_date ON tickets(sale_start_date)',
-  'CREATE INDEX IF NOT EXISTS idx_notification_history_status_scheduled ON notification_history(status, scheduled_time)',
-  'CREATE INDEX IF NOT EXISTS idx_notification_history_ticket_type ON notification_history(ticket_id, notification_type)',
+  'CREATE INDEX IF NOT EXISTS idx_notifications_status_scheduled ON notifications(status, scheduled_time)',
+  'CREATE INDEX IF NOT EXISTS idx_notifications_ticket_type ON notifications(ticket_id, notification_type)',
 ];
 ```
 
