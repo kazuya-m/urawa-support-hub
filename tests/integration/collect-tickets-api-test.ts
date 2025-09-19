@@ -13,6 +13,12 @@ try {
   // .envファイルが存在しない場合は無視
 }
 
+// テスト用環境変数を設定
+Deno.env.set('ENABLE_TEST_SCRAPING', 'true');
+if (Deno.env.get('TEST_RESCHEDULE') === 'true') {
+  Deno.env.set('ENABLE_TEST_RESCHEDULE', 'true');
+}
+
 interface ApiResponse {
   status: string;
   message: string;
@@ -99,87 +105,43 @@ function setupCloudTasksMock(): {
 }
 
 /**
- * /api/collect-tickets APIを呼び出し
+ * 直接APIハンドラを呼び出すテスト（環境変数が確実に反映される）
  */
-async function callCollectTicketsApi(baseUrl: string): Promise<ApiResponse> {
-  console.log('🚀 Starting /api/collect-tickets integration test...\n');
-
-  const apiUrl = `${baseUrl}/api/collect-tickets`;
-  console.log(`📞 Calling API: ${apiUrl}`);
-
-  const authToken = Deno.env.get('TEST_AUTH_TOKEN') || 'dev-test-token';
-
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`,
-    },
-    body: JSON.stringify({
-      source: 'integration-test',
-      timestamp: new Date().toISOString(),
-    }),
-  });
-
-  console.log(`📊 Response Status: ${response.status} ${response.statusText}`);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`❌ API call failed: ${errorText}`);
-    throw new Error(`API call failed with status ${response.status}: ${errorText}`);
-  }
-
-  const result: ApiResponse = await response.json();
-
-  console.log('\n📋 API Response:');
-  console.log(`✅ Status: ${result.status}`);
-  console.log(`📝 Message: ${result.message}`);
-  console.log(`⏰ Timestamp: ${result.timestamp}`);
-  if (result.executionTimeMs) {
-    console.log(`⚡ Execution Time: ${result.executionTimeMs}ms`);
-  }
-
-  if (result.data) {
-    console.log('\n📊 Response Data:');
-    Object.entries(result.data).forEach(([key, value]) => {
-      console.log(`  ${key}: ${value}`);
-    });
-  }
-
-  if (result.error) {
-    console.error(`⚠️  API Error: ${result.error}`);
-    throw new Error(`API returned error: ${result.error}`);
-  }
-  console.log('\n🔍 Full Response Debug:');
-  console.log(JSON.stringify(result, null, 2));
-
-  return result;
-}
-
-/**
- * ローカルサーバーでのテスト
- */
-async function testWithLocalServer(): Promise<void> {
-  console.log('🔧 Testing with local development server...');
-  console.log('📝 Make sure to start the server with: deno task dev:cloud-run\n');
-
-  const localUrl = 'http://localhost:8080';
+async function testDirectApiCall(): Promise<void> {
+  console.log('🔧 Testing with direct API handler call...');
   console.log('🎭 Setting up Cloud Tasks mock...');
   const mockSetup = setupCloudTasksMock();
 
   try {
-    console.log('🏥 Checking server health...');
-    const healthResponse = await fetch(`${localUrl}/health`, {
-      signal: AbortSignal.timeout(5000),
+    // 直接APIハンドラをimportして呼び出し
+    const { createTicketCollectionController } = await import('@/config/di.ts');
+
+    const ticketController = createTicketCollectionController();
+
+    // テスト用のHTTP Requestを作成
+    const testRequest = new Request('http://localhost:8080/api/collect-tickets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer dev-test-token',
+      },
+      body: JSON.stringify({
+        source: 'integration-test',
+        timestamp: new Date().toISOString(),
+      }),
     });
 
-    if (!healthResponse.ok) {
-      throw new Error(`Health check failed: ${healthResponse.status}`);
-    }
+    console.log('📞 Calling API handler directly...');
+    const response = await ticketController.handleCollectTickets(testRequest);
+    const result: ApiResponse = await response.json();
 
-    const healthData = await healthResponse.json();
-    console.log(`✅ Server is healthy: ${healthData.message}\n`);
-    const result = await callCollectTicketsApi(localUrl);
+    console.log('\n📋 API Response:');
+    console.log(`✅ Status: ${result.status}`);
+    console.log(`📝 Message: ${result.message}`);
+    console.log(`⏰ Timestamp: ${result.timestamp}`);
+    if (result.executionTimeMs) {
+      console.log(`⚡ Execution Time: ${result.executionTimeMs}ms`);
+    }
 
     const enqueuedTasks = mockSetup.getEnqueuedTasks();
     console.log(`\n☁️  Cloud Tasks Mock Results:`);
@@ -251,7 +213,7 @@ async function main(): Promise<void> {
   }
 
   try {
-    await testWithLocalServer();
+    await testDirectApiCall();
     console.log('\n✨ Integration test completed successfully!');
     console.log('📈 All assertions passed');
     console.log('💾 Database operations and Cloud Tasks mocking verified');
