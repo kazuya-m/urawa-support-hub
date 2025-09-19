@@ -200,7 +200,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
                 previousTicket!,
               );
               const cancelledNotification = notification.markAsCancelled(reason, new Date());
-              await this.notificationRepository.save(cancelledNotification);
+              await this.notificationRepository.update(cancelledNotification);
             }
           }
         } catch (error) {
