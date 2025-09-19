@@ -19,9 +19,9 @@
     "@std/dotenv": "jsr:@std/dotenv@^0.225.0"
   },
   "tasks": {
-    "start": "supabase start && docker build -f Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 urawa-support-hub",
-    "stop": "docker stop urawa-support-hub-local && docker rm urawa-support-hub-local && supabase stop",
-    "restart": "docker stop urawa-support-hub-local && docker rm urawa-support-hub-local && docker build -f src/cloud-run/urawa-support-hub/Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 urawa-support-hub",
+    "start": "docker build -f Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 -v $(pwd)/src:/app/src urawa-support-hub",
+    "stop": "docker stop urawa-support-hub-local && docker rm urawa-support-hub-local",
+    "restart": "docker stop urawa-support-hub-local && docker rm urawa-support-hub-local && docker build -f Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 -v $(pwd)/src:/app/src urawa-support-hub",
     "dev": "supabase functions serve --debug",
     "logs": "docker logs urawa-support-hub-local",
     "test": "deno test --allow-env --allow-net=127.0.0.1 --coverage=coverage",
