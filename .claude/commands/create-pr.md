@@ -92,6 +92,8 @@ EOF
 Closes #<issue-number>
 ```
 
+**important** Do NOT include "Generate With Claude"
+
 ### 🔍 Pre-check Items
 
 1. **Working Tree Status Check**
