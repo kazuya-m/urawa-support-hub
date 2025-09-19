@@ -1,7 +1,6 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { ITicketCollectionService } from '@/application/interfaces/services/ITicketCollectionService.ts';
 import type { ISiteScrapingService } from '@/infrastructure/scraping/shared/interfaces/index.ts';
-import { TestTicketHelper } from './TestTicketHelper.ts';
 
 /**
  * チケット収集サービス（DI対応リファクタリング版）
@@ -28,12 +27,6 @@ export class TicketCollectionService implements ITicketCollectionService {
 
       // 結果を統合
       const allTickets = results.flat();
-
-      // テストモード有効時はダミーチケットを追加
-      if (TestTicketHelper.isTestModeEnabled()) {
-        const testTickets = await TestTicketHelper.generateTestTickets();
-        allTickets.push(...testTickets);
-      }
 
       return allTickets;
     } catch (error) {

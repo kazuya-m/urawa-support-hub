@@ -1,6 +1,7 @@
 import { assertEquals, assertStringIncludes } from 'std/assert/mod.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketCollectionService } from '../TicketCollectionService.ts';
+import { TestJLeagueScrapingService } from '@/infrastructure/scraping/test/TestJLeagueScrapingService.ts';
 import { toJSTDate } from '@/shared/utils/datetime.ts';
 
 // モック用のTicketCollectionService
@@ -93,15 +94,15 @@ Deno.test('TicketCollectionService Tests', async (t) => {
 });
 
 Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
-  const originalEnvValue = Deno.env.get('ENABLE_TEST_TICKET');
+  const originalEnvValue = Deno.env.get('ENABLE_TEST_SCRAPING');
   const originalRescheduleValue = Deno.env.get('ENABLE_TEST_RESCHEDULE');
 
   // クリーンアップ関数
   const cleanup = () => {
     if (originalEnvValue !== undefined) {
-      Deno.env.set('ENABLE_TEST_TICKET', originalEnvValue);
+      Deno.env.set('ENABLE_TEST_SCRAPING', originalEnvValue);
     } else {
-      Deno.env.delete('ENABLE_TEST_TICKET');
+      Deno.env.delete('ENABLE_TEST_SCRAPING');
     }
     if (originalRescheduleValue !== undefined) {
       Deno.env.set('ENABLE_TEST_RESCHEDULE', originalRescheduleValue);
@@ -112,7 +113,7 @@ Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
 
   await t.step('should not generate test tickets when test mode is disabled', async () => {
     try {
-      Deno.env.delete('ENABLE_TEST_TICKET');
+      Deno.env.delete('ENABLE_TEST_SCRAPING');
       const service = new TicketCollectionService([]);
       const result = await service.collectAllTickets();
 
@@ -125,13 +126,14 @@ Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
 
   await t.step('should generate test ticket when test mode is enabled', async () => {
     try {
-      Deno.env.set('ENABLE_TEST_TICKET', 'true');
-      const service = new TicketCollectionService([]);
+      Deno.env.set('ENABLE_TEST_SCRAPING', 'true');
+      const testScrapingService = new TestJLeagueScrapingService();
+      const service = new TicketCollectionService([testScrapingService]);
       const result = await service.collectAllTickets();
 
       assertEquals(result.length, 1);
       assertStringIncludes(result[0].matchName, '[TEST]');
-      assertEquals(result[0].homeTeam, '川崎フロンターレ');
+      assertEquals(result[0].homeTeam, '[TEST] 川崎フロンターレ');
       assertEquals(result[0].awayTeam, '浦和レッズ');
       assertEquals(result[0].venue, '等々力陸上競技場');
       assertEquals(result[0].ticketTypes.includes('ビジター指定席大人'), true);
@@ -157,9 +159,10 @@ Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
     'should generate rescheduled test ticket when both modes are enabled',
     async () => {
       try {
-        Deno.env.set('ENABLE_TEST_TICKET', 'true');
+        Deno.env.set('ENABLE_TEST_SCRAPING', 'true');
         Deno.env.set('ENABLE_TEST_RESCHEDULE', 'true');
-        const service = new TicketCollectionService([]);
+        const testScrapingService = new TestJLeagueScrapingService();
+        const service = new TicketCollectionService([testScrapingService]);
         const result = await service.collectAllTickets();
 
         // リスケジュールモードでは1つのチケット（リスケジュール版）のみ返される
@@ -169,7 +172,7 @@ Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
 
         assertEquals(!!testTicket, true);
         assertEquals(testTicket?.awayTeam, '浦和レッズ');
-        assertEquals(testTicket?.homeTeam, '川崎フロンターレ');
+        assertEquals(testTicket?.homeTeam, '[TEST] 川崎フロンターレ');
 
         // リスケジュール版のチケットは8:00 JST（販売開始日が2時間前倒し）になっているかチェック
         if (testTicket?.saleStartDate) {
