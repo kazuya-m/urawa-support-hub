@@ -13,13 +13,14 @@ export class MockLineClient implements ILineClient {
   }
 
   async broadcast(message: LineMessage): Promise<void> {
+    this.broadcastCalls.push({ message });
+
     if (this.shouldThrow) {
       throw new Error(this.errorMessage);
     }
 
     // Mock処理をawaitで待機
     await Promise.resolve();
-    this.broadcastCalls.push({ message });
   }
 
   async push(to: string, message: LineMessage): Promise<void> {
@@ -36,5 +37,24 @@ export class MockLineClient implements ILineClient {
     this.broadcastCalls = [];
     this.pushCalls = [];
     this.shouldThrow = false;
+  }
+
+  // テスト用ヘルパー
+  get broadcastCallCount(): number {
+    return this.broadcastCalls.length;
+  }
+
+  get lastBroadcastMessage(): LineMessage | null {
+    return this.broadcastCalls.length > 0
+      ? this.broadcastCalls[this.broadcastCalls.length - 1].message
+      : null;
+  }
+
+  mockBroadcastError(error: Error): void {
+    this.setThrowError(true, error.message);
+  }
+
+  resetMocks(): void {
+    this.reset();
   }
 }

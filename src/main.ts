@@ -2,6 +2,7 @@ import {
   createNotificationBatchController,
   createNotificationController,
   createTicketCollectionController,
+  createTicketSummaryController,
 } from '@/config/di.ts';
 import { handleHealthCheck } from '@/middleware/health.ts';
 
@@ -21,6 +22,11 @@ async function handleRequest(req: Request): Promise<Response> {
   if (url.pathname === '/api/process-pending-notifications' && req.method === 'POST') {
     const notificationBatchController = createNotificationBatchController();
     return await notificationBatchController.handleProcessPendingNotifications(req);
+  }
+
+  if (url.pathname === '/api/ticket-summary' && req.method === 'POST') {
+    const ticketSummaryController = createTicketSummaryController();
+    return await ticketSummaryController.handleTicketSummary(req);
   }
 
   if (url.pathname === '/health' && req.method === 'GET') {

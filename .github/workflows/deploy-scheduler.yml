@@ -84,4 +84,40 @@ jobs:
               --oidc-token-audience="${SERVICE_URL}"
           fi
 
-          echo "✅ Scheduler job deployment completed"
+          echo "✅ Daily ticket collection scheduler deployed"
+
+          # Deploy monthly ticket summary scheduler job
+          if gcloud scheduler jobs describe "monthly-ticket-summary" \
+            --location="${{ env.GC_REGION }}" >/dev/null 2>&1; then
+            gcloud scheduler jobs update http "monthly-ticket-summary" \
+              --location="${{ env.GC_REGION }}" \
+              --schedule="0 11 1 * *" \
+              --time-zone="Asia/Tokyo" \
+              --uri="${SERVICE_URL}/api/ticket-summary" \
+              --http-method=POST \
+              --update-headers="Content-Type=application/json" \
+              --message-body='{"source":"cloud-scheduler-monthly"}' \
+              --attempt-deadline="120s" \
+              --max-retry-attempts=3 \
+              --min-backoff=10s \
+              --max-backoff=60s \
+              --oidc-service-account-email="${{ env.SCHEDULER_SA_EMAIL }}"
+          else
+            gcloud scheduler jobs create http "monthly-ticket-summary" \
+              --location="${{ env.GC_REGION }}" \
+              --schedule="0 11 1 * *" \
+              --time-zone="Asia/Tokyo" \
+              --uri="${SERVICE_URL}/api/ticket-summary" \
+              --http-method=POST \
+              --headers="Content-Type=application/json" \
+              --message-body='{"source":"cloud-scheduler-monthly"}' \
+              --attempt-deadline="120s" \
+              --max-retry-attempts=3 \
+              --min-backoff=10s \
+              --max-backoff=60s \
+              --oidc-service-account-email="${{ env.SCHEDULER_SA_EMAIL }}" \
+              --oidc-token-audience="${SERVICE_URL}"
+          fi
+
+          echo "✅ Monthly ticket summary scheduler deployed"
+          echo "✅ All scheduler jobs deployment completed"

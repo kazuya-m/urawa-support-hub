@@ -120,14 +120,15 @@ Deno.test('LINE_MESSAGE_TEMPLATES', async (t) => {
       'day_before',
     );
 
-    const contents = message.contents.body.contents;
-    // タイトルが緑色（day_before）であることを確認
-    assertEquals(contents[0].color, '#00C851');
-    // 販売開始日時が緑色（day_before）であることを確認
-    const saleStartText = contents.find((c: unknown) =>
+    const headerContents = message.contents.header.contents;
+    assertEquals(headerContents[0].color, '#00C851'); // day_beforeの色
+    assertEquals(message.contents.header.backgroundColor, '#FFFFFF');
+
+    const bodyContents = message.contents.body.contents;
+    const saleStartText = bodyContents.find((c: unknown) =>
       typeof c === 'object' && c !== null && 'text' in c &&
       typeof c.text === 'string' && c.text.includes('販売開始:')
     );
-    assertEquals((saleStartText as { color?: string })?.color, '#00C851');
+    assertEquals((saleStartText as { color?: string })?.color, '#00C851'); // day_beforeの色
   });
 });
