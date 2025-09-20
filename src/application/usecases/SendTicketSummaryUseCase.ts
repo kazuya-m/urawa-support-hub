@@ -21,17 +21,26 @@ export class SendTicketSummaryUseCase implements ITicketSummaryUseCase {
     const targetTickets = await this.ticketRepository
       .findByStatusIn(['on_sale', 'before_sale']);
 
-    CloudLogger.info(`Found ${targetTickets.length} tickets to notify`, {
-      category: LogCategory.NOTIFICATION,
-      context: {
-        processingStage: 'SendTicketSummaryUseCase',
-        ticketsCount: targetTickets.length,
+    // 試合日が過去のチケットを除外
+    const now = new Date();
+    const upcomingTickets = targetTickets.filter((ticket) => ticket.matchDate >= now);
+
+    CloudLogger.info(
+      `Found ${upcomingTickets.length} upcoming tickets to notify (filtered from ${targetTickets.length} total)`,
+      {
+        category: LogCategory.NOTIFICATION,
+        context: {
+          processingStage: 'SendTicketSummaryUseCase',
+          totalTickets: targetTickets.length,
+          upcomingTickets: upcomingTickets.length,
+          filteredOutTickets: targetTickets.length - upcomingTickets.length,
+        },
       },
-    });
+    );
 
     // チケットが存在しない場合はLINE送信をスキップ
-    if (targetTickets.length === 0) {
-      CloudLogger.info('No tickets found, skipping LINE notification', {
+    if (upcomingTickets.length === 0) {
+      CloudLogger.info('No upcoming tickets found, skipping LINE notification', {
         category: LogCategory.NOTIFICATION,
         context: { processingStage: 'SendTicketSummaryUseCase' },
       });
@@ -39,7 +48,7 @@ export class SendTicketSummaryUseCase implements ITicketSummaryUseCase {
     }
 
     // LINEメッセージ作成・送信
-    const message = LINE_MESSAGE_TEMPLATES.ticketSummary(targetTickets);
+    const message = LINE_MESSAGE_TEMPLATES.ticketSummary(upcomingTickets);
     await this.lineClient.broadcast(message);
 
     CloudLogger.info('Ticket summary sent successfully', {
