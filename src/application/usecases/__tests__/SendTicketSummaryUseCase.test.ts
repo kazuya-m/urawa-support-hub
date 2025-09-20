@@ -49,7 +49,7 @@ describe('SendTicketSummaryUseCase', () => {
     assertEquals(sentMessage?.type, 'flex');
 
     // FlexメッセージのaltTextを検証（型を明示的にキャスト）
-    assertEquals((sentMessage?.altText as string)?.includes('チケット情報'), true);
+    assertEquals((sentMessage?.altText as string)?.includes('チケット一覧'), true);
   });
 
   it('should not send message when no tickets exist', async () => {

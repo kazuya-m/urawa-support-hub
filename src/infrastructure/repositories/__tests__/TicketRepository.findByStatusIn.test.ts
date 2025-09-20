@@ -1,25 +1,17 @@
 import { assertEquals } from 'std/assert/mod.ts';
 import { afterEach, beforeEach, describe, it } from 'testing/bdd.ts';
-import { createTestSupabaseClient } from '@/shared/testing/TestSupabaseClient.ts';
-import { TicketRepository } from '../TicketRepository.ts';
+import { MockTicketRepository } from '@/shared/testing/mocks/MockTicketRepository.ts';
 import { createTestTicket } from '@/shared/testing/TestDataGenerator.ts';
-import { SupabaseClient } from '@supabase/supabase-js';
 
 describe('TicketRepository.findByStatusIn', () => {
-  let client: SupabaseClient;
-  let repository: TicketRepository;
+  let repository: MockTicketRepository;
 
-  beforeEach(async () => {
-    client = createTestSupabaseClient();
-    repository = new TicketRepository(client);
-
-    // テスト用データをクリーンアップ
-    await client.from('tickets').delete().neq('id', '');
+  beforeEach(() => {
+    repository = new MockTicketRepository();
   });
 
-  afterEach(async () => {
-    // テストデータをクリーンアップ
-    await client.from('tickets').delete().neq('id', '');
+  afterEach(() => {
+    repository.resetMocks();
   });
 
   it('should return tickets with specified statuses', async () => {
@@ -34,16 +26,9 @@ describe('TicketRepository.findByStatusIn', () => {
       saleStatus: 'before_sale',
       matchName: 'Test Match 2',
     });
-    const endedTicket = createTestTicket({
-      id: 'test-ended',
-      saleStatus: 'ended',
-      matchName: 'Test Match 3',
-    });
 
-    // データベースに保存
-    await repository.upsert(onSaleTicket);
-    await repository.upsert(beforeSaleTicket);
-    await repository.upsert(endedTicket);
+    // モックの設定
+    repository.mockFindByStatusIn([onSaleTicket, beforeSaleTicket]);
 
     // on_sale と before_sale のチケットを取得
     const result = await repository.findByStatusIn(['on_sale', 'before_sale']);
@@ -51,25 +36,29 @@ describe('TicketRepository.findByStatusIn', () => {
     assertEquals(result.length, 2);
     assertEquals(result[0].id, 'test-on-sale');
     assertEquals(result[1].id, 'test-before-sale');
+    assertEquals(repository.findByStatusInCallCount, 1);
+    assertEquals(repository.lastFindByStatusInArgs, ['on_sale', 'before_sale']);
   });
 
   it('should return empty array when no tickets match statuses', async () => {
-    // ended のチケットのみ作成
-    const endedTicket = createTestTicket({
-      id: 'test-ended',
-      saleStatus: 'ended',
-    });
-    await repository.upsert(endedTicket);
+    // モックの設定: 空の配列を返す
+    repository.mockFindByStatusIn([]);
 
     // on_sale と before_sale のチケットを検索
     const result = await repository.findByStatusIn(['on_sale', 'before_sale']);
 
     assertEquals(result.length, 0);
+    assertEquals(repository.findByStatusInCallCount, 1);
   });
 
   it('should return empty array when no tickets exist', async () => {
+    // モックの設定: 空の配列を返す
+    repository.mockFindByStatusIn([]);
+
     const result = await repository.findByStatusIn(['on_sale', 'before_sale']);
+
     assertEquals(result.length, 0);
+    assertEquals(repository.findByStatusInCallCount, 1);
   });
 
   it('should order by match_date ascending', async () => {
@@ -87,13 +76,14 @@ describe('TicketRepository.findByStatusIn', () => {
       matchDate: nearDate,
     });
 
-    await repository.upsert(ticket1);
-    await repository.upsert(ticket2);
+    // モックの設定: 日付順にソート済みの配列を返す
+    repository.mockFindByStatusIn([ticket2, ticket1]); // nearが先、futureが後
 
     const result = await repository.findByStatusIn(['on_sale']);
 
     assertEquals(result.length, 2);
     assertEquals(result[0].id, 'test-near'); // より近い日付が最初
     assertEquals(result[1].id, 'test-future');
+    assertEquals(repository.findByStatusInCallCount, 1);
   });
 });

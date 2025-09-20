@@ -13,13 +13,14 @@ export class MockLineClient implements ILineClient {
   }
 
   async broadcast(message: LineMessage): Promise<void> {
+    this.broadcastCalls.push({ message });
+
     if (this.shouldThrow) {
       throw new Error(this.errorMessage);
     }
 
     // Mock処理をawaitで待機
     await Promise.resolve();
-    this.broadcastCalls.push({ message });
   }
 
   async push(to: string, message: LineMessage): Promise<void> {
