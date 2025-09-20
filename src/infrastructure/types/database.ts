@@ -28,6 +28,7 @@ export interface NotificationRow {
   status: 'scheduled' | 'sent' | 'failed' | 'cancelled';
   error_message: string | null;
   created_at: string;
+  updated_at: string;
   cloud_task_id: string | null;
 }
 

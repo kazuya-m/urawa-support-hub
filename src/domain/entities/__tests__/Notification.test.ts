@@ -249,3 +249,50 @@ Deno.test('Notification - 通知タイプ表示名', () => {
 
   assertEquals(hourBeforeNotification.getNotificationTypeDisplayName(), '販売開始1時間前');
 });
+
+Deno.test('Notification - キャンセルマーク（sentAtは変更されない）', () => {
+  const now = new Date();
+  const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
+
+  const notification = new Notification({
+    id: 'test-id',
+    ticketId: 'ticket-123',
+    notificationType: 'day_before',
+    scheduledAt: scheduledTime,
+    status: 'scheduled',
+    createdAt: now,
+  });
+
+  const cancelledTime = new Date();
+  const reason = 'Cancelled due to manual intervention';
+  const cancelledNotification = notification.markAsCancelled(reason, cancelledTime);
+
+  assertEquals(cancelledNotification.status, 'cancelled');
+  assertEquals(cancelledNotification.errorMessage, reason);
+  assertEquals(cancelledNotification.sentAt, undefined); // sentAtは設定されない
+});
+
+Deno.test('Notification - キャンセルマーク（既存のsentAtは保持される）', () => {
+  const now = new Date();
+  const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
+  const existingSentAt = new Date(now.getTime() - 30 * 60 * 1000);
+
+  const notificationWithSentAt = new Notification({
+    id: 'test-id',
+    ticketId: 'ticket-123',
+    notificationType: 'day_before',
+    scheduledAt: scheduledTime,
+    status: 'failed',
+    sentAt: existingSentAt,
+    errorMessage: 'Previous error',
+    createdAt: now,
+  });
+
+  const cancelledTime = new Date();
+  const reason = 'Cancelled due to manual intervention';
+  const cancelledNotification = notificationWithSentAt.markAsCancelled(reason, cancelledTime);
+
+  assertEquals(cancelledNotification.status, 'cancelled');
+  assertEquals(cancelledNotification.errorMessage, reason);
+  assertEquals(cancelledNotification.sentAt, existingSentAt); // 既存のsentAtは保持される
+});
