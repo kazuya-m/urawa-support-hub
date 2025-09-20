@@ -13,6 +13,7 @@ export class NotificationConverter {
       errorMessage: data.error_message ?? undefined,
       cloudTaskId: data.cloud_task_id ?? undefined,
       createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
     });
   }
 
