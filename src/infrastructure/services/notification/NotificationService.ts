@@ -4,6 +4,7 @@ import { INotificationRepository } from '@/application/interfaces/repositories/I
 import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
 import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
 import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
+import { formatMatchName } from '@/shared/utils/match.ts';
 import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
 import { ILineClient } from '@/infrastructure/clients/LineClient.ts';
@@ -121,7 +122,7 @@ export class NotificationService implements INotificationService {
     notificationType: NotificationType,
   ): Promise<void> {
     const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
-      ticket.matchName,
+      formatMatchName(ticket),
       formatJST(ticket.matchDate, 'M/d(eeeee) HH:mm'),
       ticket.venue || '未定',
       ticket.saleStartDate ? formatJST(ticket.saleStartDate, 'M/d(eeeee) HH:mm') : '未定',

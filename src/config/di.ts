@@ -30,14 +30,17 @@ import { NotificationSchedulingService } from '@/domain/services/NotificationSch
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { INotificationUseCase } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 import { INotificationBatchUseCase } from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
+import { ITicketSummaryUseCase } from '@/application/interfaces/usecases/ITicketSummaryUseCase.ts';
 
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 import { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
 import { NotificationBatchUseCase } from '@/application/usecases/NotificationBatchUseCase.ts';
+import { SendTicketSummaryUseCase } from '@/application/usecases/SendTicketSummaryUseCase.ts';
 
 import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
 import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
 import { NotificationBatchController } from '@/adapters/controllers/NotificationBatchController.ts';
+import { TicketSummaryController } from '@/adapters/controllers/TicketSummaryController.ts';
 
 /**
  * 依存関係を作成するファクトリー関数
@@ -119,6 +122,14 @@ export const createNotificationBatchUseCase = (): INotificationBatchUseCase => {
   );
 };
 
+export const createTicketSummaryUseCase = (): ITicketSummaryUseCase => {
+  const deps = createDependencies();
+  return new SendTicketSummaryUseCase(
+    deps.ticketRepository,
+    deps.lineClient,
+  );
+};
+
 export const createNotificationController = (): NotificationController => {
   const notificationUseCase = createNotificationUseCase();
   return new NotificationController(
@@ -137,5 +148,12 @@ export const createNotificationBatchController = (): NotificationBatchController
   const notificationBatchUseCase = createNotificationBatchUseCase();
   return new NotificationBatchController(
     notificationBatchUseCase,
+  );
+};
+
+export const createTicketSummaryController = (): TicketSummaryController => {
+  const ticketSummaryUseCase = createTicketSummaryUseCase();
+  return new TicketSummaryController(
+    ticketSummaryUseCase,
   );
 };

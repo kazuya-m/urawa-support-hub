@@ -69,6 +69,22 @@ export class TicketRepository implements ITicketRepository {
     return data.map(TicketConverter.toDomainEntity);
   }
 
+  async findByStatusIn(statuses: string[]): Promise<Ticket[]> {
+    const { data, error } = await this.client
+      .from('tickets')
+      .select('*')
+      .in('sale_status', statuses)
+      .order('match_date', { ascending: true });
+
+    if (error) {
+      throwDatabaseError('TicketRepository', 'findByStatusIn', error, {
+        table: 'tickets',
+        statuses,
+      });
+    }
+    return data.map(TicketConverter.toDomainEntity);
+  }
+
   async upsert(ticket: Ticket): Promise<Ticket> {
     const row = TicketConverter.toDatabaseRow(ticket);
 

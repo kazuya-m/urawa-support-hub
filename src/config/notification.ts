@@ -4,6 +4,9 @@
  */
 
 import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
+import { Ticket } from '@/domain/entities/Ticket.ts';
+import { formatJST } from '@/shared/utils/datetime.ts';
+import { formatMatchName } from '@/shared/utils/match.ts';
 
 export interface LineConfig {
   channelAccessToken: string;
@@ -95,7 +98,7 @@ export const LINE_MESSAGE_TEMPLATES = {
       altText: `【チケット販売通知】${match}`,
       contents: {
         type: 'bubble',
-        body: {
+        header: {
           type: 'box',
           layout: 'vertical',
           contents: [
@@ -105,16 +108,26 @@ export const LINE_MESSAGE_TEMPLATES = {
               weight: 'bold',
               size: 'lg',
               color: style.color,
+              align: 'center',
             },
             {
               type: 'separator',
               margin: 'md',
             },
+          ],
+          paddingAll: 'lg',
+          backgroundColor: '#FFFFFF',
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          paddingTop: 'none',
+          contents: [
             {
               type: 'text',
               text: `⚽️ ${match}`,
               size: 'md',
-              margin: 'md',
+              margin: 'none',
             },
             {
               type: 'text',
@@ -140,7 +153,7 @@ export const LINE_MESSAGE_TEMPLATES = {
               size: 'md',
               weight: 'bold',
               color: style.color,
-              margin: 'md',
+              margin: 'lg',
             },
             {
               type: 'text',
@@ -170,6 +183,278 @@ export const LINE_MESSAGE_TEMPLATES = {
             ],
           }
           : undefined,
+      },
+    };
+  },
+
+  /**
+   * チケット一覧送信メッセージ
+   */
+  ticketSummary: (tickets: Ticket[]) => {
+    if (tickets.length === 0) {
+      return {
+        type: 'flex' as const,
+        altText: '現在販売中・販売予定のチケットはありません',
+        contents: {
+          type: 'bubble',
+          header: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '🎫 チケット情報',
+                weight: 'bold',
+                size: 'lg',
+                color: '#D32F2F',
+                align: 'center',
+              },
+              {
+                type: 'text',
+                text: `${formatJST(new Date(), 'M月d日')} 現在`,
+                size: 'xs',
+                color: '#333333',
+                align: 'center',
+                margin: 'xs',
+              },
+              {
+                type: 'separator',
+                margin: 'md',
+              },
+            ],
+            paddingAll: 'lg',
+            backgroundColor: '#FFFFFF',
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '📅 現在販売中・販売予定のチケットはありません。',
+                margin: 'none',
+                wrap: true,
+                align: 'center',
+              },
+            ],
+          },
+        },
+      };
+    }
+
+    // 販売中と販売予定に分類
+    const onSaleTickets = tickets.filter((ticket) => ticket.saleStatus === 'on_sale');
+    const beforeSaleTickets = tickets.filter((ticket) => ticket.saleStatus === 'before_sale');
+
+    const bubbles = [];
+
+    // 販売中チケット用のBubble
+    if (onSaleTickets.length > 0) {
+      const onSaleContents = onSaleTickets.map((ticket, index) => {
+        const matchDate = formatJST(ticket.matchDate, 'M/d(E) HH:mm');
+
+        return [
+          ...(index > 0 ? [{ type: 'separator' as const, margin: 'lg' as const }] : []),
+          {
+            type: 'box' as const,
+            layout: 'vertical' as const,
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'text' as const,
+                text: `⚽️ ${formatMatchName(ticket)}`,
+                weight: 'bold' as const,
+                size: 'sm' as const,
+                margin: index > 0 ? 'md' as const : 'none' as const,
+                wrap: true,
+              },
+              {
+                type: 'text' as const,
+                text: `📅 ${matchDate} キックオフ`,
+                size: 'xs' as const,
+                color: '#666666',
+                margin: 'none' as const,
+              },
+              ...(ticket.venue
+                ? [{
+                  type: 'text' as const,
+                  text: `📍 ${ticket.venue}`,
+                  size: 'xs' as const,
+                  color: '#666666',
+                  margin: 'none' as const,
+                }]
+                : []),
+              ...(ticket.ticketUrl
+                ? [{
+                  type: 'text' as const,
+                  text: '🎫 チケット購入',
+                  size: 'xs' as const,
+                  color: '#0066CC',
+                  margin: 'none' as const,
+                  action: {
+                    type: 'uri' as const,
+                    uri: ticket.ticketUrl,
+                  },
+                }]
+                : []),
+            ],
+          },
+        ];
+      }).flat();
+
+      bubbles.push({
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '🟢 販売中チケット',
+              weight: 'bold',
+              size: 'lg',
+              color: '#1B5E20',
+              align: 'center',
+            },
+            {
+              type: 'text',
+              text: `${formatJST(new Date(), 'M月d日')} 現在`,
+              size: 'xs',
+              color: '#333333',
+              align: 'center',
+              margin: 'xs',
+            },
+            {
+              type: 'separator',
+              margin: 'md',
+            },
+          ],
+          paddingAll: 'lg',
+          backgroundColor: '#FFFFFF',
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          paddingTop: 'none',
+          contents: [
+            ...onSaleContents,
+          ],
+        },
+      });
+    }
+
+    // 販売予定チケット用のBubble
+    if (beforeSaleTickets.length > 0) {
+      const beforeSaleContents = beforeSaleTickets.map((ticket, index) => {
+        const matchDate = formatJST(ticket.matchDate, 'M/d(E) HH:mm');
+        const saleStartText = ticket.saleStartDate
+          ? formatJST(ticket.saleStartDate, 'M/d HH:mm')
+          : '未定';
+
+        return [
+          ...(index > 0 ? [{ type: 'separator' as const, margin: 'lg' as const }] : []),
+          {
+            type: 'box' as const,
+            layout: 'vertical' as const,
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'text' as const,
+                text: `⚽️ ${formatMatchName(ticket)}`,
+                weight: 'bold' as const,
+                size: 'sm' as const,
+                margin: index > 0 ? 'md' as const : 'none' as const,
+                wrap: true,
+              },
+              {
+                type: 'text' as const,
+                text: `📅 ${matchDate} キックオフ`,
+                size: 'xs' as const,
+                color: '#666666',
+                margin: 'none' as const,
+              },
+              ...(ticket.venue
+                ? [{
+                  type: 'text' as const,
+                  text: `📍 ${ticket.venue}`,
+                  size: 'xs' as const,
+                  color: '#666666',
+                  margin: 'none' as const,
+                }]
+                : []),
+              {
+                type: 'text' as const,
+                text: `🚀 ${saleStartText} 販売開始`,
+                size: 'xs' as const,
+                color: '#DC143C',
+                margin: 'lg' as const,
+              },
+              ...(ticket.ticketUrl
+                ? [{
+                  type: 'text' as const,
+                  text: '🎫 詳細確認',
+                  size: 'xs' as const,
+                  color: '#0066CC',
+                  margin: 'none' as const,
+                  action: {
+                    type: 'uri' as const,
+                    uri: ticket.ticketUrl,
+                  },
+                }]
+                : []),
+            ],
+          },
+        ];
+      }).flat();
+
+      bubbles.push({
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '🔵 販売予定チケット',
+              weight: 'bold',
+              size: 'lg',
+              color: '#1565C0',
+              align: 'center',
+            },
+            {
+              type: 'text',
+              text: `${formatJST(new Date(), 'M月d日')} 現在`,
+              size: 'xs',
+              color: '#333333',
+              align: 'center',
+              margin: 'xs',
+            },
+            {
+              type: 'separator',
+              margin: 'md',
+            },
+          ],
+          paddingAll: 'lg',
+          backgroundColor: '#FFFFFF',
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          paddingTop: 'none',
+          contents: [
+            ...beforeSaleContents,
+          ],
+        },
+      });
+    }
+
+    return {
+      type: 'flex' as const,
+      altText:
+        `🎫 チケット一覧 (販売中${onSaleTickets.length}件、販売予定${beforeSaleTickets.length}件)`,
+      contents: bubbles.length === 1 ? bubbles[0] : {
+        type: 'carousel',
+        contents: bubbles,
       },
     };
   },
