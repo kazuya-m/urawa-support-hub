@@ -17,8 +17,9 @@ interface NotificationProps {
   sentAt?: Date;
   status: NotificationStatus;
   errorMessage?: string;
-  cloudTaskId?: string; // Cloud TasksのタスクIDを保存（キャンセル時に使用）
+  cloudTaskId?: string;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export class Notification {
@@ -68,6 +69,9 @@ export class Notification {
   get createdAt(): Date {
     return this.props.createdAt;
   }
+  get updatedAt(): Date | undefined {
+    return this.props.updatedAt;
+  }
   get cloudTaskId(): string | undefined {
     return this.props.cloudTaskId;
   }
@@ -99,12 +103,11 @@ export class Notification {
 
   markAsCancelled(
     reason: CancellationReason,
-    cancelledTime: Date = new Date(),
+    _cancelledTime: Date = new Date(),
   ): Notification {
     return new Notification({
       ...this.props,
       status: 'cancelled',
-      sentAt: cancelledTime,
       errorMessage: reason,
     });
   }
