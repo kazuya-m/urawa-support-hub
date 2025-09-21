@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-21 (Issue #140, #137, #135, #131, #129完了)\
+**Updated**: 2025-09-21 (Issue #140, #137, #135, #131, #130, #129完了)\
 **Goal**: ✅ Launch MVP by 2025-09-30 (**完了**: 2025-09-16)
 
 ## Implementation Status Summary
@@ -231,7 +231,7 @@ Each issue is considered complete when:
 | #131  | LINEメッセージの試合日時と販売開始日時をJST表示に修正                             | ユーザビリティ改善         | ✅ **COMPLETED** |
 | #135  | notificationsテーブルの命名不整合を修正                                           | データベース設計改善       | ✅ **COMPLETED** |
 | #137  | 通知システムの改善: sent_atの誤更新修正とupdated_at追加                           | データ整合性向上           | ✅ **COMPLETED** |
-| #130  | PostgreSQL セキュリティパッチ適用のためのデータベースアップグレード               | セキュリティ維持           | Open             |
+| #130  | PostgreSQL セキュリティパッチ適用のためのデータベースアップグレード               | セキュリティ維持           | ✅ **COMPLETED** |
 | #129  | notificationsテーブルのnotification_scheduledカラム冗長性解決とスキーマ整合性修正 | データベース設計改善       | ✅ **COMPLETED** |
 
 ### 🟠 **HIGH - 機能拡張・品質改善**
@@ -239,7 +239,7 @@ Each issue is considered complete when:
 | Issue | Title                                               | Category     | Status           |
 | ----- | --------------------------------------------------- | ------------ | ---------------- |
 | #101  | 月初チケット一覧送信機能実装                        | 通知機能強化 | ✅ **COMPLETED** |
-| #140  | Cloud Scheduler月次実行を月初20時に変更             | 通知機能強化 | Open             |
+| #140  | Cloud Scheduler月次実行を月初20時に変更             | 通知機能強化 | ✅ **COMPLETED** |
 | #119  | 構造化ログへの統一: String(error)パターンを置き換え | コード品質   | Open             |
 | #50   | 本番環境セキュリティ強化：RLSポリシー導入           | セキュリティ | Open             |
 
@@ -266,18 +266,18 @@ Each issue is considered complete when:
 
 #### 📍 **今すぐ対応すべき** (緊急・技術的負債)
 
-1. **#130** - PostgreSQL セキュリティパッチ適用のためのデータベースアップグレード 🔴
+1. ~~**#130** - PostgreSQL セキュリティパッチ適用のためのデータベースアップグレード~~ ✅
+   **COMPLETED**
    - **理由**: セキュリティ脆弱性対応・本番環境の安全性確保
    - **影響**: システム全体のセキュリティ向上
-   - **期限**: セキュリティパッチの緊急性による
 
 #### 📍 **次に実装** (機能強化・品質改善)
 
-2. **#140** - Cloud Scheduler月次実行を月初20時に変更 🟠 **NEW**
+2. ~~**#140** - Cloud Scheduler月次実行を月初20時に変更~~ ✅ **COMPLETED**
    - **理由**: 月初通知のタイミング最適化
    - **影響**: ユーザー利便性の向上
 
-3. **#119** - 構造化ログへの統一 🟠
+3. **#119** - 構造化ログへの統一 🟠 **現在の最優先**
    - **理由**: エラー監視とデバッグ効率の向上
    - **影響**: 運用保守性の大幅改善
 
