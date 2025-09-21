@@ -4,7 +4,7 @@
 job:
   name: monthly-ticket-summary
   description: Monthly ticket summary for Urawa Reds supporters
-  schedule: '0 11 1 * *' # 11:00 UTC = 20:00 JST on 1st day of each month
+  schedule: '0 20 1 * *' # 20:00 JST on 1st day of each month
   timeZone: Asia/Tokyo
   attemptDeadline: 120s # 2 minutes (sufficient for summary generation)
 
