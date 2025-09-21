@@ -1,31 +1,36 @@
 # Cloud Scheduler Configuration for Urawa Support Hub
-# This file defines the configuration for daily ticket collection job
+# Unified configuration for all scheduler jobs
 
-job:
-  name: daily-ticket-collection
-  description: Daily ticket collection for Urawa Reds
-  schedule: '0 20 * * *' # 20:00 UTC = 05:00 JST (next day)
+common:
   timeZone: Asia/Tokyo
-  attemptDeadline: 300s # 5 minutes (matches Cloud Run timeout)
-
-http_target:
-  uri: '${CLOUD_RUN_SERVICE_URL}/api/collect-tickets'
-  httpMethod: POST
-  headers:
-    Content-Type: application/json
-  body: |
-    {
-      "source": "cloud-scheduler",
-      "timestamp": "${TIMESTAMP}"
-    }
-
-auth:
   serviceAccountEmail: '${SCHEDULER_SERVICE_ACCOUNT}'
-  audience: '${CLOUD_RUN_SERVICE_URL}'
+  baseUrl: '${CLOUD_RUN_SERVICE_URL}'
 
-retry_config:
-  retryCount: 3
-  maxRetryDuration: 600s # 10 minutes
-  minBackoffDuration: 30s
-  maxBackoffDuration: 300s
-  maxDoublings: 2
+jobs:
+  daily-ticket-collection:
+    name: daily-ticket-collection
+    description: Daily ticket collection for Urawa Reds
+    schedule: '0 5 * * *' # 05:00 JST
+    endpoint: '/api/collect-tickets'
+    attemptDeadline: 300s # 5 minutes (matches Cloud Run timeout)
+    retryConfig:
+      retryCount: 3
+      maxRetryDuration: 600s # 10 minutes
+      minBackoffDuration: 30s
+      maxBackoffDuration: 300s
+    payload:
+      source: 'cloud-scheduler'
+
+  monthly-ticket-summary:
+    name: monthly-ticket-summary
+    description: Monthly ticket summary for Urawa Reds supporters
+    schedule: '0 20 1 * *' # 20:00 JST on 1st of each month
+    endpoint: '/api/ticket-summary'
+    attemptDeadline: 120s # 2 minutes
+    retryConfig:
+      retryCount: 3
+      maxRetryDuration: 300s # 5 minutes
+      minBackoffDuration: 10s
+      maxBackoffDuration: 60s
+    payload:
+      source: 'cloud-scheduler-monthly'
