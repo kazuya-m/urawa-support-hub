@@ -51,18 +51,34 @@ jobs:
             exit 1
           fi
 
-          # Deploy scheduler job
+          # Load scheduler configurations from unified config file
+          CONFIG_FILE="infrastructure/scheduler/config.yaml"
+
+          # Daily scheduler config
+          DAILY_SCHEDULE=$(yq '.jobs.daily-ticket-collection.schedule' $CONFIG_FILE)
+          DAILY_ENDPOINT=$(yq '.jobs.daily-ticket-collection.endpoint' $CONFIG_FILE)
+          DAILY_DEADLINE=$(yq '.jobs.daily-ticket-collection.attemptDeadline' $CONFIG_FILE | sed 's/s$//')
+
+          # Monthly scheduler config
+          MONTHLY_SCHEDULE=$(yq '.jobs.monthly-ticket-summary.schedule' $CONFIG_FILE)
+          MONTHLY_ENDPOINT=$(yq '.jobs.monthly-ticket-summary.endpoint' $CONFIG_FILE)
+          MONTHLY_DEADLINE=$(yq '.jobs.monthly-ticket-summary.attemptDeadline' $CONFIG_FILE | sed 's/s$//')
+
+          # Common config
+          TIMEZONE=$(yq '.common.timeZone' $CONFIG_FILE)
+
+          # Deploy daily scheduler job
           if gcloud scheduler jobs describe "daily-ticket-collection" \
             --location="${{ env.GC_REGION }}" >/dev/null 2>&1; then
             gcloud scheduler jobs update http "daily-ticket-collection" \
               --location="${{ env.GC_REGION }}" \
-              --schedule="0 5 * * *" \
-              --time-zone="Asia/Tokyo" \
-              --uri="${SERVICE_URL}/api/collect-tickets" \
+              --schedule="$DAILY_SCHEDULE" \
+              --time-zone="$TIMEZONE" \
+              --uri="${SERVICE_URL}${DAILY_ENDPOINT}" \
               --http-method=POST \
               --update-headers="Content-Type=application/json" \
               --message-body='{"source":"cloud-scheduler"}' \
-              --attempt-deadline="300s" \
+              --attempt-deadline="${DAILY_DEADLINE}s" \
               --max-retry-attempts=3 \
               --min-backoff=30s \
               --max-backoff=300s \
@@ -70,13 +86,13 @@ jobs:
           else
             gcloud scheduler jobs create http "daily-ticket-collection" \
               --location="${{ env.GC_REGION }}" \
-              --schedule="0 5 * * *" \
-              --time-zone="Asia/Tokyo" \
-              --uri="${SERVICE_URL}/api/collect-tickets" \
+              --schedule="$DAILY_SCHEDULE" \
+              --time-zone="$TIMEZONE" \
+              --uri="${SERVICE_URL}${DAILY_ENDPOINT}" \
               --http-method=POST \
               --headers="Content-Type=application/json" \
               --message-body='{"source":"cloud-scheduler"}' \
-              --attempt-deadline="300s" \
+              --attempt-deadline="${DAILY_DEADLINE}s" \
               --max-retry-attempts=3 \
               --min-backoff=30s \
               --max-backoff=300s \
@@ -91,13 +107,13 @@ jobs:
             --location="${{ env.GC_REGION }}" >/dev/null 2>&1; then
             gcloud scheduler jobs update http "monthly-ticket-summary" \
               --location="${{ env.GC_REGION }}" \
-              --schedule="0 11 1 * *" \
-              --time-zone="Asia/Tokyo" \
-              --uri="${SERVICE_URL}/api/ticket-summary" \
+              --schedule="$MONTHLY_SCHEDULE" \
+              --time-zone="$TIMEZONE" \
+              --uri="${SERVICE_URL}${MONTHLY_ENDPOINT}" \
               --http-method=POST \
               --update-headers="Content-Type=application/json" \
               --message-body='{"source":"cloud-scheduler-monthly"}' \
-              --attempt-deadline="120s" \
+              --attempt-deadline="${MONTHLY_DEADLINE}s" \
               --max-retry-attempts=3 \
               --min-backoff=10s \
               --max-backoff=60s \
@@ -105,13 +121,13 @@ jobs:
           else
             gcloud scheduler jobs create http "monthly-ticket-summary" \
               --location="${{ env.GC_REGION }}" \
-              --schedule="0 11 1 * *" \
-              --time-zone="Asia/Tokyo" \
-              --uri="${SERVICE_URL}/api/ticket-summary" \
+              --schedule="$MONTHLY_SCHEDULE" \
+              --time-zone="$TIMEZONE" \
+              --uri="${SERVICE_URL}${MONTHLY_ENDPOINT}" \
               --http-method=POST \
               --headers="Content-Type=application/json" \
               --message-body='{"source":"cloud-scheduler-monthly"}' \
-              --attempt-deadline="120s" \
+              --attempt-deadline="${MONTHLY_DEADLINE}s" \
               --max-retry-attempts=3 \
               --min-backoff=10s \
               --max-backoff=60s \
