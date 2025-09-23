@@ -6,6 +6,7 @@ import {
 } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
+import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 export class NotificationUseCase implements INotificationUseCase {
   constructor(
@@ -34,11 +35,7 @@ export class NotificationUseCase implements INotificationUseCase {
           ticketId: input.ticketId,
           processingStage: input.notificationType,
         },
-        error: {
-          details: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-          recoverable: true,
-        },
+        error: toErrorInfo(error, undefined, true),
       });
 
       return {
@@ -46,7 +43,7 @@ export class NotificationUseCase implements INotificationUseCase {
         ticketId: input.ticketId,
         notificationType: input.notificationType,
         executionDurationMs: executionTime,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: getErrorMessage(error),
       };
     }
   }

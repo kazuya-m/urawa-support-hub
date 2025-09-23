@@ -12,6 +12,7 @@ import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
 import { ErrorCodes as AppErrorCodes } from '@/shared/errors/ErrorCodes.ts';
+import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 export class TicketCollectionUseCase implements ITicketCollectionUseCase {
   constructor(
@@ -94,7 +95,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
       // その他のエラー
       const appError = new ApplicationError(
         'TicketCollectionUseCase',
-        `Ticket collection failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Ticket collection failed: ${getErrorMessage(error)}`,
         AppErrorCodes.USECASE_EXECUTION_FAILED,
         error instanceof Error ? error : undefined,
         { sessionId, executionDurationMs: executionDuration },
@@ -124,17 +125,13 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
         CloudLogger.error(`Failed to process ticket (ID: ${ticket.id})`, {
           category: LogCategory.TICKET_COLLECTION,
           context: { ticketId: ticket.id },
-          error: {
-            details: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-            recoverable: true,
-          },
+          error: toErrorInfo(error, undefined, true),
         });
         results.push({
           ticket: ticket,
           previousTicket: null,
           hasChanges: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
       }
     }
@@ -207,10 +204,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
           CloudLogger.warning(`Failed to cancel existing notifications for ticket ${ticket.id}`, {
             category: LogCategory.NOTIFICATION,
             context: { ticketId: ticket.id },
-            error: {
-              details: error instanceof Error ? error.message : String(error),
-              recoverable: true,
-            },
+            error: toErrorInfo(error, undefined, true),
           });
         }
       }
@@ -232,10 +226,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
         CloudLogger.error(`Failed to schedule notifications for ticket ${ticket.id}`, {
           category: LogCategory.NOTIFICATION,
           context: { ticketId: ticket.id },
-          error: {
-            details: error instanceof Error ? error.message : String(error),
-            recoverable: true,
-          },
+          error: toErrorInfo(error, undefined, true),
         });
       }
     }
@@ -280,7 +271,11 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
         category: LogCategory.NOTIFICATION,
         context: {
           ticketId: ticket.id,
-          matchName: ticket.matchName,
+        },
+        data: {
+          result: {
+            matchName: ticket.matchName,
+          },
         },
       },
     );

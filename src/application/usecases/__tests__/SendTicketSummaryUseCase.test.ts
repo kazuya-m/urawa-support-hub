@@ -139,7 +139,7 @@ describe('SendTicketSummaryUseCase', () => {
     }
 
     // 検証
-    assertEquals(thrownError?.message, 'Database error');
+    assertEquals(thrownError?.message, 'Ticket summary notification failed: Database error');
     assertEquals(mockLineClient.broadcastCallCount, 0);
   });
 
@@ -166,7 +166,7 @@ describe('SendTicketSummaryUseCase', () => {
     }
 
     // 検証
-    assertEquals(thrownError?.message, 'LINE API error');
+    assertEquals(thrownError?.message, 'Ticket summary notification failed: LINE API error');
     assertEquals(mockLineClient.broadcastCallCount, 1);
   });
 });
