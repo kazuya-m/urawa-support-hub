@@ -1,6 +1,10 @@
 import { IPage, IPlaywrightClient } from '@/infrastructure/clients/interfaces/IPlaywrightClient.ts';
 import { IBrowserManager } from '@/infrastructure/services/scraping/shared/interfaces/IBrowserManager.ts';
 import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
+import { toErrorInfo } from '@/shared/utils/errorUtils.ts';
+import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
 
 export class BrowserManager implements IBrowserManager {
   private playwrightClient: IPlaywrightClient;
@@ -53,7 +57,13 @@ export class BrowserManager implements IBrowserManager {
       try {
         await this.playwrightClient.close();
       } catch (error) {
-        console.warn('Failed to close browser:', error);
+        CloudLogger.warn('Failed to close browser', {
+          category: LogCategory.SYSTEM,
+          context: {
+            stage: 'browser_cleanup',
+          },
+          error: toErrorInfo(error, ErrorCodes.BROWSER_CLOSE_ERROR, true),
+        });
       } finally {
         this.isLaunched = false;
       }

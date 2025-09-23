@@ -6,6 +6,7 @@ import {
 } from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
+import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 export class NotificationBatchUseCase implements INotificationBatchUseCase {
   constructor(
@@ -35,23 +36,16 @@ export class NotificationBatchUseCase implements INotificationBatchUseCase {
           totalProcessed: 0,
           successCount: 0,
           failureCount: 1,
-          unknownPatterns: 0,
           processingTimeMs: executionTime,
         },
-        error: {
-          details: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-          recoverable: true,
-        },
+        error: toErrorInfo(error, undefined, true),
       });
 
       if (error instanceof Error && error.message.startsWith('Unknown operation:')) {
         throw error;
       }
       throw new Error(
-        `Failed to execute batch notifications: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Failed to execute batch notifications: ${getErrorMessage(error)}`,
       );
     }
   }
@@ -95,11 +89,7 @@ export class NotificationBatchUseCase implements INotificationBatchUseCase {
         context: {
           processingStage: 'cleanup_expired',
         },
-        error: {
-          details: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-          recoverable: true,
-        },
+        error: toErrorInfo(error, undefined, true),
       });
 
       return Promise.resolve({
@@ -107,7 +97,7 @@ export class NotificationBatchUseCase implements INotificationBatchUseCase {
         operation: 'cleanup_expired',
         cleaned: 0,
         executionDurationMs: executionTime,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: getErrorMessage(error),
       });
     }
   }

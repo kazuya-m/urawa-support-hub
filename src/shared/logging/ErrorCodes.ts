@@ -9,6 +9,7 @@ export const ErrorCodes = {
   SCRAPING_TIMEOUT: 'SCR_002', // タイムアウト
   SCRAPING_PAGE_STRUCTURE_CHANGED: 'SCR_003', // ページ構造変更
   SCRAPING_NO_TICKETS_FOUND: 'SCR_004', // チケット情報が見つからない
+  SCRAPING_SERVICE_ERROR: 'SCR_005', // 個別スクレイピングサービスエラー
 
   // データパース関連 - ERROR（ビジネス機能阻害）
   PARSE_MATCH_DATE_UNKNOWN_FORMAT: 'PRS_001', // 試合日時の未知フォーマット
@@ -31,6 +32,9 @@ export const ErrorCodes = {
   // 通知関連 - ビジネスロジック
   NOTIFICATION_LINE_API_ERROR: 'NOT_001', // LINE API エラー
   NOTIFICATION_SCHEDULE_FAILED: 'NOT_002', // スケジュール失敗
+  NOTIFICATION_FAILED: 'NOT_003', // 通知処理失敗
+  TICKET_SUMMARY_ERROR: 'NOT_004', // チケットサマリー処理失敗
+  MAX_RETRIES_EXCEEDED: 'NOT_005', // 最大リトライ回数超過
 
   // Cloud Tasks関連
   CLOUD_TASKS_ERROR: 'TASKS_001', // Cloud Tasks一般エラー
@@ -42,6 +46,9 @@ export const ErrorCodes = {
   SYS_UNEXPECTED_ERROR: 'SYS_003', // 予期しない例外
   EXT_ALL_SERVICES_DOWN: 'EXT_001', // 全外部サービス停止
   DB_SYSTEM_DOWN: 'DB_999', // データベースシステム完全停止
+
+  // ブラウザ関連
+  BROWSER_CLOSE_ERROR: 'BRW_001', // ブラウザクローズエラー
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];

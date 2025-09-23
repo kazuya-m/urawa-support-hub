@@ -10,6 +10,7 @@ import { LINE_MESSAGE_TEMPLATES, NOTIFICATION_TYPE_STYLES } from '@/config/notif
 import { URAWA_URL_CONFIG } from '@/config/url.ts';
 import { NOTIFICATION_TYPES, NotificationType } from '@/domain/entities/NotificationTypes.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
+import { getErrorMessage } from '@/shared/utils/errorUtils.ts';
 
 // .envファイルの読み込み
 try {
@@ -90,7 +91,7 @@ async function sendNotificationTest(notificationType: NotificationType) {
   } catch (error) {
     console.error(
       `❌ ${notificationType} エラー:`,
-      error instanceof Error ? error.message : String(error),
+      getErrorMessage(error),
     );
     return false;
   }

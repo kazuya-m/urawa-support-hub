@@ -9,6 +9,7 @@ import { INotificationRepository } from '@/application/interfaces/repositories/I
 import { INotificationSchedulerService } from '@/application/interfaces/services/INotificationSchedulerService.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
+import { toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 export class NotificationSchedulerService implements INotificationSchedulerService {
   constructor(
@@ -53,10 +54,7 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
         CloudLogger.error(`Failed to schedule ${type} notification`, {
           category: LogCategory.NOTIFICATION,
           context: { ticketId: ticket.id },
-          error: {
-            details: error instanceof Error ? error.message : String(error),
-            recoverable: true,
-          },
+          error: toErrorInfo(error, undefined, true),
         });
         return { type, error, success: false };
       }
@@ -89,10 +87,7 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
     } catch (error) {
       CloudLogger.error(`Failed to dequeue task ${taskId}`, {
         category: LogCategory.NOTIFICATION,
-        error: {
-          details: error instanceof Error ? error.message : String(error),
-          recoverable: true,
-        },
+        error: toErrorInfo(error, undefined, true),
       });
       throw error;
     }
@@ -106,10 +101,7 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
       } catch (error) {
         CloudLogger.error(`Failed to dequeue task ${taskId}`, {
           category: LogCategory.NOTIFICATION,
-          error: {
-            details: error instanceof Error ? error.message : String(error),
-            recoverable: true,
-          },
+          error: toErrorInfo(error, undefined, true),
         });
         return { success: false, taskId, error };
       }

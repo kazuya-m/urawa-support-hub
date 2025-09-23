@@ -1,4 +1,5 @@
 import { HttpStatusCodes } from '@/shared/constants/HttpStatusCodes.ts';
+import { getErrorMessage } from '@/shared/utils/errorUtils.ts';
 
 interface ErrorResponse {
   error: string;
@@ -31,7 +32,7 @@ export function handleHealthCheck(): Response {
   } catch (error) {
     return createErrorResponse(
       'Health check failed',
-      error instanceof Error ? error.message : String(error),
+      getErrorMessage(error),
       HttpStatusCodes.SERVICE_UNAVAILABLE,
     );
   }
@@ -66,7 +67,7 @@ function executeHealthCheck(checkFn: () => void): { success: boolean; error?: st
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     };
   }
 }

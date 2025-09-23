@@ -1,5 +1,5 @@
 import { assertEquals } from 'std/assert/mod.ts';
-import { afterEach, beforeEach, describe, it } from 'testing/bdd.ts';
+import { afterEach, beforeEach, describe, it } from 'std/testing/bdd.ts';
 import { SendTicketSummaryUseCase } from '../SendTicketSummaryUseCase.ts';
 import { MockTicketRepository } from '@/shared/testing/mocks/MockTicketRepository.ts';
 import { MockLineClient } from '@/shared/testing/mocks/MockLineClient.ts';
@@ -139,7 +139,7 @@ describe('SendTicketSummaryUseCase', () => {
     }
 
     // 検証
-    assertEquals(thrownError?.message, 'Database error');
+    assertEquals(thrownError?.message, 'Ticket summary notification failed: Database error');
     assertEquals(mockLineClient.broadcastCallCount, 0);
   });
 
@@ -166,7 +166,7 @@ describe('SendTicketSummaryUseCase', () => {
     }
 
     // 検証
-    assertEquals(thrownError?.message, 'LINE API error');
+    assertEquals(thrownError?.message, 'Ticket summary notification failed: LINE API error');
     assertEquals(mockLineClient.broadcastCallCount, 1);
   });
 });

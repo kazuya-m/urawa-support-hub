@@ -8,6 +8,7 @@ import {
   createTestSupabaseClient,
 } from '@/tests/utils/test-supabase.ts';
 import { createDynamicTestTicket } from '@/tests/utils/test-fixtures.ts';
+import { getErrorMessage } from '@/shared/utils/errorUtils.ts';
 
 const supabase = createTestSupabaseClient();
 const ticketRepo = new TicketRepository(supabase);
@@ -24,7 +25,8 @@ async function cleanupTicket(ticketId: string) {
     // cleanupTestDataById を使用するか、条件文字列形式で呼び出し
     await cleanupTestData(supabase, 'tickets', `id = '${ticketId}'`);
   } catch (error) {
-    console.warn(`Failed to cleanup ticket ${ticketId}:`, error);
+    // テストクリーンアップでのエラーは無視（ログ出力なし）
+    // console.warn を削除: ` Failed to cleanup ticket ${ticketId}: ${getErrorMessage(error)}`;
   }
 }
 
@@ -32,7 +34,8 @@ async function cleanupNotification(notificationId: string) {
   try {
     await cleanupTestData(supabase, 'notifications', `id = '${notificationId}'`);
   } catch (error) {
-    console.warn(`Failed to cleanup notification ${notificationId}:`, error);
+    // テストクリーンアップでのエラーは無視（ログ出力なし）
+    // console.warn を削除: ` Failed to cleanup notification ${notificationId}: ${getErrorMessage(error)}`;
   }
 }
 

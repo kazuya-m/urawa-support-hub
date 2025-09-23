@@ -3,6 +3,7 @@ import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
+import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 export class TicketSummaryController {
   constructor(
@@ -11,17 +12,7 @@ export class TicketSummaryController {
 
   async handleTicketSummary(_req: Request): Promise<Response> {
     try {
-      CloudLogger.info('Received ticket summary request from Cloud Scheduler', {
-        category: LogCategory.NOTIFICATION,
-        context: { processingStage: 'TicketSummaryController' },
-      });
-
       await this.ticketSummaryUseCase.execute();
-
-      CloudLogger.info('Ticket summary handler completed successfully', {
-        category: LogCategory.NOTIFICATION,
-        context: { processingStage: 'TicketSummaryController' },
-      });
 
       return HttpResponseBuilder.success({
         message: 'Ticket summary processed successfully',
@@ -70,14 +61,11 @@ export class TicketSummaryController {
       }
 
       // 予期しないエラー
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = getErrorMessage(error);
       CloudLogger.error('Unexpected error in ticket summary processing', {
         category: LogCategory.NOTIFICATION,
         context: { processingStage: 'TicketSummaryController' },
-        error: {
-          message: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
-        },
+        error: toErrorInfo(error, undefined, false),
       });
 
       return HttpResponseBuilder.error(

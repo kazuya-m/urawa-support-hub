@@ -6,13 +6,14 @@
  */
 
 import { load } from '@std/dotenv';
+import { getErrorMessage } from '@/shared/utils/errorUtils.ts';
 
 // 環境変数を読み込み
 try {
   await load({ export: true });
   console.log('📁 .env ファイルを読み込みました');
 } catch (error) {
-  const message = error instanceof Error ? error.message : 'Unknown error';
+  const message = getErrorMessage(error);
   console.log('⚠️  .env ファイルが見つからないか、読み込みに失敗しました:', message);
 }
 

@@ -6,6 +6,7 @@ import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
+import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 export class NotificationBatchController {
   constructor(
@@ -53,14 +54,10 @@ export class NotificationBatchController {
         );
       }
 
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       CloudLogger.critical('Unexpected error in NotificationBatchController (pending)', {
         category: LogCategory.NOTIFICATION,
-        error: {
-          details: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
-          recoverable: false,
-        },
+        error: toErrorInfo(error, undefined, false),
       });
       return HttpResponseBuilder.error('Pending notifications processing failed', errorMessage);
     }
@@ -107,14 +104,10 @@ export class NotificationBatchController {
         );
       }
 
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       CloudLogger.critical('Unexpected error in NotificationBatchController (cleanup)', {
         category: LogCategory.NOTIFICATION,
-        error: {
-          details: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
-          recoverable: false,
-        },
+        error: toErrorInfo(error, undefined, false),
       });
       return HttpResponseBuilder.error('Expired notifications cleanup failed', errorMessage);
     }

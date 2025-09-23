@@ -6,6 +6,8 @@
 import { format, set, subDays } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { TZDate } from '@date-fns/tz';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
 
 const JST_TIMEZONE = 'Asia/Tokyo';
 
@@ -117,8 +119,27 @@ export function formatDateOnly(date: Date): string {
  * @param date Dateオブジェクト
  */
 export function logDateTime(label: string, date: Date): void {
-  console.log(`${label}:`);
-  console.log(`  UTC: ${date.toISOString()}`);
-  console.log(`  JST: ${formatJST(date, 'yyyy-MM-dd HH:mm:ss zzz')}`);
-  console.log(`  Timestamp: ${date.getTime()}`);
+  // 本番環境ではログ出力しない
+  if (Deno.env.get('NODE_ENV') === 'production') {
+    return;
+  }
+
+  CloudLogger.debug(
+    `${label}: UTC: ${date.toISOString()}, JST: ${
+      formatJST(date, 'yyyy-MM-dd HH:mm:ss zzz')
+    }, Timestamp: ${date.getTime()}`,
+    {
+      category: LogCategory.SYSTEM,
+      context: {
+        stage: 'datetime_debug',
+      },
+      data: {
+        result: {
+          utc: date.toISOString(),
+          jst: formatJST(date, 'yyyy-MM-dd HH:mm:ss zzz'),
+          timestamp: date.getTime(),
+        },
+      },
+    },
+  );
 }

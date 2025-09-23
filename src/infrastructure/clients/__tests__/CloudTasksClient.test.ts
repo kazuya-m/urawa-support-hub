@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects, assertThrows } from 'std/assert/mod.ts';
-import { returnsNext, stub } from 'testing/mock.ts';
+import { returnsNext, stub } from 'std/testing/mock.ts';
 import { CloudTasksClient, CloudTasksConfig, EnqueueTaskParams } from '../CloudTasksClient.ts';
 
 // テスト用の共通セットアップ
