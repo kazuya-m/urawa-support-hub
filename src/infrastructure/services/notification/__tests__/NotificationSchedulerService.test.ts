@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from 'std/assert/mod.ts';
-import { stub } from 'testing/mock.ts';
+import { stub } from 'std/testing/mock.ts';
 import { NotificationSchedulerService } from '../NotificationSchedulerService.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { NOTIFICATION_TYPES } from '@/domain/entities/NotificationTypes.ts';

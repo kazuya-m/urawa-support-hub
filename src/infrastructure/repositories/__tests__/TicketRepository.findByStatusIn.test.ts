@@ -1,5 +1,5 @@
 import { assertEquals } from 'std/assert/mod.ts';
-import { afterEach, beforeEach, describe, it } from 'testing/bdd.ts';
+import { afterEach, beforeEach, describe, it } from 'std/testing/bdd.ts';
 import { MockTicketRepository } from '@/shared/testing/mocks/MockTicketRepository.ts';
 import { createTestTicket } from '@/shared/testing/TestDataGenerator.ts';
 
