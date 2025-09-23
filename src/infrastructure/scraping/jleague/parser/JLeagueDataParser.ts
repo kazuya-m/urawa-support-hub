@@ -133,8 +133,13 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
           expectedPattern: 'YYYY/MM/DD HH:MM',
         },
         context: {
-          matchName: context?.matchName,
-          ticketUrl: context?.ticketUrl,
+          stage: 'parsing',
+        },
+        data: {
+          payload: {
+            matchName: context?.matchName,
+            ticketUrl: context?.ticketUrl,
+          },
         },
         error: {
           code: ErrorCodes.PARSE_MATCH_DATE_UNKNOWN_FORMAT,
@@ -278,7 +283,16 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
           issueType: 'MISSING_FIELD',
           field: 'saleStartDate',
         },
-        context,
+        context: {
+          stage: 'parsing',
+        },
+        data: {
+          payload: {
+            matchName: context.matchName,
+            ticketUrl: context.ticketUrl,
+            saleStatus: context.saleStatus,
+          },
+        },
         error: {
           code: ErrorCodes.PARSE_SALE_START_DATE_MISSING_BEFORE_SALE,
           details: 'Sale start date is required for pre-sale tickets to enable notifications',
@@ -306,7 +320,15 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
           issueType: 'MISSING_FIELD',
           field: 'venue',
         },
-        context,
+        context: {
+          stage: 'parsing',
+        },
+        data: {
+          payload: {
+            matchName: context.matchName,
+            ticketUrl: context.ticketUrl,
+          },
+        },
         error: {
           code: ErrorCodes.PARSE_VENUE_INFO_MISSING,
           details: 'Venue information could not be extracted',
@@ -323,7 +345,15 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
           issueType: 'MISSING_FIELD',
           field: 'competition',
         },
-        context,
+        context: {
+          stage: 'parsing',
+        },
+        data: {
+          payload: {
+            matchName: context.matchName,
+            ticketUrl: context.ticketUrl,
+          },
+        },
         error: {
           code: ErrorCodes.PARSE_COMPETITION_MISSING,
           details: 'Competition name could not be extracted',
