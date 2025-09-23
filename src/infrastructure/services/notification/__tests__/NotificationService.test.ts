@@ -7,6 +7,7 @@ import type { NotificationExecutionInput } from '@/application/interfaces/usecas
 import { MockNotificationRepository } from '@/shared/testing/mocks/MockNotificationRepository.ts';
 import { MockTicketRepository } from '@/shared/testing/mocks/MockTicketRepository.ts';
 import { MockLineClient } from '@/shared/testing/mocks/MockLineClient.ts';
+import { getErrorMessage } from '@/shared/utils/errorUtils.ts';
 
 let mockFetchResponse: Response;
 let fetchCallHistory: Array<{
@@ -82,7 +83,7 @@ Deno.test('NotificationService', async (t) => {
     try {
       await service.processScheduledNotification(input);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       assertEquals(typeof errorMessage, 'string');
     }
 

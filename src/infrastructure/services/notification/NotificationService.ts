@@ -9,6 +9,10 @@ import type { NotificationExecutionInput } from '@/application/interfaces/usecas
 import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
 import { ILineClient } from '@/infrastructure/clients/LineClient.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
+import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
+import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
 
 export class NotificationService implements INotificationService {
   constructor(
@@ -52,10 +56,14 @@ export class NotificationService implements INotificationService {
 
       await this.sendNotification(history, ticket);
     } catch (error) {
-      console.error(
-        `Scheduled notification processing failed for ticket ${ticketId}:`,
-        error instanceof Error ? error.message : String(error),
-      );
+      CloudLogger.error('Scheduled notification processing failed', {
+        category: LogCategory.NOTIFICATION,
+        context: {
+          ticketId,
+          stage: 'scheduled_notification',
+        },
+        error: toErrorInfo(error, ErrorCodes.NOTIFICATION_FAILED, false),
+      });
       throw error;
     }
   }
@@ -134,7 +142,7 @@ export class NotificationService implements INotificationService {
       await this.lineClient.broadcast(lineMessage);
     } catch (error) {
       throw new Error(
-        `LINE notification failed: ${error instanceof Error ? error.message : String(error)}`,
+        `LINE notification failed: ${getErrorMessage(error)}`,
       );
     }
   }
@@ -143,9 +151,19 @@ export class NotificationService implements INotificationService {
     const failedHistory = history.markAsFailed(error.message);
     await this.notificationRepository.update(failedHistory);
 
-    console.error(
-      `Notification failed after ${3} retries - Ticket: ${history.ticketId}, Type: ${history.getNotificationTypeDisplayName()}, Error: ${error.message}`,
-    );
+    CloudLogger.error('Notification failed after maximum retries', {
+      category: LogCategory.NOTIFICATION,
+      context: {
+        ticketId: history.ticketId,
+        notificationId: history.id,
+        stage: 'retry_exhausted',
+      },
+      error: toErrorInfo(error, ErrorCodes.MAX_RETRIES_EXCEEDED, false),
+      metadata: {
+        notificationType: history.getNotificationTypeDisplayName(),
+        maxRetries: 3,
+      },
+    });
   }
 
   private delay(ms: number): Promise<void> {

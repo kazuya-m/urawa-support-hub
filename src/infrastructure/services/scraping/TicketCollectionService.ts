@@ -1,6 +1,10 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { ITicketCollectionService } from '@/application/interfaces/services/ITicketCollectionService.ts';
 import type { ISiteScrapingService } from '@/infrastructure/scraping/shared/interfaces/index.ts';
+import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
+import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
 
 /**
  * チケット収集サービス（DI対応リファクタリング版）
@@ -19,7 +23,16 @@ export class TicketCollectionService implements ITicketCollectionService {
           try {
             return await service.collectTickets();
           } catch (error) {
-            console.error(`❌ ${service.serviceName} scraping failed:`, error);
+            CloudLogger.error('Scraping service failed', {
+              category: LogCategory.TICKET_COLLECTION,
+              context: {
+                stage: 'individual_service_scraping',
+              },
+              metadata: {
+                serviceName: service.serviceName,
+              },
+              error: toErrorInfo(error, ErrorCodes.SCRAPING_SERVICE_ERROR, true),
+            });
             return []; // 1サイト失敗しても他サイトの結果は返す
           }
         }),
@@ -30,7 +43,7 @@ export class TicketCollectionService implements ITicketCollectionService {
 
       return allTickets;
     } catch (error) {
-      throw new Error(`Ticket collection failed: ${error}`);
+      throw new Error(`Ticket collection failed: ${getErrorMessage(error)}`);
     }
   }
 }
