@@ -3,6 +3,7 @@ import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
 import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
+import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 export class TicketCollectionController {
   constructor(
@@ -49,14 +50,10 @@ export class TicketCollectionController {
         );
       }
 
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       CloudLogger.critical('Unexpected error in TicketCollectionController', {
         category: LogCategory.SYSTEM,
-        error: {
-          details: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
-          recoverable: false,
-        },
+        error: toErrorInfo(error, undefined, false),
       });
       return HttpResponseBuilder.error('Ticket collection failed', errorMessage);
     }
