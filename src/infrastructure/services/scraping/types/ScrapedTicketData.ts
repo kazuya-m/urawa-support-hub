@@ -2,6 +2,7 @@
  * J-Leagueサイトからスクレイピングで取得されるチケット情報
  * Infrastructure層の技術的な契約として定義
  */
+import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 export interface ScrapedTicketData {
   matchName: string;
   matchDate: string | null; // 統合日時（例: "2025/09/20 19:00"）または日付のみ（例: "5/15"）
@@ -14,5 +15,5 @@ export interface ScrapedTicketData {
   homeTeam: string | null; // ホームチーム（取得できない場合はnull）
   awayTeam: string | null; // アウェイチーム（取得できない場合はnull）
   scrapedAt: Date; // スクレイピング実行時刻
-  saleStatus?: 'before_sale' | 'on_sale' | 'ended'; // 販売状態（スクレイピング失敗時はundefined）
+  saleStatus?: SaleStatus; // 販売状態（スクレイピング失敗時はundefined）
 }

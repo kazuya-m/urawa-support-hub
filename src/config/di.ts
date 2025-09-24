@@ -19,6 +19,7 @@ import { NotificationService } from '@/infrastructure/services/notification/Noti
 import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
 import { LineClient } from '@/infrastructure/clients/LineClient.ts';
 import { JLeagueScrapingService } from '@/infrastructure/scraping/jleague/JLeagueScrapingService.ts';
+import { HiroshimaScrapingService } from '@/infrastructure/scraping/hiroshima/HiroshimaScrapingService.ts';
 import { TestJLeagueScrapingService } from '@/infrastructure/scraping/test/TestJLeagueScrapingService.ts';
 import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { BrowserManager } from '@/infrastructure/services/scraping/shared/BrowserManager.ts';
@@ -69,8 +70,14 @@ export const createDependencies = () => {
     // 本番モード: 実際のスクレイピングサービスを使用
     const playwrightClient = new PlaywrightClient();
     const browserManager = new BrowserManager(playwrightClient);
+
+    // J-Leagueサイトスクレイピング
     const jleagueScrapingService = new JLeagueScrapingService(browserManager);
     scrapingServices.push(jleagueScrapingService);
+
+    // サンフレッチェ広島公式サイトスクレイピング（同じbrowserManagerを使用）
+    const hiroshimaScrapingService = new HiroshimaScrapingService(browserManager);
+    scrapingServices.push(hiroshimaScrapingService);
   }
 
   const ticketCollectionService = new TicketCollectionService(scrapingServices);

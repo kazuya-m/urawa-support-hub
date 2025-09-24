@@ -74,7 +74,7 @@ Deno.test('parseSaleDate should parse full range format correctly', () => {
   assertEquals(result.saleEndDate?.getDate(), 12);
 
   assertEquals(typeof result.saleStatus, 'string');
-  assertEquals(['before_sale', 'on_sale', 'ended'].includes(result.saleStatus!), true);
+  assertEquals(['before_sale', 'on_sale', 'sold_out', 'ended'].includes(result.saleStatus!), true);
 });
 
 Deno.test('parseSaleDate should throw error for unknown format', () => {

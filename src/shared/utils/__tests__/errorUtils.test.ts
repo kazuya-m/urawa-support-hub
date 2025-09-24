@@ -1,4 +1,4 @@
-import { assertEquals, assertStringIncludes } from 'std/testing/asserts.ts';
+import { assertEquals, assertStringIncludes } from 'std/assert/mod.ts';
 import { getErrorDetails, getErrorMessage, getErrorStack, toErrorInfo } from '../errorUtils.ts';
 
 Deno.test('getErrorMessage', async (t) => {
