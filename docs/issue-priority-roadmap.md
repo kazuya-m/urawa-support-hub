@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-21 (Issue #140, #137, #135, #131, #130, #129完了)\
+**Updated**: 2025-09-23 (Issue #119完了)\
 **Goal**: ✅ Launch MVP by 2025-09-30 (**完了**: 2025-09-16)
 
 ## Implementation Status Summary
@@ -212,13 +212,16 @@ Each issue is considered complete when:
 
 ### 📈 **現在の開発フェーズ**: Post-MVP改善・機能拡張
 
-### ✅ **最近完了したイシュー (2025-09-20)**:
+### ✅ **最近完了したイシュー (2025-09-23)**:
 
-- #101 - 月初チケット一覧送信機能実装（Cloud Scheduler + LINE通知）✅
+- #119 - 構造化ログへの統一とログ戦略の見直し: String(error)パターンを全て置き換え ✅
+- #140 - Cloud Scheduler月次実行を月初20時に変更 ✅
 - #137 - 通知システムの改善: sent_atの誤更新修正とupdated_at追加 ✅
 - #135 - notificationsテーブルの命名不整合を修正 ✅
 - #131 - LINEメッセージの試合日時と販売開始日時をJST表示に修正 ✅
+- #130 - PostgreSQL セキュリティパッチ適用のためのデータベースアップグレード ✅
 - #129 - notificationsテーブルのnotification_scheduledカラム冗長性解決 ✅
+- #101 - 月初チケット一覧送信機能実装（Cloud Scheduler + LINE通知）✅
 
 ## 🚨 Active Issues - 優先順位別
 
