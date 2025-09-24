@@ -44,9 +44,9 @@ export class HiroshimaDataExtractor {
       });
 
       // 各行からチケット情報を抽出（浦和レッズ戦のみ）
-      for (let i = 0; i < rowElements.length; i++) {
+      for (const rowElement of rowElements) {
         try {
-          const rowData = await this.extractRowData(rowElements[i]);
+          const rowData = await this.extractRowData(rowElement);
           if (rowData && this.isUrawaMatch(rowData.opponent)) {
             tickets.push(rowData);
             CloudLogger.info('Urawa match found in Hiroshima schedule', {
@@ -63,7 +63,7 @@ export class HiroshimaDataExtractor {
             });
           }
         } catch (error) {
-          this.addWarning(`Failed to extract data from row ${i}: ${error}`);
+          this.addWarning(`Failed to extract data from row: ${error}`);
         }
       }
 
