@@ -1,4 +1,5 @@
 import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
+import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 
 export interface TicketRow {
   id: string;
@@ -15,7 +16,7 @@ export interface TicketRow {
   created_at: string;
   updated_at: string;
   scraped_at: string;
-  sale_status: 'before_sale' | 'on_sale' | 'ended';
+  sale_status: SaleStatus;
   notification_scheduled: boolean;
 }
 
@@ -45,7 +46,7 @@ export interface TicketInsert {
   ticket_types?: string[] | null;
   ticket_url?: string | null;
   scraped_at: string;
-  sale_status: 'before_sale' | 'on_sale' | 'ended';
+  sale_status: SaleStatus;
   notification_scheduled?: boolean;
 }
 
