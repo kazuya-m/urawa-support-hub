@@ -6,6 +6,7 @@ import { JLeagueRawTicketData } from '../types/JLeagueTypes.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
+import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 
 /**
  * J-League固有のデータパーサー
@@ -265,7 +266,7 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
     saleInfo: {
       saleStartDate?: Date;
       saleEndDate?: Date;
-      saleStatus: 'before_sale' | 'on_sale' | 'ended';
+      saleStatus: SaleStatus;
     } | null,
     _referenceDate: Date,
   ): void {

@@ -3,6 +3,7 @@
  */
 
 import { Ticket } from '@/domain/entities/Ticket.ts';
+import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 // import { NotificationHistory } from '@/domain/entities/NotificationHistory.ts';
 // import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
 
@@ -24,7 +25,7 @@ export function createTestTicket(overrides: Partial<{
   createdAt: Date;
   updatedAt: Date;
   scrapedAt: Date;
-  saleStatus?: 'before_sale' | 'on_sale' | 'ended';
+  saleStatus?: SaleStatus;
   notificationScheduled?: boolean;
 }> = {}): Ticket {
   const defaultProps = {
