@@ -1,6 +1,7 @@
 import { NotificationType, shouldSendNotificationAtTime } from './NotificationTypes.ts';
 import { DataQuality, determineDataQuality } from './DataQuality.ts';
 import { formatDateOnly } from '@/shared/utils/datetime.ts';
+import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import fastDeepEqual from 'fast-deep-equal';
 
 interface TicketProps {
@@ -18,7 +19,7 @@ interface TicketProps {
   createdAt: Date;
   updatedAt: Date;
   scrapedAt: Date;
-  saleStatus?: 'before_sale' | 'on_sale' | 'ended';
+  saleStatus?: SaleStatus;
   notificationScheduled?: boolean;
 }
 
@@ -120,7 +121,7 @@ export class Ticket {
     return this.props.ticketUrl;
   }
 
-  get saleStatus(): 'before_sale' | 'on_sale' | 'ended' {
+  get saleStatus(): SaleStatus {
     return this.props.saleStatus ?? 'before_sale';
   }
 

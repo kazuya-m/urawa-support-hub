@@ -1,4 +1,5 @@
 import { createJSTDateTime, toJSTDate } from '@/shared/utils/datetime.ts';
+import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 
 /**
  * J-Leagueシーズンを考慮した年判定ロジック
@@ -50,7 +51,7 @@ export function determineSaleStatus(
   saleStartDate: Date | undefined,
   saleEndDate: Date | undefined,
   scrapedAt: Date,
-): 'before_sale' | 'on_sale' | 'ended' {
+): SaleStatus {
   if (saleEndDate && scrapedAt > saleEndDate) {
     return 'ended';
   }
@@ -68,7 +69,7 @@ export function parseSaleDate(
 ): {
   saleStartDate?: Date;
   saleEndDate?: Date;
-  saleStatus: 'before_sale' | 'on_sale' | 'ended';
+  saleStatus: SaleStatus;
 } {
   const beforeSalePattern = /^(\d{2})\/(\d{2})\([月火水木金土日]\)(\d{2}):(\d{2})〜$/;
   const onSalePattern = /^〜(\d{2})\/(\d{2})\([月火水木金土日]\)(\d{2}):(\d{2})$/;
