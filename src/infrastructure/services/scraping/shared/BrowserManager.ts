@@ -15,6 +15,14 @@ export class BrowserManager implements IBrowserManager {
   }
 
   async launch(timeout: number): Promise<void> {
+    // 既にブラウザが起動している場合はスキップ
+    if (this.isLaunched) {
+      CloudLogger.debug('Browser already launched, skipping', {
+        category: LogCategory.TICKET_COLLECTION,
+      });
+      return;
+    }
+
     await this.playwrightClient.launch(timeout);
     this.isLaunched = true;
   }
