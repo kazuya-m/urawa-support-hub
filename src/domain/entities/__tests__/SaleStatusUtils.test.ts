@@ -1,8 +1,8 @@
 import { assertEquals } from 'std/assert/mod.ts';
 import {
+  createMatchDateFromJST,
   determineSaleStatus,
   determineYear,
-  parseMatchDate,
   parseSaleDate,
 } from '../SaleStatusUtils.ts';
 
@@ -116,11 +116,11 @@ Deno.test('determineYear - 通常シーズン内', () => {
   assertEquals(result, 2025, '通常シーズン内は同年として判定されるべき');
 });
 
-Deno.test('parseMatchDate - 年跨ぎ対応', () => {
+Deno.test('createMatchDateFromJST - 年跨ぎ対応', () => {
   const referenceDate = new Date(2024, 11, 15); // 2024年12月15日
 
   // 翌年3月の試合
-  const marchMatch = parseMatchDate(3, 15, 14, 0, referenceDate);
+  const marchMatch = createMatchDateFromJST(3, 15, 14, 0, referenceDate);
   assertEquals(marchMatch.getUTCFullYear(), 2025, '12月実行時の3月試合は翌年として処理');
   assertEquals(marchMatch.getUTCMonth(), 2, '月は正しく設定されるべき'); // 3月 = 2 (0-indexed)
   assertEquals(marchMatch.getUTCDate(), 15, 'JST 14:00 -> UTC same day 05:00'); // JST 3/15 14:00 -> UTC 3/15 05:00
@@ -160,9 +160,9 @@ Deno.test('parseSaleDate - 年跨ぎフルレンジテスト', () => {
 });
 
 // JST→UTC変換の具体的テスト
-Deno.test('parseMatchDate - JST to UTC conversion verification', () => {
+Deno.test('createMatchDateFromJST - JST to UTC conversion verification', () => {
   // JST 2025-03-15 10:00 → UTC 2025-03-15 01:00
-  const result = parseMatchDate(3, 15, 10, 0, new Date(2024, 11, 15));
+  const result = createMatchDateFromJST(3, 15, 10, 0, new Date(2024, 11, 15));
 
   assertEquals(result.getUTCFullYear(), 2025);
   assertEquals(result.getUTCMonth(), 2); // March
@@ -174,9 +174,9 @@ Deno.test('parseMatchDate - JST to UTC conversion verification', () => {
   assertEquals(result.toISOString(), '2025-03-15T01:00:00.000Z');
 });
 
-Deno.test('parseMatchDate - JST midnight to UTC previous day', () => {
+Deno.test('createMatchDateFromJST - JST midnight to UTC previous day', () => {
   // JST 2025-03-15 00:30 → UTC 2025-03-14 15:30
-  const result = parseMatchDate(3, 15, 0, 30, new Date(2024, 11, 15));
+  const result = createMatchDateFromJST(3, 15, 0, 30, new Date(2024, 11, 15));
 
   assertEquals(result.getUTCFullYear(), 2025);
   assertEquals(result.getUTCMonth(), 2); // March
