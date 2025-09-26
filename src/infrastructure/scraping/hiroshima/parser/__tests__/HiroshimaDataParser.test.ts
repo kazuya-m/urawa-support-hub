@@ -1,6 +1,7 @@
 import { assertEquals, assertExists } from 'std/assert/mod.ts';
 import { HiroshimaDataParser } from '../HiroshimaDataParser.ts';
 import type { HiroshimaRawTicketData } from '../../types/HiroshimaTypes.ts';
+import { toJSTDate } from '@/shared/utils/datetime.ts';
 
 Deno.test('HiroshimaDataParser', async (t) => {
   const parser = new HiroshimaDataParser();
@@ -105,12 +106,12 @@ Deno.test('HiroshimaDataParser', async (t) => {
         time: string;
         expectedMonth: number;
         expectedDay: number;
-        expectedHour: number;
+        expectedHourJST: number;
       }
     > = [
-      { date: '11.9', time: '13:00', expectedMonth: 11, expectedDay: 9, expectedHour: 13 },
-      { date: '2.23', time: '14:00', expectedMonth: 2, expectedDay: 23, expectedHour: 14 },
-      { date: '10.26', time: '19:00', expectedMonth: 10, expectedDay: 26, expectedHour: 19 },
+      { date: '11.9', time: '13:00', expectedMonth: 11, expectedDay: 9, expectedHourJST: 13 },
+      { date: '2.23', time: '14:00', expectedMonth: 2, expectedDay: 23, expectedHourJST: 14 },
+      { date: '10.26', time: '19:00', expectedMonth: 10, expectedDay: 26, expectedHourJST: 19 },
     ];
 
     for (const testCase of testCases) {
@@ -128,19 +129,22 @@ Deno.test('HiroshimaDataParser', async (t) => {
       assertEquals(tickets.length, 1);
 
       const matchDate = tickets[0].matchDate;
-      assertEquals(matchDate.getMonth() + 1, testCase.expectedMonth);
-      assertEquals(matchDate.getDate(), testCase.expectedDay);
-      assertEquals(matchDate.getHours(), testCase.expectedHour);
+      // JST -> UTC変換が正しく動作することを確認
+      // UTC時刻をJST時刻に変換して検証
+      const jstDate = toJSTDate(matchDate);
+      assertEquals(jstDate.getMonth() + 1, testCase.expectedMonth);
+      assertEquals(jstDate.getDate(), testCase.expectedDay);
+      assertEquals(jstDate.getHours(), testCase.expectedHourJST);
     }
   });
 
   await t.step('販売開始日のパース', async () => {
     const testCases: Array<
-      { saleDate: string; expectedMonth: number; expectedDay: number; expectedHour: number }
+      { saleDate: string; expectedMonth: number; expectedDay: number; expectedHourJST: number }
     > = [
-      { saleDate: '10/10(金) 12:00～', expectedMonth: 10, expectedDay: 10, expectedHour: 12 },
-      { saleDate: '11/15(水) 15:30～', expectedMonth: 11, expectedDay: 15, expectedHour: 15 },
-      { saleDate: '9/5(木) 09:00～', expectedMonth: 9, expectedDay: 5, expectedHour: 9 },
+      { saleDate: '10/10(金) 12:00～', expectedMonth: 10, expectedDay: 10, expectedHourJST: 12 },
+      { saleDate: '11/15(水) 15:30～', expectedMonth: 11, expectedDay: 15, expectedHourJST: 15 },
+      { saleDate: '9/5(木) 09:00～', expectedMonth: 9, expectedDay: 5, expectedHourJST: 9 },
     ];
 
     for (const testCase of testCases) {
@@ -160,9 +164,12 @@ Deno.test('HiroshimaDataParser', async (t) => {
 
       const saleStartDate = tickets[0].saleStartDate;
       assertExists(saleStartDate);
-      assertEquals(saleStartDate!.getMonth() + 1, testCase.expectedMonth);
-      assertEquals(saleStartDate!.getDate(), testCase.expectedDay);
-      assertEquals(saleStartDate!.getHours(), testCase.expectedHour);
+      // JST -> UTC変換が正しく動作することを確認
+      // UTC時刻をJST時刻に変換して検証
+      const jstDate = toJSTDate(saleStartDate!);
+      assertEquals(jstDate.getMonth() + 1, testCase.expectedMonth);
+      assertEquals(jstDate.getDate(), testCase.expectedDay);
+      assertEquals(jstDate.getHours(), testCase.expectedHourJST);
     }
   });
 
