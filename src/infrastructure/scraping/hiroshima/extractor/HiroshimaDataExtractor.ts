@@ -46,8 +46,16 @@ export class HiroshimaDataExtractor {
       // 各行からチケット情報を抽出（浦和レッズ戦のみ）
       for (const rowElement of rowElements) {
         try {
+          // まず対戦相手だけを確認
+          const opponent = await this.extractOpponent(rowElement);
+          if (!opponent || !this.isUrawaMatch(opponent)) {
+            // 浦和戦でなければスキップ
+            continue;
+          }
+
+          // 浦和戦の場合のみ詳細データを抽出
           const rowData = await this.extractRowData(rowElement);
-          if (rowData && this.isUrawaMatch(rowData.opponent)) {
+          if (rowData) {
             tickets.push(rowData);
             CloudLogger.info('Urawa match found in Hiroshima schedule', {
               category: LogCategory.TICKET_COLLECTION,
@@ -105,15 +113,15 @@ export class HiroshimaDataExtractor {
         return null;
       }
 
-      // 会場情報が取得できない場合は警告
-      if (!matchInfo.venue) {
-        this.addWarning('Venue information not found');
-      }
-
-      // 対戦相手を取得（img要素のalt属性から）
+      // 対戦相手は既に確認済みなので再度取得
       const opponent = await this.extractOpponent(rowElement);
       if (!opponent) {
         return null;
+      }
+
+      // 浦和戦で会場情報が取得できない場合は警告
+      if (!matchInfo.venue) {
+        this.addWarning('Venue information not found for Urawa match');
       }
 
       // 販売状況を取得
@@ -157,13 +165,17 @@ export class HiroshimaDataExtractor {
         return { date: null, time: null, venue: null };
       }
 
-      const fullText = await firstTd.textContent();
-      if (!fullText) {
+      // innerHTML()を使って<br>タグを直接処理
+      const innerHTML = await firstTd.innerHTML();
+      if (!innerHTML) {
         return { date: null, time: null, venue: null };
       }
 
-      // テキストを行で分割
-      const lines = fullText.split('\n').map((line) => line.trim()).filter((line) => line);
+      // <br>タグで分割してHTMLタグを除去
+      const lines = innerHTML
+        .split(/<br\s*\/?>/i)
+        .map((line) => line.replace(/<[^>]*>/g, '').trim())
+        .filter((line) => line);
 
       let date = null;
       let time = null;
@@ -184,10 +196,10 @@ export class HiroshimaDataExtractor {
           continue;
         }
 
-        // 会場を抽出（エディオンピースウイング広島など）
+        // 会場を抽出（<br>分割により単独行になった会場名）
         if (
           line.includes('エディオン') || line.includes('広島') ||
-          (!line.includes('節') && !line.includes('K.O.'))
+          (!line.includes('節') && !line.includes('K.O.') && line.length > 2)
         ) {
           venue = line;
         }
