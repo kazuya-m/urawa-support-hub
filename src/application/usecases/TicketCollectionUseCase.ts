@@ -32,7 +32,17 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
 
       const upsertResults = await this.upsertCollectedTickets(tickets);
 
-      await this.scheduleTicketNotifications(upsertResults);
+      // 通知スケジューリングのエラーをキャッチして処理を継続
+      try {
+        await this.scheduleTicketNotifications(upsertResults);
+      } catch (error) {
+        CloudLogger.error('Failed to schedule notifications, but continuing ticket collection', {
+          category: LogCategory.NOTIFICATION,
+          error: toErrorInfo(error, undefined, true),
+          context: { sessionId },
+        });
+        // エラーがあっても処理を継続
+      }
 
       const executionDuration = Date.now() - startTime;
 

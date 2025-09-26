@@ -25,10 +25,10 @@ export function determineYear(month: number, referenceDate: Date = new Date()): 
 }
 
 /**
- * 年跨ぎ対応の日付解析関数
+ * 年跨ぎ対応の日付作成関数
  * JST（日本標準時）をUTCに変換して返す
  */
-export function parseMatchDate(
+export function createMatchDateFromJST(
   month: number,
   day: number,
   hour: number = 0,
@@ -79,7 +79,7 @@ export function parseSaleDate(
   const beforeSaleMatch = saleText.match(beforeSalePattern);
   if (beforeSaleMatch) {
     const [, month, day, hour, minute] = beforeSaleMatch;
-    const saleStartDate = parseMatchDate(
+    const saleStartDate = createMatchDateFromJST(
       parseInt(month),
       parseInt(day),
       parseInt(hour),
@@ -92,7 +92,7 @@ export function parseSaleDate(
   const onSaleMatch = saleText.match(onSalePattern);
   if (onSaleMatch) {
     const [, month, day, hour, minute] = onSaleMatch;
-    const saleEndDate = parseMatchDate(
+    const saleEndDate = createMatchDateFromJST(
       parseInt(month),
       parseInt(day),
       parseInt(hour),
@@ -106,14 +106,14 @@ export function parseSaleDate(
   if (fullRangeMatch) {
     const [, startMonth, startDay, startHour, startMinute, endMonth, endDay, endHour, endMinute] =
       fullRangeMatch;
-    const saleStartDate = parseMatchDate(
+    const saleStartDate = createMatchDateFromJST(
       parseInt(startMonth),
       parseInt(startDay),
       parseInt(startHour),
       parseInt(startMinute),
       referenceDate,
     );
-    const saleEndDate = parseMatchDate(
+    const saleEndDate = createMatchDateFromJST(
       parseInt(endMonth),
       parseInt(endDay),
       parseInt(endHour),

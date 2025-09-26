@@ -3,6 +3,7 @@ import { HiroshimaRawTicketData } from '../types/HiroshimaTypes.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
+import { createMatchDateFromJST } from '@/domain/entities/SaleStatusUtils.ts';
 
 /**
  * サンフレッチェ広島のデータを共通のTicket形式に変換
@@ -103,8 +104,6 @@ export class HiroshimaDataParser {
    */
   private parseMatchDate(dateStr: string, timeStr?: string): Date | null {
     try {
-      const currentYear = new Date().getFullYear();
-
       // 日付から月日を抽出（例: "2.23 [日・祝]" -> "2.23"）
       const dateMatch = dateStr.match(/(\d{1,2})\.(\d{1,2})/);
       if (!dateMatch) {
@@ -128,21 +127,8 @@ export class HiroshimaDataParser {
       const hour = parseInt(timeMatch[1], 10);
       const minute = parseInt(timeMatch[2], 10);
 
-      // 年を決定（現在月より前の月なら来年）
-      const now = new Date();
-      let year = currentYear;
-      if (month < now.getMonth() + 1) {
-        year = currentYear + 1;
-      }
-
-      // JST時刻として作成
-      const jstDate = new Date(year, month - 1, day, hour, minute, 0, 0);
-
-      if (isNaN(jstDate.getTime())) {
-        return null;
-      }
-
-      return jstDate;
+      // ドメイン層のロジックを使用（年跨ぎ + JST→UTC変換）
+      return createMatchDateFromJST(month, day, hour, minute);
     } catch {
       return null;
     }
@@ -177,14 +163,8 @@ export class HiroshimaDataParser {
       const hour = parseInt(timeMatch[1], 10);
       const minute = parseInt(timeMatch[2], 10);
 
-      const currentYear = new Date().getFullYear();
-      const saleDate = new Date(currentYear, month - 1, day, hour, minute, 0, 0);
-
-      if (isNaN(saleDate.getTime())) {
-        return null;
-      }
-
-      return saleDate;
+      // ドメイン層のロジックを使用（年判定 + JST→UTC変換）
+      return createMatchDateFromJST(month, day, hour, minute);
     } catch {
       return null;
     }

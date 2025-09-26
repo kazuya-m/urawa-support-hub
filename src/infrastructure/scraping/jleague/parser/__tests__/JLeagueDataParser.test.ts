@@ -78,7 +78,7 @@ Deno.test('JLeagueDataParser - 2桁年フォールバック時のタイムゾー
   const referenceDate = new Date('2025-02-01T03:00:00.000Z');
   const ticket = await parser.parseToTicket(rawData, referenceDate);
 
-  // 2桁年の場合もparseMatchDateを使用してJST→UTC変換されることを確認
+  // 2桁年の場合もcreateMatchDateFromJSTを使用してJST→UTC変換されることを確認
   assertEquals(ticket.matchDate.getUTCFullYear(), 2025);
   assertEquals(ticket.matchDate.getUTCMonth(), 2); // March (0-indexed)
   assertEquals(ticket.matchDate.getUTCDate(), 15); // Same date in UTC

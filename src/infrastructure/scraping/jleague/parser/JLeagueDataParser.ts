@@ -1,5 +1,5 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { parseMatchDate, parseSaleDate } from '@/domain/entities/SaleStatusUtils.ts';
+import { createMatchDateFromJST, parseSaleDate } from '@/domain/entities/SaleStatusUtils.ts';
 import { J_LEAGUE_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts';
 import { IDataParser } from '../../shared/interfaces/index.ts';
 import { JLeagueRawTicketData } from '../types/JLeagueTypes.ts';
@@ -117,12 +117,12 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
         if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute)) {
           throw new Error(`Invalid date values: ${dateTimeStr}`);
         }
-        // parseMatchDate関数を使用してJST→UTC変換を実行
-        return parseMatchDate(month, day, hour, minute, new Date(year, 0, 1));
+        // createMatchDateFromJST関数を使用してJST→UTC変換を実行
+        return createMatchDateFromJST(month, day, hour, minute, new Date(year, 0, 1));
       }
 
       // 2桁年の場合は年跨ぎロジックを適用
-      return parseMatchDate(month, day, hour, minute, referenceDate);
+      return createMatchDateFromJST(month, day, hour, minute, referenceDate);
     } catch (_error) {
       // 未知のパターン検出（ERROR） - データ品質監視
       CloudLogger.error('Unknown date pattern detected', {
@@ -166,7 +166,7 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
       }
 
       // 年跨ぎロジックを適用
-      return parseMatchDate(month, day, 0, 0, referenceDate);
+      return createMatchDateFromJST(month, day, 0, 0, referenceDate);
     } catch (_error) {
       return referenceDate;
     }
