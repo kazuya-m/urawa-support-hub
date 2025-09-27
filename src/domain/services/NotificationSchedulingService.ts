@@ -2,8 +2,8 @@ import { Ticket } from '@/domain/entities/Ticket.ts';
 import {
   NOTIFICATION_TIMING_CONFIG,
   NotificationType,
-} from '@/domain/entities/NotificationTypes.ts';
-import { INotificationSchedulingService } from '@/domain/interfaces/services/INotificationSchedulingService.ts';
+} from '@/domain/config/NotificationConfig.ts';
+import { INotificationSchedulingService } from '@/application/interfaces/services/INotificationSchedulingService.ts';
 
 export interface NotificationTiming {
   type: NotificationType;

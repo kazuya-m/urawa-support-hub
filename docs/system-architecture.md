@@ -568,18 +568,50 @@ const ALERT_THRESHOLDS = {
 ```
 src/
 ├── application/
+│   ├── interfaces/                   # Application Layer Interfaces
+│   │   ├── clients/                  # Client interfaces (moved from infrastructure)
+│   │   │   ├── IBrowserManager.ts
+│   │   │   ├── ICloudTasksClient.ts
+│   │   │   ├── IPlaywrightClient.ts
+│   │   │   └── index.ts
+│   │   ├── repositories/             # Repository interfaces
+│   │   │   ├── INotificationRepository.ts
+│   │   │   └── ITicketRepository.ts
+│   │   ├── results/                  # UseCase result types
+│   │   │   └── UseCaseResults.ts
+│   │   ├── services/                 # Service interfaces
+│   │   │   ├── INotificationSchedulerService.ts
+│   │   │   ├── INotificationService.ts
+│   │   │   ├── INotificationSchedulingService.ts
+│   │   │   ├── ITicketCollectionService.ts
+│   │   │   └── ITicketScraper.ts
+│   │   └── usecases/                 # UseCase interfaces
+│   │       ├── INotificationBatchUseCase.ts
+│   │       ├── INotificationUseCase.ts
+│   │       ├── ITicketCollectionUseCase.ts
+│   │       ├── ITicketSummaryUseCase.ts
+│   │       └── index.ts
 │   └── usecases/                     # Application Use Cases
 │       ├── TicketCollectionUseCase.ts
+│       ├── NotificationUseCase.ts
+│       ├── NotificationBatchUseCase.ts
+│       ├── SendTicketSummaryUseCase.ts
 │       └── __tests__/
 ├── domain/
-│   └── entities/                     # Domain Entities
-│       ├── Ticket.ts
-│       ├── NotificationHistory.ts
-│       ├── NotificationTypes.ts
-│       ├── SystemHealth.ts
-│       ├── ErrorLog.ts
-│       ├── index.ts
-│       └── __tests__/
+│   ├── entities/                     # Domain Entities
+│   │   ├── Ticket.ts
+│   │   ├── Notification.ts
+│   │   ├── DataQuality.ts
+│   │   ├── index.ts
+│   │   └── __tests__/
+│   ├── services/                     # Domain Services (Issue #150)
+│   │   ├── DateCalculationService.ts # J-League season-aware date calculations
+│   │   ├── SaleStatusService.ts      # Sale status determination logic
+│   │   └── NotificationSchedulingService.ts
+│   ├── config/                       # Domain Configuration
+│   │   └── NotificationConfig.ts     # Notification timing configuration
+│   └── types/                        # Domain Types
+│       └── SaleStatus.ts
 └── infrastructure/
     ├── config/                      # Configuration Management
     │   ├── notification.ts
@@ -601,16 +633,40 @@ src/
     │   │   └── HealthConverter.ts
     │   └── __tests__/
     ├── services/
-    │   └── scraping/                # Scraping Services
-    │       ├── TicketCollectionService.ts
-    │       ├── shared/
-    │       │   └── BrowserManager.ts
-    │       ├── sources/
-    │       │   └── jleague/
-    │       │       ├── JLeagueTicketScraper.ts
-    │       │       ├── TicketDataExtractor.ts
-    │       │       ├── JLeagueConfig.ts
-    │       │       └── __tests__/
+    │   ├── scraping/                # Unified Scraping Services (Issue #150)
+    │   │   ├── TicketCollectionService.ts
+    │   │   ├── shared/
+    │   │   │   ├── BrowserManager.ts
+    │   │   │   └── interfaces/      # Shared interfaces for scraping
+    │   │   │       ├── IDataExtractor.ts
+    │   │   │       ├── IDataParser.ts
+    │   │   │       ├── ISiteScrapingService.ts
+    │   │   │       └── index.ts
+    │   │   ├── sources/             # Site-specific implementations
+    │   │   │   ├── jleague/         # J-League scraping implementation
+    │   │   │   │   ├── JLeagueScrapingService.ts
+    │   │   │   │   ├── JLeagueConfig.ts
+    │   │   │   │   ├── extractor/
+    │   │   │   │   │   └── JLeagueDataExtractor.ts
+    │   │   │   │   ├── parser/
+    │   │   │   │   │   └── JLeagueDataParser.ts
+    │   │   │   │   ├── types/
+    │   │   │   │   │   └── JLeagueTypes.ts
+    │   │   │   │   └── __tests__/
+    │   │   │   └── hiroshima/       # Hiroshima scraping implementation
+    │   │   │       ├── HiroshimaScrapingService.ts
+    │   │   │       ├── HiroshimaConfig.ts
+    │   │   │       ├── extractor/
+    │   │   │       │   └── HiroshimaDataExtractor.ts
+    │   │   │       ├── parser/
+    │   │   │       │   └── HiroshimaDataParser.ts
+    │   │   │       ├── types/
+    │   │   │       │   └── HiroshimaTypes.ts
+    │   │   │       └── __tests__/
+    │   │   └── __tests__/
+    │   └── notification/            # Notification Services
+    │       ├── NotificationService.ts
+    │       ├── NotificationSchedulerService.ts
     │       └── __tests__/
     ├── types/
     │   └── database.ts              # Database Type Definitions
@@ -629,3 +685,13 @@ src/
 3. **Domain Layer Refinement**: Clear separation of entities and repository interfaces
 4. **Dependency Injection**: Constructor-based DI for centralized dependency management via
    `src/config/di.ts`
+5. **Scraping Structure Consolidation (Issue #150)**:
+   - Unified all scraping-related code under `infrastructure/services/scraping/`
+   - Eliminated duplicate directories between `infrastructure/scraping/` and
+     `infrastructure/services/scraping/`
+   - Created organized source-specific structure: `sources/jleague/` and `sources/hiroshima/`
+   - Standardized interfaces in `shared/interfaces/` for consistent scraping implementation
+6. **Domain Services Introduction (Issue #150)**:
+   - Extracted business logic into domain services: `DateCalculationService`, `SaleStatusService`
+   - Moved notification configuration to domain layer: `NotificationConfig.ts`
+   - Enhanced separation of concerns between domain logic and infrastructure

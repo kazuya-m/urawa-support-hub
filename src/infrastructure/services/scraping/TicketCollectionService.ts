@@ -1,6 +1,6 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { ITicketCollectionService } from '@/application/interfaces/services/ITicketCollectionService.ts';
-import type { ISiteScrapingService } from '@/infrastructure/scraping/shared/interfaces/index.ts';
+import type { ISiteScrapingService } from './shared/interfaces/index.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';

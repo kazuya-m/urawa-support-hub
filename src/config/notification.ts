@@ -3,7 +3,7 @@
  * LINE Bot の設定値管理
  */
 
-import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
+import { NotificationType } from '@/domain/config/NotificationConfig.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
 import { formatMatchName } from '@/shared/utils/match.ts';

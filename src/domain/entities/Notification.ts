@@ -1,4 +1,4 @@
-import { getDisplayName, NotificationType } from './NotificationTypes.ts';
+import { getDisplayName, NotificationType } from '@/domain/config/NotificationConfig.ts';
 
 export type NotificationStatus = 'scheduled' | 'sent' | 'failed' | 'cancelled';
 

@@ -6,7 +6,7 @@ import { INotificationService } from '@/application/interfaces/services/INotific
 import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
 import { formatMatchName } from '@/shared/utils/match.ts';
 import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
-import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
+import { NotificationType } from '@/domain/config/NotificationConfig.ts';
 import { ILineClient } from '@/infrastructure/clients/LineClient.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';

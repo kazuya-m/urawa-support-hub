@@ -1,6 +1,6 @@
 import { assertEquals } from 'std/assert/mod.ts';
 import { NotificationController } from '../NotificationController.ts';
-import { NOTIFICATION_TYPES } from '@/domain/entities/NotificationTypes.ts';
+import { NOTIFICATION_TYPES } from '@/domain/config/NotificationConfig.ts';
 import { MockNotificationUseCase } from '@/shared/testing/mocks/MockNotificationUseCase.ts';
 
 Deno.test('NotificationController', async (t) => {

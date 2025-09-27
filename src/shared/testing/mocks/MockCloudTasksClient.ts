@@ -2,7 +2,7 @@ import {
   EnqueueTaskParams,
   ICloudTasksClient,
   Task,
-} from '@/infrastructure/interfaces/clients/ICloudTasksClient.ts';
+} from '@/application/interfaces/clients/ICloudTasksClient.ts';
 
 export class MockCloudTasksClient implements ICloudTasksClient {
   private tasks: Map<string, Task> = new Map();

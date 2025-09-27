@@ -3,7 +3,7 @@ import {
   EnqueueTaskParams,
   ICloudTasksClient,
   Task,
-} from '@/infrastructure/interfaces/clients/ICloudTasksClient.ts';
+} from '@/application/interfaces/clients/ICloudTasksClient.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';

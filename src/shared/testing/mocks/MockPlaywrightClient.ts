@@ -1,4 +1,4 @@
-import { IPage, IPlaywrightClient } from '@/infrastructure/clients/interfaces/IPlaywrightClient.ts';
+import { IPage, IPlaywrightClient } from '@/application/interfaces/clients/IPlaywrightClient.ts';
 import type { ElementHandle } from 'playwright';
 
 /**

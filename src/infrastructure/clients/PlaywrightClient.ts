@@ -1,5 +1,5 @@
 import { Browser, chromium, Page } from 'playwright';
-import { IPage, IPlaywrightClient } from './interfaces/IPlaywrightClient.ts';
+import { IPage, IPlaywrightClient } from '@/application/interfaces/clients/IPlaywrightClient.ts';
 
 /**
  * Playwrightページのラッパー実装

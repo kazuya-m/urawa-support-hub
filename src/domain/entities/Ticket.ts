@@ -1,4 +1,7 @@
-import { NotificationType, shouldSendNotificationAtTime } from './NotificationTypes.ts';
+import {
+  NotificationType,
+  shouldSendNotificationAtTime,
+} from '@/domain/config/NotificationConfig.ts';
 import { DataQuality, determineDataQuality } from './DataQuality.ts';
 import { formatDateOnly } from '@/shared/utils/datetime.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';

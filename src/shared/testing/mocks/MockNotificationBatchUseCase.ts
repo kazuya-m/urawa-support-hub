@@ -2,7 +2,7 @@ import {
   BatchExecutionInput,
   INotificationBatchUseCase,
 } from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
-import { BatchProcessingResult } from '@/application/types/UseCaseResults.ts';
+import { BatchProcessingResult } from '@/application/interfaces/results/UseCaseResults.ts';
 
 export class MockNotificationBatchUseCase implements INotificationBatchUseCase {
   private mockResults: BatchProcessingResult[] = [];

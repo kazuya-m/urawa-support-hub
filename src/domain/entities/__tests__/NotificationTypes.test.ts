@@ -5,7 +5,7 @@ import {
   NOTIFICATION_TIMING_CONFIG,
   NotificationType,
   shouldSendNotificationAtTime,
-} from '../NotificationTypes.ts';
+} from '@/domain/config/NotificationConfig.ts';
 import { toJSTDate } from '@/shared/utils/datetime.ts';
 
 Deno.test('NotificationConfig - day_before設定値テスト', () => {
