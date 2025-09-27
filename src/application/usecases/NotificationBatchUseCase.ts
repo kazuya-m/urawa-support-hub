@@ -1,5 +1,5 @@
 import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
-import { BatchProcessingResult } from '@/application/types/UseCaseResults.ts';
+import { BatchProcessingResult } from '@/application/interfaces/results/UseCaseResults.ts';
 import {
   BatchExecutionInput,
   INotificationBatchUseCase,

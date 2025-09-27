@@ -1,4 +1,4 @@
-import { isValidNotificationType, NotificationType } from '@/domain/entities/NotificationTypes.ts';
+import { isValidNotificationType, NotificationType } from '@/domain/config/NotificationConfig.ts';
 
 export interface ValidationResult<T> {
   isValid: boolean;

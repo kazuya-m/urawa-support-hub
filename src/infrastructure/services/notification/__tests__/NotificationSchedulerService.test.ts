@@ -2,7 +2,7 @@ import { assertEquals, assertExists } from 'std/assert/mod.ts';
 import { stub } from 'std/testing/mock.ts';
 import { NotificationSchedulerService } from '../NotificationSchedulerService.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { NOTIFICATION_TYPES } from '@/domain/entities/NotificationTypes.ts';
+import { NOTIFICATION_TYPES } from '@/domain/config/NotificationConfig.ts';
 import { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
 import { createMockCloudTasksClient } from './test-utils/CloudTasksMock.ts';
 import { createMockNotificationRepository } from './test-utils/NotificationRepositoryMock.ts';
@@ -71,7 +71,7 @@ Deno.test('NotificationSchedulerService - scheduleNotifications should call Clou
     assertEquals(payload.notificationType, NOTIFICATION_TYPES.DAY_BEFORE);
     assertEquals(firstTask.httpRequest.url, 'https://test.example.com/api/notify');
 
-    // Verify no console.log calls in the implementation (only console.error/warn on failures)
+    // 実装でのconsole.log呼び出しがないことを確認（エラー時のconsole.error/warnのみ許可）
     assertEquals(consoleLogStub.calls.length, 0);
   } finally {
     // Restore environment variable
@@ -166,7 +166,7 @@ Deno.test('NotificationSchedulerService - cancelNotification should call CloudTa
   try {
     await service.cancelNotification('test-task-id');
 
-    // Verify no console.log calls in the implementation (only console.error on failures)
+    // 実装でのconsole.log呼び出しがないことを確認（エラー時のconsole.errorのみ許可）
     assertEquals(consoleLogStub.calls.length, 0);
   } finally {
     consoleLogStub.restore();

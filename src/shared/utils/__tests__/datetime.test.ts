@@ -129,13 +129,13 @@ Deno.test('logDateTime - デバッグ出力（実行のみ確認）', () => {
   // エラーが発生しないことを確認
   let errorThrown = false;
   try {
-    // console.logを一時的に無効化
+    // テスト実行時の出力抑制のため、console.logを一時的にモック化
     const originalLog = console.log;
-    console.log = () => {};
+    console.log = () => {}; // テスト出力を抑制
 
     logDateTime('Test Date', date);
 
-    // console.logを復元
+    // console.logを元に戻す（テスト後の確実な復元）
     console.log = originalLog;
   } catch {
     errorThrown = true;

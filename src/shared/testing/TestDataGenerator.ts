@@ -5,7 +5,7 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 // import { NotificationHistory } from '@/domain/entities/NotificationHistory.ts';
-// import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
+// import { NotificationType } from '@/domain/config/NotificationConfig.ts';
 
 /**
  * テスト用のTicketエンティティを作成

@@ -18,9 +18,9 @@ import { NotificationSchedulerService } from '@/infrastructure/services/notifica
 import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
 import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
 import { LineClient } from '@/infrastructure/clients/LineClient.ts';
-import { JLeagueScrapingService } from '@/infrastructure/scraping/jleague/JLeagueScrapingService.ts';
-import { HiroshimaScrapingService } from '@/infrastructure/scraping/hiroshima/HiroshimaScrapingService.ts';
-import { TestJLeagueScrapingService } from '@/infrastructure/scraping/test/TestJLeagueScrapingService.ts';
+import { JLeagueScrapingService } from '@/infrastructure/services/scraping/sources/jleague/JLeagueScrapingService.ts';
+import { HiroshimaScrapingService } from '@/infrastructure/services/scraping/sources/hiroshima/HiroshimaScrapingService.ts';
+import { TestJLeagueScrapingService } from '@/infrastructure/services/scraping/__tests__/mocks/TestJLeagueScrapingService.ts';
 import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { BrowserManager } from '@/infrastructure/services/scraping/shared/BrowserManager.ts';
 import { createSupabaseAdminClient } from '@/config/supabase.ts';

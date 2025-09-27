@@ -1,4 +1,4 @@
-import { NotificationType } from '@/domain/entities/NotificationTypes.ts';
+import { NotificationType } from '@/domain/config/NotificationConfig.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 
 export interface TicketRow {

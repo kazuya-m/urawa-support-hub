@@ -2,10 +2,13 @@ import { ITicketCollectionService } from '@/application/interfaces/services/ITic
 import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
 import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
 import { INotificationSchedulerService } from '@/application/interfaces/services/INotificationSchedulerService.ts';
-import { INotificationSchedulingService } from '@/domain/interfaces/services/INotificationSchedulingService.ts';
+import { INotificationSchedulingService } from '@/application/interfaces/services/INotificationSchedulingService.ts';
 import { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { TicketCollectionResult, TicketUpsertResult } from '@/application/types/UseCaseResults.ts';
+import {
+  TicketCollectionResult,
+  TicketUpsertResult,
+} from '@/application/interfaces/results/UseCaseResults.ts';
 import { CancellationReason } from '@/domain/entities/Notification.ts';
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';

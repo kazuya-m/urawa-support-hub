@@ -4,7 +4,7 @@ import { NotificationTiming } from '@/domain/services/NotificationSchedulingServ
 import {
   EnqueueTaskParams,
   ICloudTasksClient,
-} from '@/infrastructure/interfaces/clients/ICloudTasksClient.ts';
+} from '@/application/interfaces/clients/ICloudTasksClient.ts';
 import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
 import { INotificationSchedulerService } from '@/application/interfaces/services/INotificationSchedulerService.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';

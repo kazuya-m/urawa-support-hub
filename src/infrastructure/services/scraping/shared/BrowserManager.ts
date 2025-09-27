@@ -1,5 +1,5 @@
-import { IPage, IPlaywrightClient } from '@/infrastructure/clients/interfaces/IPlaywrightClient.ts';
-import { IBrowserManager } from '@/infrastructure/services/scraping/shared/interfaces/IBrowserManager.ts';
+import { IPage, IPlaywrightClient } from '@/application/interfaces/clients/IPlaywrightClient.ts';
+import { IBrowserManager } from '@/application/interfaces/clients/IBrowserManager.ts';
 import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
