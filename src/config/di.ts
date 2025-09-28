@@ -30,17 +30,14 @@ import { NotificationSchedulingService } from '@/domain/services/NotificationSch
 
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { INotificationUseCase } from '@/application/interfaces/usecases/INotificationUseCase.ts';
-import { INotificationBatchUseCase } from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
 import { ITicketSummaryUseCase } from '@/application/interfaces/usecases/ITicketSummaryUseCase.ts';
 
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 import { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
-import { NotificationBatchUseCase } from '@/application/usecases/NotificationBatchUseCase.ts';
 import { SendTicketSummaryUseCase } from '@/application/usecases/SendTicketSummaryUseCase.ts';
 
 import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
 import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
-import { NotificationBatchController } from '@/adapters/controllers/NotificationBatchController.ts';
 import { TicketSummaryController } from '@/adapters/controllers/TicketSummaryController.ts';
 
 /**
@@ -122,13 +119,6 @@ export const createNotificationUseCase = (): INotificationUseCase => {
   );
 };
 
-export const createNotificationBatchUseCase = (): INotificationBatchUseCase => {
-  const deps = createDependencies();
-  return new NotificationBatchUseCase(
-    deps.notificationService,
-  );
-};
-
 export const createTicketSummaryUseCase = (): ITicketSummaryUseCase => {
   const deps = createDependencies();
   return new SendTicketSummaryUseCase(
@@ -148,13 +138,6 @@ export const createTicketCollectionController = (): TicketCollectionController =
   const ticketCollectionUseCase = createTicketCollectionUseCase();
   return new TicketCollectionController(
     ticketCollectionUseCase,
-  );
-};
-
-export const createNotificationBatchController = (): NotificationBatchController => {
-  const notificationBatchUseCase = createNotificationBatchUseCase();
-  return new NotificationBatchController(
-    notificationBatchUseCase,
   );
 };
 
