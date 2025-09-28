@@ -123,7 +123,7 @@ export const createTicketSummaryUseCase = (): ITicketSummaryUseCase => {
   const deps = createDependencies();
   return new SendTicketSummaryUseCase(
     deps.ticketRepository,
-    deps.lineClient,
+    deps.notificationService,
   );
 };
 

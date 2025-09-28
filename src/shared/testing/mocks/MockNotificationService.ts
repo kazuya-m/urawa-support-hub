@@ -8,11 +8,12 @@ export class MockNotificationService implements INotificationService {
     input?: NotificationExecutionInput;
     notification?: Notification;
     ticket?: Ticket;
+    tickets?: Ticket[];
   }> = [];
   private shouldThrowError = false;
   private errorMessage = 'Mock notification error';
 
-  async processScheduledNotification(input: NotificationExecutionInput): Promise<void> {
+  async sendScheduledNotification(input: NotificationExecutionInput): Promise<void> {
     if (this.shouldThrowError) {
       throw new Error(this.errorMessage);
     }
@@ -21,21 +22,14 @@ export class MockNotificationService implements INotificationService {
     await Promise.resolve();
   }
 
-  async processPendingNotifications(): Promise<void> {
+  async sendTicketSummary(tickets: Ticket[]): Promise<void> {
+    // Always count the call, even if it will throw an error
+    this.processedNotifications.push({ tickets });
+
     if (this.shouldThrowError) {
       throw new Error(this.errorMessage);
     }
 
-    // Mock implementation - does nothing
-    await Promise.resolve();
-  }
-
-  async sendNotification(history: Notification, ticket: Ticket): Promise<void> {
-    if (this.shouldThrowError) {
-      throw new Error(this.errorMessage);
-    }
-
-    this.processedNotifications.push({ notification: history, ticket });
     await Promise.resolve();
   }
 
@@ -44,8 +38,20 @@ export class MockNotificationService implements INotificationService {
     input?: NotificationExecutionInput;
     notification?: Notification;
     ticket?: Ticket;
+    tickets?: Ticket[];
   }> {
     return [...this.processedNotifications];
+  }
+
+  getLastSentTickets(): Ticket[] | undefined {
+    const lastSummary = this.processedNotifications
+      .filter((p) => p.tickets)
+      .pop();
+    return lastSummary?.tickets;
+  }
+
+  getSendTicketSummaryCallCount(): number {
+    return this.processedNotifications.filter((p) => p.tickets).length;
   }
 
   // テスト用設定メソッド

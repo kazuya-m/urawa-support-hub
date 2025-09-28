@@ -17,7 +17,7 @@ export class NotificationUseCase implements INotificationUseCase {
     const startTime = Date.now();
 
     try {
-      await this.notificationService.processScheduledNotification(input);
+      await this.notificationService.sendScheduledNotification(input);
 
       const executionTime = Date.now() - startTime;
 

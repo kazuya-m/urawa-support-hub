@@ -1,7 +1,6 @@
 import { ITicketSummaryUseCase } from '@/application/interfaces/usecases/ITicketSummaryUseCase.ts';
 import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
-import { ILineClient } from '@/infrastructure/clients/LineClient.ts';
-import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
+import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
@@ -10,7 +9,7 @@ import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
 export class SendTicketSummaryUseCase implements ITicketSummaryUseCase {
   constructor(
     private readonly ticketRepository: ITicketRepository,
-    private readonly lineClient: ILineClient,
+    private readonly notificationService: INotificationService,
   ) {}
 
   async execute(): Promise<void> {
@@ -40,16 +39,15 @@ export class SendTicketSummaryUseCase implements ITicketSummaryUseCase {
         return;
       }
 
-      // LINEメッセージ作成・送信
-      const message = LINE_MESSAGE_TEMPLATES.ticketSummary(upcomingTickets);
-      await this.lineClient.broadcast(message);
+      // チケット一覧通知送信
+      await this.notificationService.sendTicketSummary(upcomingTickets);
 
       CloudLogger.info('Ticket summary sent successfully', {
         category: LogCategory.NOTIFICATION,
         context: { stage: 'usecase_completion' },
         metrics: {
           totalProcessed: upcomingTickets.length,
-          successCount: 1, // LINE送信成功
+          successCount: 1, // 通知送信成功
           failureCount: 0,
           processingTimeMs: Date.now() - startTime,
         },

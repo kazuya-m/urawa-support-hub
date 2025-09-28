@@ -6,7 +6,6 @@ import { INotificationService } from '@/application/interfaces/services/INotific
 import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
 import { formatMatchName } from '@/shared/utils/match.ts';
 import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
-import { NotificationType } from '@/domain/config/NotificationConfig.ts';
 import { ILineClient } from '@/infrastructure/clients/LineClient.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
@@ -21,7 +20,7 @@ export class NotificationService implements INotificationService {
     private readonly lineClient: ILineClient,
   ) {}
 
-  async processScheduledNotification(input: NotificationExecutionInput): Promise<void> {
+  async sendScheduledNotification(input: NotificationExecutionInput): Promise<void> {
     const { ticketId, notificationType } = input;
 
     try {
@@ -54,7 +53,45 @@ export class NotificationService implements INotificationService {
         return;
       }
 
-      await this.sendNotification(history, ticket);
+      const maxRetries = 3;
+      let retryCount = 0;
+      let lastError: Error | null = null;
+
+      while (retryCount < maxRetries) {
+        try {
+          const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
+            formatMatchName(ticket),
+            formatJST(ticket.matchDate, 'M/d(eeeee) HH:mm'),
+            ticket.venue || '未定',
+            ticket.saleStartDate ? formatJST(ticket.saleStartDate, 'M/d(eeeee) HH:mm') : '未定',
+            notificationType,
+            ticket.ticketUrl,
+          );
+
+          await this.lineClient.broadcast(lineMessage);
+
+          const updatedHistory = history.markAsSent();
+          await this.notificationRepository.update(updatedHistory);
+          return;
+        } catch (error) {
+          lastError = error as Error;
+          retryCount++;
+
+          if (retryCount < maxRetries) {
+            const delayMs = Math.pow(2, retryCount - 1) * 1000;
+            await this.delay(delayMs);
+          }
+        }
+      }
+
+      if (lastError) {
+        await this.handleFailedNotification(history, lastError);
+      } else {
+        await this.handleFailedNotification(
+          history,
+          new Error('Unknown notification error after retries'),
+        );
+      }
     } catch (error) {
       CloudLogger.error('Scheduled notification processing failed', {
         category: LogCategory.NOTIFICATION,
@@ -65,85 +102,6 @@ export class NotificationService implements INotificationService {
         error: toErrorInfo(error, ErrorCodes.NOTIFICATION_FAILED, false),
       });
       throw error;
-    }
-  }
-
-  async processPendingNotifications(): Promise<void> {
-    const currentTime = new Date();
-    const scheduledNotifications = await this.notificationRepository
-      .findByColumn('status', 'scheduled');
-
-    const dueNotifications = scheduledNotifications.filter((notification) =>
-      notification.canBeSent(currentTime)
-    );
-
-    for (const notification of dueNotifications) {
-      try {
-        const ticket = await this.ticketRepository.findById(notification.ticketId);
-        if (!ticket) {
-          continue;
-        }
-
-        await this.sendNotification(notification, ticket);
-      } catch (error) {
-        await this.handleFailedNotification(notification, error as Error);
-      }
-    }
-  }
-
-  async sendNotification(history: Notification, ticket: Ticket): Promise<void> {
-    const maxRetries = 3;
-    let retryCount = 0;
-    let lastError: Error | null = null;
-
-    while (retryCount < maxRetries) {
-      try {
-        await this.sendTicketNotification(ticket, history.notificationType);
-        const updatedHistory = history.markAsSent();
-        await this.notificationRepository.update(updatedHistory);
-        return;
-      } catch (error) {
-        lastError = error as Error;
-        retryCount++;
-
-        if (retryCount < maxRetries) {
-          const delayMs = Math.pow(2, retryCount - 1) * 1000; // 1s, 2s, 4s
-          await this.delay(delayMs);
-        }
-      }
-    }
-
-    // 最後のエラーが確実に存在することを確認
-    if (lastError) {
-      await this.handleFailedNotification(history, lastError);
-    } else {
-      // 理論的には起こりえないが、型安全性のため
-      await this.handleFailedNotification(
-        history,
-        new Error('Unknown notification error after retries'),
-      );
-    }
-  }
-
-  private async sendTicketNotification(
-    ticket: Ticket,
-    notificationType: NotificationType,
-  ): Promise<void> {
-    const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
-      formatMatchName(ticket),
-      formatJST(ticket.matchDate, 'M/d(eeeee) HH:mm'),
-      ticket.venue || '未定',
-      ticket.saleStartDate ? formatJST(ticket.saleStartDate, 'M/d(eeeee) HH:mm') : '未定',
-      notificationType,
-      ticket.ticketUrl,
-    );
-
-    try {
-      await this.lineClient.broadcast(lineMessage);
-    } catch (error) {
-      throw new Error(
-        `LINE notification failed: ${getErrorMessage(error)}`,
-      );
     }
   }
 
@@ -164,6 +122,29 @@ export class NotificationService implements INotificationService {
         maxRetries: 3,
       },
     });
+  }
+
+  async sendTicketSummary(tickets: Ticket[]): Promise<void> {
+    const message = LINE_MESSAGE_TEMPLATES.ticketSummary(tickets);
+
+    try {
+      await this.lineClient.broadcast(message);
+
+      CloudLogger.info('Ticket summary notification sent successfully', {
+        category: LogCategory.NOTIFICATION,
+        context: { stage: 'ticket_summary_sent' },
+        metadata: {
+          ticketCount: tickets.length,
+        },
+      });
+    } catch (error) {
+      CloudLogger.error('Ticket summary notification failed', {
+        category: LogCategory.NOTIFICATION,
+        context: { stage: 'ticket_summary_error' },
+        error: toErrorInfo(error, ErrorCodes.TICKET_SUMMARY_ERROR, false),
+      });
+      throw new Error(`Ticket summary notification failed: ${getErrorMessage(error)}`);
+    }
   }
 
   private delay(ms: number): Promise<void> {
