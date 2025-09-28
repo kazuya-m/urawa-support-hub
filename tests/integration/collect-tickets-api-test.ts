@@ -13,11 +13,7 @@ try {
   // .envファイルが存在しない場合は無視
 }
 
-// テスト用環境変数を設定
-Deno.env.set('ENABLE_TEST_SCRAPING', 'true');
-if (Deno.env.get('TEST_RESCHEDULE') === 'true') {
-  Deno.env.set('ENABLE_TEST_RESCHEDULE', 'true');
-}
+// テスト用環境変数を設定（必要に応じて）
 
 interface ApiResponse {
   status: string;

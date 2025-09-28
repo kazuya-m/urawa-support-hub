@@ -4,10 +4,6 @@ export type {
   INotificationUseCase,
   NotificationExecutionInput,
 } from './usecases/INotificationUseCase.ts';
-export type {
-  BatchExecutionInput,
-  INotificationBatchUseCase,
-} from './usecases/INotificationBatchUseCase.ts';
 
 // Repository interfaces
 export type { ITicketRepository } from './repositories/ITicketRepository.ts';

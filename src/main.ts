@@ -1,5 +1,4 @@
 import {
-  createNotificationBatchController,
   createNotificationController,
   createTicketCollectionController,
   createTicketSummaryController,
@@ -17,11 +16,6 @@ async function handleRequest(req: Request): Promise<Response> {
   if (url.pathname === '/api/send-notification' && req.method === 'POST') {
     const notificationController = createNotificationController();
     return await notificationController.handleSendNotification(req);
-  }
-
-  if (url.pathname === '/api/process-pending-notifications' && req.method === 'POST') {
-    const notificationBatchController = createNotificationBatchController();
-    return await notificationBatchController.handleProcessPendingNotifications(req);
   }
 
   if (url.pathname === '/api/ticket-summary' && req.method === 'POST') {

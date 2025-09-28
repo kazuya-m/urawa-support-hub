@@ -6,7 +6,6 @@ export { MockNotificationSchedulerService } from './MockNotificationSchedulerSer
 export { MockCloudTasksClient } from './MockCloudTasksClient.ts';
 export { MockNotificationService } from './MockNotificationService.ts';
 export { MockNotificationUseCase } from './MockNotificationUseCase.ts';
-export { MockNotificationBatchUseCase } from './MockNotificationBatchUseCase.ts';
 export { MockTicketScraper } from './MockTicketScraper.ts';
 export { MockLineClient } from './MockLineClient.ts';
 

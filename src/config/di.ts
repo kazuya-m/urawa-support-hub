@@ -20,7 +20,6 @@ import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
 import { LineClient } from '@/infrastructure/clients/LineClient.ts';
 import { JLeagueScrapingService } from '@/infrastructure/services/scraping/sources/jleague/JLeagueScrapingService.ts';
 import { HiroshimaScrapingService } from '@/infrastructure/services/scraping/sources/hiroshima/HiroshimaScrapingService.ts';
-import { TestJLeagueScrapingService } from '@/infrastructure/services/scraping/__tests__/mocks/TestJLeagueScrapingService.ts';
 import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { BrowserManager } from '@/infrastructure/services/scraping/shared/BrowserManager.ts';
 import { createSupabaseAdminClient } from '@/config/supabase.ts';
@@ -30,17 +29,14 @@ import { NotificationSchedulingService } from '@/domain/services/NotificationSch
 
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { INotificationUseCase } from '@/application/interfaces/usecases/INotificationUseCase.ts';
-import { INotificationBatchUseCase } from '@/application/interfaces/usecases/INotificationBatchUseCase.ts';
 import { ITicketSummaryUseCase } from '@/application/interfaces/usecases/ITicketSummaryUseCase.ts';
 
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 import { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
-import { NotificationBatchUseCase } from '@/application/usecases/NotificationBatchUseCase.ts';
 import { SendTicketSummaryUseCase } from '@/application/usecases/SendTicketSummaryUseCase.ts';
 
 import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
 import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
-import { NotificationBatchController } from '@/adapters/controllers/NotificationBatchController.ts';
 import { TicketSummaryController } from '@/adapters/controllers/TicketSummaryController.ts';
 
 /**
@@ -59,26 +55,20 @@ export const createDependencies = () => {
 
   const notificationSchedulingService = new NotificationSchedulingService();
 
-  // スクレイピングサービス設定（テストモード対応）
+  // スクレイピングサービス設定
   const scrapingServices = [];
 
-  if (TestJLeagueScrapingService.isTestModeEnabled()) {
-    // テストモード: テスト用スクレイピングサービスを使用
-    const testScrapingService = new TestJLeagueScrapingService();
-    scrapingServices.push(testScrapingService);
-  } else {
-    // 本番モード: 実際のスクレイピングサービスを使用
-    const playwrightClient = new PlaywrightClient();
-    const browserManager = new BrowserManager(playwrightClient);
+  // 本番モード: 実際のスクレイピングサービスを使用
+  const playwrightClient = new PlaywrightClient();
+  const browserManager = new BrowserManager(playwrightClient);
 
-    // J-Leagueサイトスクレイピング
-    const jleagueScrapingService = new JLeagueScrapingService(browserManager);
-    scrapingServices.push(jleagueScrapingService);
+  // J-Leagueサイトスクレイピング
+  const jleagueScrapingService = new JLeagueScrapingService(browserManager);
+  scrapingServices.push(jleagueScrapingService);
 
-    // サンフレッチェ広島公式サイトスクレイピング（同じbrowserManagerを使用）
-    const hiroshimaScrapingService = new HiroshimaScrapingService(browserManager);
-    scrapingServices.push(hiroshimaScrapingService);
-  }
+  // サンフレッチェ広島公式サイトスクレイピング（同じbrowserManagerを使用）
+  const hiroshimaScrapingService = new HiroshimaScrapingService(browserManager);
+  scrapingServices.push(hiroshimaScrapingService);
 
   const ticketCollectionService = new TicketCollectionService(scrapingServices);
   const notificationSchedulerService = new NotificationSchedulerService(
@@ -122,13 +112,6 @@ export const createNotificationUseCase = (): INotificationUseCase => {
   );
 };
 
-export const createNotificationBatchUseCase = (): INotificationBatchUseCase => {
-  const deps = createDependencies();
-  return new NotificationBatchUseCase(
-    deps.notificationService,
-  );
-};
-
 export const createTicketSummaryUseCase = (): ITicketSummaryUseCase => {
   const deps = createDependencies();
   return new SendTicketSummaryUseCase(
@@ -148,13 +131,6 @@ export const createTicketCollectionController = (): TicketCollectionController =
   const ticketCollectionUseCase = createTicketCollectionUseCase();
   return new TicketCollectionController(
     ticketCollectionUseCase,
-  );
-};
-
-export const createNotificationBatchController = (): NotificationBatchController => {
-  const notificationBatchUseCase = createNotificationBatchUseCase();
-  return new NotificationBatchController(
-    notificationBatchUseCase,
   );
 };
 

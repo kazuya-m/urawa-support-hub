@@ -1,3 +1,3 @@
 export * from './ITicketCollectionUseCase.ts';
 export * from './INotificationUseCase.ts';
-export * from './INotificationBatchUseCase.ts';
+export * from './ITicketSummaryUseCase.ts';

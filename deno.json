@@ -34,22 +34,15 @@
     "pre-commit": "deno check src/ && deno lint && deno fmt --check",
     "demo:data:setup": "deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts create",
     "demo:data:cleanup": "deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts cleanup",
-    "debug:line": "deno run --allow-env --allow-net --allow-read scripts/debug/debug-line-webhook.ts",
-    "debug:discord": "deno run --allow-env --allow-net --allow-read scripts/debug/test-discord-notification.ts",
     "debug:cron": "deno run --allow-env --allow-net scripts/debug/check-cron-jobs.ts",
     "demo:notification": "deno run --allow-env --allow-net --allow-read scripts/demo/test-local-notification-endpoint.ts",
     "demo:scraping": "ENABLE_LIVE_SCRAPING=true deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run scripts/demo/test-scraping.ts",
     "demo:line": "deno run --allow-env --allow-net --allow-read scripts/demo/test-line-broadcast.ts",
-    "demo:health": "deno run --allow-env --allow-net scripts/demo/test-health-check.ts",
-    "demo:cloud-tasks": "deno run --allow-env --allow-net --allow-read --allow-run scripts/demo/test-cloud-tasks-enqueue.ts",
-    "demo:data-transform": "deno run --allow-env scripts/demo/test-data-transformation.ts",
     "demo:collect-ticket": "deno run --allow-env --allow-net --allow-read scripts/demo/test-collect-tickets.ts",
     "demo:collect-ticket-integration": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys tests/integration/collect-tickets-api-test.ts",
     "demo:ticket-summary": "deno run --allow-net --allow-env --allow-read scripts/demo/test-ticket-summary.ts",
-    "demo:full-integration": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run scripts/test/run-full-integration-test.ts",
     "debug:db-tickets": "deno run --allow-env --allow-net --allow-read scripts/debug/check-tickets-db.ts",
-    "dev:cloud-run": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run src/main.ts",
-    "cloud:dequeue": "deno run --allow-env --allow-net --allow-read --allow-run scripts/cloud/dequeue-test-task.ts"
+    "dev:cloud-run": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run src/main.ts"
   },
   "lint": {
     "include": ["src/", "supabase/functions/"],
