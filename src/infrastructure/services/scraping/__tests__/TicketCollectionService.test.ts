@@ -2,6 +2,7 @@ import { assertEquals, assertStringIncludes } from 'std/assert/mod.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketCollectionService } from '../TicketCollectionService.ts';
 import { toJSTDate } from '@/shared/utils/datetime.ts';
+import { TestJLeagueScrapingService } from './mocks/TestJLeagueScrapingService.ts';
 
 // モック用のTicketCollectionService
 class MockTicketCollectionService {
