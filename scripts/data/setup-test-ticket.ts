@@ -6,8 +6,9 @@
  * 使用方法:
  * - テストチケット作成: deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts create
  * - 通知テスト用データ作成: deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts create-notification-test
+ * - 全データ削除: deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts cleanup
  * - 特定チケット削除: deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts cleanup <ticket-id>
- * - 全テストデータ削除: deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts cleanup-all
+ * - 全データ削除: deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts cleanup-all
  */
 
 import { load } from '@std/dotenv';
@@ -29,12 +30,14 @@ if (
 使用方法:
   create                  - 単一のテストチケットを作成
   create-notification-test - 通知テスト用の複数チケットを作成
-  cleanup <id>           - 指定IDのテストデータを削除
-  cleanup-all            - 全てのテストデータを削除
+  cleanup                 - 全てのデータを削除（引数なし）
+  cleanup <id>           - 指定IDのデータを削除
+  cleanup-all            - 全てのデータを削除
 
 例:
   deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts create
   deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts create-notification-test
+  deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts cleanup
   deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts cleanup ticket-id-here
   deno run --allow-env --allow-net --allow-read scripts/data/setup-test-ticket.ts cleanup-all
 `);
@@ -138,36 +141,37 @@ async function cleanupTestData(ticketId: string): Promise<void> {
 }
 
 /**
- * 「テスト」を含む全てのテストデータを削除
+ * 全てのチケットデータを削除
  */
 async function cleanupAllTestData(): Promise<void> {
   const supabaseClient = createSupabaseAdminClient();
 
-  // テスト用チケットを検索
-  const { data: testTickets } = await supabaseClient
+  // 全てのチケットを検索
+  const { data: allTickets } = await supabaseClient
     .from('tickets')
-    .select('id, match_name')
-    .like('match_name', '%テスト%');
+    .select('id, match_name');
 
-  if (!testTickets || testTickets.length === 0) {
-    console.log('🔍 削除対象のテストデータが見つかりませんでした');
+  if (!allTickets || allTickets.length === 0) {
+    console.log('🔍 削除対象のデータが見つかりませんでした');
     return;
   }
 
-  console.log(`🔍 ${testTickets.length}件のテストデータを削除します:`);
-  for (const ticket of testTickets) {
+  console.log(`🔍 ${allTickets.length}件の全データを削除します:`);
+  for (const ticket of allTickets) {
     console.log(`  - ${ticket.match_name} (ID: ${ticket.id})`);
   }
 
   // 関連する通知データを削除
-  for (const ticket of testTickets) {
+  for (const ticket of allTickets) {
     await supabaseClient.from('notifications').delete().eq('ticket_id', ticket.id);
   }
 
-  // テストチケットを削除
-  await supabaseClient.from('tickets').delete().like('match_name', '%テスト%');
+  // 全てのチケットを削除
+  for (const ticket of allTickets) {
+    await supabaseClient.from('tickets').delete().eq('id', ticket.id);
+  }
 
-  console.log('🗑️ 全てのテストデータを削除しました');
+  console.log('🗑️ 全てのデータを削除しました');
 }
 
 // メイン処理
@@ -194,10 +198,11 @@ try {
     );
   } else if (operation === 'cleanup') {
     if (!ticketId) {
-      console.error('❌ チケットIDを指定してください');
-      Deno.exit(1);
+      console.log('🗑️ 引数なしの場合は全データを削除します');
+      await cleanupAllTestData();
+    } else {
+      await cleanupTestData(ticketId);
     }
-    await cleanupTestData(ticketId);
   } else if (operation === 'cleanup-all') {
     await cleanupAllTestData();
   }
