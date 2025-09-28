@@ -2,24 +2,24 @@ import { assertEquals } from 'std/assert/mod.ts';
 import { afterEach, beforeEach, describe, it } from 'std/testing/bdd.ts';
 import { SendTicketSummaryUseCase } from '../SendTicketSummaryUseCase.ts';
 import { MockTicketRepository } from '@/shared/testing/mocks/MockTicketRepository.ts';
-import { MockLineClient } from '@/shared/testing/mocks/MockLineClient.ts';
+import { MockNotificationService } from '@/shared/testing/mocks/MockNotificationService.ts';
 import { createTestTicket } from '@/shared/testing/TestDataGenerator.ts';
 
 describe('SendTicketSummaryUseCase', () => {
   let useCase: SendTicketSummaryUseCase;
   let mockTicketRepository: MockTicketRepository;
-  let mockLineClient: MockLineClient;
+  let mockNotificationService: MockNotificationService;
 
   beforeEach(() => {
     mockTicketRepository = new MockTicketRepository();
-    mockLineClient = new MockLineClient();
-    useCase = new SendTicketSummaryUseCase(mockTicketRepository, mockLineClient);
+    mockNotificationService = new MockNotificationService();
+    useCase = new SendTicketSummaryUseCase(mockTicketRepository, mockNotificationService);
   });
 
   afterEach(() => {
     // テスト後のクリーンアップ
     mockTicketRepository.resetMocks();
-    mockLineClient.resetMocks();
+    mockNotificationService.clear();
   });
 
   it('should send ticket summary when tickets exist', async () => {
@@ -48,13 +48,12 @@ describe('SendTicketSummaryUseCase', () => {
     assertEquals(mockTicketRepository.findByStatusInCallCount, 1);
     assertEquals(mockTicketRepository.lastFindByStatusInArgs, ['on_sale', 'before_sale']);
 
-    assertEquals(mockLineClient.broadcastCallCount, 1);
+    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 1);
 
-    const sentMessage = mockLineClient.lastBroadcastMessage;
-    assertEquals(sentMessage?.type, 'flex');
-
-    // FlexメッセージのaltTextを検証（型を明示的にキャスト）
-    assertEquals((sentMessage?.altText as string)?.includes('チケット一覧'), true);
+    const sentTickets = mockNotificationService.getLastSentTickets();
+    assertEquals(sentTickets?.length, 2);
+    assertEquals(sentTickets?.[0].id, 'ticket-1');
+    assertEquals(sentTickets?.[1].id, 'ticket-2');
   });
 
   it('should filter out tickets with past match dates', async () => {
@@ -82,9 +81,10 @@ describe('SendTicketSummaryUseCase', () => {
     await useCase.execute();
 
     // 検証: 未来のチケットのみが送信される
-    assertEquals(mockLineClient.broadcastCallCount, 1);
-    const sentMessage = mockLineClient.lastBroadcastMessage;
-    assertEquals(sentMessage?.type, 'flex');
+    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 1);
+    const sentTickets = mockNotificationService.getLastSentTickets();
+    assertEquals(sentTickets?.length, 1);
+    assertEquals(sentTickets?.[0].id, 'future-ticket');
   });
 
   it('should not send message when all tickets have past match dates', async () => {
@@ -112,7 +112,7 @@ describe('SendTicketSummaryUseCase', () => {
     await useCase.execute();
 
     // 検証: 過去のチケットのみの場合は送信しない
-    assertEquals(mockLineClient.broadcastCallCount, 0);
+    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 0);
   });
 
   it('should not send message when no tickets exist', async () => {
@@ -123,7 +123,7 @@ describe('SendTicketSummaryUseCase', () => {
     await useCase.execute();
 
     // 検証: チケットが0件の場合は送信しない
-    assertEquals(mockLineClient.broadcastCallCount, 0);
+    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 0);
   });
 
   it('should handle repository errors', async () => {
@@ -140,10 +140,10 @@ describe('SendTicketSummaryUseCase', () => {
 
     // 検証
     assertEquals(thrownError?.message, 'Ticket summary notification failed: Database error');
-    assertEquals(mockLineClient.broadcastCallCount, 0);
+    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 0);
   });
 
-  it('should handle LINE client errors', async () => {
+  it('should handle notification service errors', async () => {
     // モックの設定（未来の試合日）
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + 7);
@@ -155,7 +155,7 @@ describe('SendTicketSummaryUseCase', () => {
         matchDate: futureDate,
       }),
     ]);
-    mockLineClient.mockBroadcastError(new Error('LINE API error'));
+    mockNotificationService.setShouldThrowError(true, 'Notification service error');
 
     // 実行
     let thrownError: Error | undefined;
@@ -166,7 +166,10 @@ describe('SendTicketSummaryUseCase', () => {
     }
 
     // 検証
-    assertEquals(thrownError?.message, 'Ticket summary notification failed: LINE API error');
-    assertEquals(mockLineClient.broadcastCallCount, 1);
+    assertEquals(
+      thrownError?.message,
+      'Ticket summary notification failed: Notification service error',
+    );
+    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 1);
   });
 });

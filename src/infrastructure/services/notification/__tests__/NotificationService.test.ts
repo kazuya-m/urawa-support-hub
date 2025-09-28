@@ -61,7 +61,7 @@ Deno.test('NotificationService', async (t) => {
   Deno.env.set('SUPABASE_URL', 'https://test.supabase.co');
   Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');
 
-  await t.step('should process scheduled notification successfully', async () => {
+  await t.step('should send scheduled notification successfully', async () => {
     globalThis.fetch = mockFetch;
     mockFetchResponse = new Response('{"ok": true}', { status: 200 });
     fetchCallHistory = [];
@@ -81,7 +81,7 @@ Deno.test('NotificationService', async (t) => {
     };
 
     try {
-      await service.processScheduledNotification(input);
+      await service.sendScheduledNotification(input);
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       assertEquals(typeof errorMessage, 'string');
@@ -115,7 +115,7 @@ Deno.test('NotificationService', async (t) => {
     const createdAt = new Date();
     const scheduledAt = new Date(createdAt.getTime() + 60 * 60 * 1000); // 1時間後
 
-    const history = new Notification({
+    const _history = new Notification({
       id: 'test-history-123',
       ticketId: 'test-ticket-123',
       notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
@@ -124,7 +124,7 @@ Deno.test('NotificationService', async (t) => {
       createdAt,
     });
 
-    const ticket = Ticket.fromExisting({
+    const _ticket = Ticket.fromExisting({
       id: 'test-ticket-123',
       matchName: 'テスト試合',
       matchDate: new Date('2024-03-15T19:00:00'),
@@ -140,9 +140,14 @@ Deno.test('NotificationService', async (t) => {
       saleStatus: 'before_sale',
     });
 
-    // DB操作はモックできないが、リトライロジックの動作確認
+    // DB操作はモックできないが、processScheduledNotification経由でリトライロジックの動作確認
+    const input: NotificationExecutionInput = {
+      ticketId: 'test-ticket-123',
+      notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
+    };
+
     try {
-      await service.sendNotification(history, ticket);
+      await service.sendScheduledNotification(input);
     } catch (error) {
       // DB関連エラーは想定内（通知送信前にエラーが発生する可能性がある）
       assertEquals(typeof error, 'object');
