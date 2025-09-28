@@ -13,8 +13,6 @@ try {
   // .envファイルが存在しない場合は無視
 }
 
-// テスト用環境変数を設定（必要に応じて）
-
 interface ApiResponse {
   status: string;
   message: string;
