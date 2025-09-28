@@ -14,7 +14,10 @@ try {
   await load({ export: true });
   console.log('📁 .env ファイルを読み込みました');
 } catch (error) {
-  console.log('⚠️  .env ファイルが見つからないか、読み込みに失敗しました:', error.message);
+  console.log(
+    '⚠️  .env ファイルが見つからないか、読み込みに失敗しました:',
+    error instanceof Error ? error.message : String(error),
+  );
 }
 
 const DEFAULT_URL = 'http://localhost:8080';
