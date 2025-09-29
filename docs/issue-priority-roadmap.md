@@ -236,9 +236,9 @@ Each issue is considered complete when:
 
 ### 🔴 **HIGH PRIORITY - データ整合性・通知機能**
 
-| Issue | Title                                                            | Category           | Priority | Status |
-| ----- | ---------------------------------------------------------------- | ------------------ | -------- | ------ |
-| #161  | スクレイピング更新時のnotification_scheduledフィールド上書き問題 | データ整合性・通知 | 🔴 High  | Open   |
+| Issue | Title                                                            | Category           | Priority | Status           |
+| ----- | ---------------------------------------------------------------- | ------------------ | -------- | ---------------- |
+| #161  | スクレイピング更新時のnotification_scheduledフィールド上書き問題 | データ整合性・通知 | 🔴 High  | Open             |
 | #160  | チケット更新時の差分ログ出力機能                                 | 運用改善・ログ出力 | 🟠 High  | ✅ **COMPLETED** |
 
 ### ✅ **COMPLETED - 技術的負債・バグ修正**
