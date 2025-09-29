@@ -19,8 +19,10 @@
     "@std/dotenv": "jsr:@std/dotenv@^0.225.0"
   },
   "tasks": {
-    "dev": "docker-compose up",
+    "dev": "docker-compose up -d",
+    "dev:foreground": "docker-compose up",
     "dev:down": "docker-compose down",
+    "dev:restart": "docker-compose down && docker-compose up -d",
     "dev:build": "docker-compose build --no-cache",
     "dev:logs": "docker-compose logs -f",
     "dev:local": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run src/main.ts",

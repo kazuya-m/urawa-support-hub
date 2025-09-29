@@ -40,15 +40,12 @@ RUN deno cache src/main.ts
 # 開発環境なのでテストファイルも含む
 COPY . .
 
-# Playwrightブラウザのインストール
-# rootユーザーで実行してから、denoユーザーに切り替え
+# Create cache directory for deno user and install Playwright browsers
 RUN mkdir -p /home/deno/.cache && \
     mkdir -p /deno-dir && \
-    chown -R deno:deno /home/deno/.cache /deno-dir /app && \
-    deno run --allow-env --allow-net --allow-read --allow-write --allow-run --allow-sys npm:playwright@1.40.0 install chromium
-
-# 実行時はdenoユーザーを使用
+    chown -R deno:deno /home/deno/.cache /deno-dir /app
 USER deno
+RUN deno run --allow-env --allow-net --allow-read --allow-write --allow-run --allow-sys npm:playwright@1.40.0 install chromium
 
 # 開発環境用の起動コマンド（--watch付き）
 CMD ["deno", "run", \

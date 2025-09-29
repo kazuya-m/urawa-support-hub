@@ -139,7 +139,7 @@ deno task dev:logs
 deno task dev:build
 
 # Access container shell (if needed)
-docker-compose exec scraping-service sh
+docker-compose exec urawa-support-hub sh
 ```
 
 **Features:**
