@@ -1,0 +1,62 @@
+# 開発環境用Dockerfile
+# .dockerignoreを使用せず、全ファイルを含む
+# watch機能をサポート
+
+FROM denoland/deno:2.4.5
+
+# Playwrightの依存関係をインストール
+RUN apt-get update && apt-get install -y \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libatspi2.0-0 \
+    libcairo2 \
+    libcups2 \
+    libdrm2 \
+    libgbm1 \
+    libnspr4 \
+    libnss3 \
+    libpango-1.0-0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get autoremove -y \
+    && apt-get autoclean -y
+
+WORKDIR /app
+
+# 依存関係のキャッシュ（開発環境でも高速化のため）
+COPY deno.json deno.lock* ./
+COPY src/main.ts ./src/main.ts
+RUN deno cache src/main.ts
+
+# 全ファイルをコピー（.dockerignoreを無視）
+# 開発環境なのでテストファイルも含む
+COPY . .
+
+# Playwrightブラウザのインストール
+# rootユーザーで実行してから、denoユーザーに切り替え
+RUN mkdir -p /home/deno/.cache && \
+    mkdir -p /deno-dir && \
+    chown -R deno:deno /home/deno/.cache /deno-dir /app && \
+    deno run --allow-env --allow-net --allow-read --allow-write --allow-run --allow-sys npm:playwright@1.40.0 install chromium
+
+# 実行時はdenoユーザーを使用
+USER deno
+
+# 開発環境用の起動コマンド（--watch付き）
+CMD ["deno", "run", \
+     "--watch", \
+     "--allow-net", \
+     "--allow-env", \
+     "--allow-read", \
+     "--allow-write", \
+     "--allow-run", \
+     "--allow-sys", \
+     "src/main.ts"]
