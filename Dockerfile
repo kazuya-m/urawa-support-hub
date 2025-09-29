@@ -41,7 +41,7 @@ USER deno
 RUN deno run --allow-env --allow-net --allow-read --allow-write --allow-run --allow-sys npm:playwright@1.40.0 install chromium
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 CMD ["deno", "run", \
      "--allow-net", \
      "--allow-env", \
@@ -49,5 +49,4 @@ CMD ["deno", "run", \
      "--allow-write", \
      "--allow-run", \
      "--allow-sys", \
-     "--watch", \
      "src/main.ts"]
