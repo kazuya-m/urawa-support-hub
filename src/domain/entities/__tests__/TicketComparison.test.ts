@@ -127,12 +127,12 @@ Deno.test('Ticket hasSameBusinessData method', async (t) => {
     assertEquals(ticket1.hasSameBusinessData(ticket2), false);
   });
 
-  await t.step('notificationScheduled の違いを検知する', () => {
+  await t.step('notificationScheduled の違いは無視される', () => {
     const ticket1 = Ticket.fromExisting(baseProps);
     const ticket2 = Ticket.fromExisting({
       ...baseProps,
       notificationScheduled: true,
     });
-    assertEquals(ticket1.hasSameBusinessData(ticket2), false);
+    assertEquals(ticket1.hasSameBusinessData(ticket2), true);
   });
 });

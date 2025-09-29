@@ -163,7 +163,10 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
       };
     }
 
-    const upsertedTicket = await this.ticketRepository.upsert(ticket);
+    // 既存チケットの場合は新しいデータとマージ
+    const ticketToUpsert = previousTicket ? previousTicket.mergeWith(ticket) : ticket;
+
+    const upsertedTicket = await this.ticketRepository.upsert(ticketToUpsert);
 
     return {
       ticket: upsertedTicket,

@@ -174,6 +174,7 @@ export class Ticket {
       createdAt: _createdAt,
       updatedAt: _updatedAt,
       scrapedAt: _scrapedAt,
+      notificationScheduled: _notificationScheduled,
       ...thisBusinessData
     } = this.props;
     const {
@@ -181,6 +182,7 @@ export class Ticket {
       createdAt: _otherCreatedAt,
       updatedAt: _otherUpdatedAt,
       scrapedAt: _otherScrapedAt,
+      notificationScheduled: _otherNotificationScheduled,
       ...otherBusinessData
     } = other.props;
 
@@ -233,6 +235,25 @@ export class Ticket {
       ...this.props,
       notificationScheduled: true,
       updatedAt: new Date(),
+    });
+  }
+
+  /**
+   * 新しいチケットデータとマージし、特定フィールドは既存値を保持
+   * 保持するフィールド: id, createdAt, notificationScheduled
+   * 新しい値を使用: その他のビジネスデータ、scrapedAt
+   * 自動更新: updatedAt
+   */
+  mergeWith(newTicket: Ticket): Ticket {
+    return Ticket.fromExisting({
+      ...newTicket.toPlainObject(),
+      // 既存の値を保持するフィールド
+      id: this.props.id,
+      createdAt: this.props.createdAt,
+      notificationScheduled: this.props.notificationScheduled,
+      // 自動更新されるフィールド
+      updatedAt: new Date(),
+      // scrapedAtは新しい値を使用（newTicket.toPlainObject()から取得）
     });
   }
 

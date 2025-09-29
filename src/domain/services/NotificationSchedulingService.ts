@@ -30,39 +30,22 @@ export class NotificationSchedulingService implements INotificationSchedulingSer
   }
 
   /**
-   * チケットが通知スケジューリング対象かどうか判定
-   * ドメインルールに基づく判定
-   */
-  shouldScheduleNotification(ticket: Ticket): boolean {
-    return ticket.shouldScheduleNotification();
-  }
-
-  /**
-   * 既存チケットが再スケジューリング対象かどうか判定
-   * saleStartDate変更等による再スケジューリング判定
-   */
-  shouldRescheduleNotification(ticket: Ticket, previousTicket?: Ticket): boolean {
-    if (!previousTicket) return false;
-    return ticket.shouldRescheduleNotification(previousTicket);
-  }
-
-  /**
    * スケジューリング対象のチケットを抽出
    * 新規作成・更新の両方に対応
    */
   filterTicketsRequiringScheduling<T extends { ticket: Ticket; previousTicket?: Ticket }>(
     results: T[],
   ): T[] {
-    return results.filter((result) =>
-      this.isSchedulingRequired(result.ticket, result.previousTicket)
-    );
-  }
+    return results.filter((result) => {
+      const { ticket, previousTicket } = result;
 
-  private isSchedulingRequired(ticket: Ticket, previousTicket?: Ticket): boolean {
-    if (!previousTicket) {
-      return this.shouldScheduleNotification(ticket);
-    }
+      if (!previousTicket) {
+        // 新規チケット: 通知スケジューリング対象かを判定
+        return ticket.shouldScheduleNotification();
+      }
 
-    return this.shouldRescheduleNotification(ticket, previousTicket);
+      // 既存チケット: 再スケジューリング対象かを判定
+      return ticket.shouldRescheduleNotification(previousTicket);
+    });
   }
 }

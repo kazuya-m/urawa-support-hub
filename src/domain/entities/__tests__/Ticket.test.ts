@@ -561,3 +561,213 @@ Deno.test('Ticket - markNotificationScheduled creates new instance with updated 
   assertEquals(updatedTicket.matchName, originalTicket.matchName);
   assertEquals(updatedTicket.saleStartDate?.getTime(), originalTicket.saleStartDate?.getTime());
 });
+
+Deno.test('Ticket - hasSameBusinessData should exclude notificationScheduled from comparison', async () => {
+  const baseTicketData = {
+    matchName: 'FC東京 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: 'FC東京',
+    awayTeam: '浦和レッズ',
+    saleStartDate: new Date('2025-03-14T10:00:00+09:00'),
+    venue: '味の素スタジアム',
+    ticketTypes: ['ビジター席'],
+    ticketUrl: 'https://example.com/tickets',
+    scrapedAt: new Date('2025-03-13T12:00:00+09:00'),
+    saleStatus: 'before_sale' as const,
+  };
+
+  const ticket1 = await Ticket.createNew({
+    ...baseTicketData,
+    notificationScheduled: false,
+  });
+
+  const ticket2 = await Ticket.createNew({
+    ...baseTicketData,
+    notificationScheduled: true, // notificationScheduledのみ異なる
+  });
+
+  // notificationScheduledが異なってもビジネスデータは同じと判定される
+  assertEquals(ticket1.hasSameBusinessData(ticket2), true);
+  assertEquals(ticket2.hasSameBusinessData(ticket1), true);
+});
+
+Deno.test('Ticket - hasSameBusinessData should detect business data changes', async () => {
+  const baseTicketData = {
+    matchName: 'FC東京 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: 'FC東京',
+    awayTeam: '浦和レッズ',
+    saleStartDate: new Date('2025-03-14T10:00:00+09:00'),
+    venue: '味の素スタジアム',
+    ticketTypes: ['ビジター席'],
+    ticketUrl: 'https://example.com/tickets',
+    scrapedAt: new Date('2025-03-13T12:00:00+09:00'),
+    saleStatus: 'before_sale' as const,
+    notificationScheduled: false,
+  };
+
+  const originalTicket = await Ticket.createNew(baseTicketData);
+
+  // venue が変更されたチケット
+  const venueChangedTicket = await Ticket.createNew({
+    ...baseTicketData,
+    venue: '埼玉スタジアム', // 変更されたvenue
+  });
+
+  // saleStartDate が変更されたチケット
+  const saleStartDateChangedTicket = await Ticket.createNew({
+    ...baseTicketData,
+    saleStartDate: new Date('2025-03-15T10:00:00+09:00'), // 変更されたsaleStartDate
+  });
+
+  // ticketTypes が変更されたチケット
+  const ticketTypesChangedTicket = await Ticket.createNew({
+    ...baseTicketData,
+    ticketTypes: ['ビジター席', 'ホーム席'], // 変更されたticketTypes
+  });
+
+  // ビジネスデータの変更を検出する
+  assertEquals(originalTicket.hasSameBusinessData(venueChangedTicket), false);
+  assertEquals(originalTicket.hasSameBusinessData(saleStartDateChangedTicket), false);
+  assertEquals(originalTicket.hasSameBusinessData(ticketTypesChangedTicket), false);
+});
+
+Deno.test('Ticket - hasSameBusinessData should ignore technical fields', () => {
+  const now = new Date();
+  const baseTicketData = {
+    matchName: 'FC東京 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: 'FC東京',
+    awayTeam: '浦和レッズ',
+    saleStartDate: new Date('2025-03-14T10:00:00+09:00'),
+    venue: '味の素スタジアム',
+    ticketTypes: ['ビジター席'],
+    ticketUrl: 'https://example.com/tickets',
+    saleStatus: 'before_sale' as const,
+    notificationScheduled: false,
+  };
+
+  const ticket1 = Ticket.fromExisting({
+    id: 'test-id-1',
+    ...baseTicketData,
+    createdAt: now,
+    updatedAt: now,
+    scrapedAt: new Date('2025-03-13T12:00:00+09:00'),
+  });
+
+  const ticket2 = Ticket.fromExisting({
+    id: 'test-id-2', // 異なるID
+    ...baseTicketData,
+    createdAt: new Date(now.getTime() + 1000), // 異なるcreatedAt
+    updatedAt: new Date(now.getTime() + 2000), // 異なるupdatedAt
+    scrapedAt: new Date('2025-03-13T13:00:00+09:00'), // 異なるscrapedAt
+  });
+
+  // 技術的フィールド（id, createdAt, updatedAt, scrapedAt, notificationScheduled）の違いは無視される
+  assertEquals(ticket1.hasSameBusinessData(ticket2), true);
+});
+
+Deno.test('Ticket - mergeWith should preserve specific fields and update others', async () => {
+  const originalTime = new Date('2025-03-10T12:00:00+09:00');
+  const newScrapedTime = new Date('2025-03-15T14:00:00+09:00');
+
+  // 既存チケット
+  const existingTicket = Ticket.fromExisting({
+    id: 'existing-ticket-id',
+    matchName: 'FC東京 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    venue: '味の素スタジアム',
+    saleStartDate: new Date('2025-03-14T10:00:00+09:00'),
+    ticketUrl: 'https://example.com/old',
+    saleStatus: 'before_sale',
+    notificationScheduled: true, // 既に通知スケジュール済み
+    createdAt: originalTime,
+    updatedAt: originalTime,
+    scrapedAt: originalTime,
+  });
+
+  // 新しいスクレイピングデータ
+  const newTicket = await Ticket.createNew({
+    matchName: 'FC東京 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    venue: '埼玉スタジアム', // 変更された会場
+    saleStartDate: new Date('2025-03-14T11:00:00+09:00'), // 変更された販売開始時刻
+    ticketUrl: 'https://example.com/new', // 変更されたURL
+    saleStatus: 'on_sale', // 変更された販売状態
+    scrapedAt: newScrapedTime,
+    notificationScheduled: false, // スクレイピング時は未スケジュール
+  });
+
+  const updatedTicket = existingTicket.mergeWith(newTicket);
+
+  // 保持されるフィールド
+  assertEquals(updatedTicket.id, 'existing-ticket-id'); // 既存のIDを保持
+  assertEquals(updatedTicket.createdAt.getTime(), originalTime.getTime()); // 既存のcreatedAtを保持
+  assertEquals(updatedTicket.notificationScheduled, true); // 既存の通知状態を保持
+
+  // 更新されるフィールド
+  assertEquals(updatedTicket.venue, '埼玉スタジアム'); // 新しいvenue
+  assertEquals(
+    updatedTicket.saleStartDate?.getTime(),
+    new Date('2025-03-14T11:00:00+09:00').getTime(),
+  ); // 新しいsaleStartDate
+  assertEquals(updatedTicket.ticketUrl, 'https://example.com/new'); // 新しいticketUrl
+  assertEquals(updatedTicket.saleStatus, 'on_sale'); // 新しいsaleStatus
+  assertEquals(updatedTicket.scrapedAt.getTime(), newScrapedTime.getTime()); // 新しいscrapedAt
+
+  // updatedAtは自動更新される
+  assert(updatedTicket.updatedAt > originalTime);
+
+  // その他のフィールドも新しい値が使用される
+  assertEquals(updatedTicket.matchName, newTicket.matchName);
+  assertEquals(updatedTicket.matchDate.getTime(), newTicket.matchDate.getTime());
+});
+
+Deno.test('Ticket - mergeWith should handle new ticket without existing metadata', async () => {
+  const originalTime = new Date('2025-03-10T12:00:00+09:00');
+
+  // 既存チケット（最小限の情報）
+  const existingTicket = Ticket.fromExisting({
+    id: 'existing-minimal-id',
+    matchName: 'テストマッチ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    saleStartDate: null,
+    createdAt: originalTime,
+    updatedAt: originalTime,
+    scrapedAt: originalTime,
+    saleStatus: 'before_sale',
+    notificationScheduled: false,
+  });
+
+  // 新しいスクレイピングデータ（詳細情報あり）
+  const newTicket = await Ticket.createNew({
+    matchName: 'テストマッチ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    venue: 'テストスタジアム', // 新しく追加
+    saleStartDate: new Date('2025-03-14T10:00:00+09:00'), // 新しく判明した販売開始日
+    ticketTypes: ['一般席', 'VIP席'], // 新しく追加
+    ticketUrl: 'https://example.com/tickets', // 新しく追加
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
+    notificationScheduled: false,
+  });
+
+  const updatedTicket = existingTicket.mergeWith(newTicket);
+
+  // 既存のメタデータを保持
+  assertEquals(updatedTicket.id, 'existing-minimal-id');
+  assertEquals(updatedTicket.createdAt.getTime(), originalTime.getTime());
+  assertEquals(updatedTicket.notificationScheduled, false); // 既存の状態を保持
+
+  // 新しいデータが追加される
+  assertEquals(updatedTicket.venue, 'テストスタジアム');
+  assertEquals(
+    updatedTicket.saleStartDate?.getTime(),
+    new Date('2025-03-14T10:00:00+09:00').getTime(),
+  );
+  assertEquals(updatedTicket.ticketTypes.length, 2);
+  assertEquals(updatedTicket.ticketUrl, 'https://example.com/tickets');
+
+  // updatedAtは自動更新
+  assert(updatedTicket.updatedAt > originalTime);
+});
