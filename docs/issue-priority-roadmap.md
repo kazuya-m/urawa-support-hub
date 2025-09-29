@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-28 (Issue #152 完了)\
+**Updated**: 2025-09-28 (Issue #157 新規追加)\
 **Goal**: ✅ Launch MVP by 2025-09-30 (**完了**: 2025-09-16)
 
 ## Implementation Status Summary
@@ -214,7 +214,9 @@ Each issue is considered complete when:
 
 ### ✅ **最近完了・クローズしたイシュー (2025-09-28)**:
 
-- #152 - YAGNI: 未使用コードとエンドポイントの削除 ✅ **NEW**
+- #155 - SendTicketSummaryUseCaseのクリーンアーキテクチャ違反を修正：Application層Service導入 ✅
+  **NEW**
+- #152 - YAGNI: 未使用コードとエンドポイントの削除 ✅
 - #150 - インフラ層のスクレイピング関連ディレクトリ構造を統合 ✅
 - #149 - 広島スクレイパーの複数の問題：エラーハンドリング、SaleStatusUtils未使用、会場警告 ✅
 - #50 - 本番環境セキュリティ強化：RLSポリシー導入 🚫 **CLOSED** (Won't Fix -
@@ -230,18 +232,27 @@ Each issue is considered complete when:
 
 ## 🚨 Active Issues - 優先順位別
 
+### 🔴 **NEW - アーキテクチャ統一・技術的負債**
+
+| Issue | Title                                                               | Category         | Priority    | Status |
+| ----- | ------------------------------------------------------------------- | ---------------- | ----------- | ------ |
+| #157  | 不要なPostgreSQL functionsとcron jobsを削除してアーキテクチャを統一 | リファクタリング | 🔴 Critical | Open   |
+
 ### ✅ **COMPLETED - 技術的負債・バグ修正**
 
-| Issue | Title                                                                             | Reason                                         | Status           |
-| ----- | --------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------- |
-| #149  | 広島スクレイパーの複数の問題：エラーハンドリング、SaleStatusUtils未使用、会場警告 | **システム停止リスク・ドメインロジック不整合** | ✅ **COMPLETED** |
-| #125  | 日時ライブラリ導入によるタイムゾーン処理の改善                                    | タイムゾーンバグの根本解決                     | ✅ **COMPLETED** |
-| #126  | 通知スケジュール管理の不整合とカラム名改善                                        | データ整合性の改善                             | ✅ **COMPLETED** |
-| #131  | LINEメッセージの試合日時と販売開始日時をJST表示に修正                             | ユーザビリティ改善                             | ✅ **COMPLETED** |
-| #135  | notificationsテーブルの命名不整合を修正                                           | データベース設計改善                           | ✅ **COMPLETED** |
-| #137  | 通知システムの改善: sent_atの誤更新修正とupdated_at追加                           | データ整合性向上                               | ✅ **COMPLETED** |
-| #130  | PostgreSQL セキュリティパッチ適用のためのデータベースアップグレード               | セキュリティ維持                               | ✅ **COMPLETED** |
-| #129  | notificationsテーブルのnotification_scheduledカラム冗長性解決とスキーマ整合性修正 | データベース設計改善                           | ✅ **COMPLETED** |
+| Issue | Title                                                                                | Reason                                         | Status           |
+| ----- | ------------------------------------------------------------------------------------ | ---------------------------------------------- | ---------------- |
+| #155  | SendTicketSummaryUseCaseのクリーンアーキテクチャ違反を修正：Application層Service導入 | **クリーンアーキテクチャ原則違反の修正**       | ✅ **COMPLETED** |
+| #152  | YAGNI: 未使用コードとエンドポイントの削除                                            | コード品質向上・メンテナンス性改善             | ✅ **COMPLETED** |
+| #150  | インフラ層のスクレイピング関連ディレクトリ構造を統合                                 | アーキテクチャ整理・構造統一                   | ✅ **COMPLETED** |
+| #149  | 広島スクレイパーの複数の問題：エラーハンドリング、SaleStatusUtils未使用、会場警告    | **システム停止リスク・ドメインロジック不整合** | ✅ **COMPLETED** |
+| #125  | 日時ライブラリ導入によるタイムゾーン処理の改善                                       | タイムゾーンバグの根本解決                     | ✅ **COMPLETED** |
+| #126  | 通知スケジュール管理の不整合とカラム名改善                                           | データ整合性の改善                             | ✅ **COMPLETED** |
+| #131  | LINEメッセージの試合日時と販売開始日時をJST表示に修正                                | ユーザビリティ改善                             | ✅ **COMPLETED** |
+| #135  | notificationsテーブルの命名不整合を修正                                              | データベース設計改善                           | ✅ **COMPLETED** |
+| #137  | 通知システムの改善: sent_atの誤更新修正とupdated_at追加                              | データ整合性向上                               | ✅ **COMPLETED** |
+| #130  | PostgreSQL セキュリティパッチ適用のためのデータベースアップグレード                  | セキュリティ維持                               | ✅ **COMPLETED** |
+| #129  | notificationsテーブルのnotification_scheduledカラム冗長性解決とスキーマ整合性修正    | データベース設計改善                           | ✅ **COMPLETED** |
 
 ### 🟠 **HIGH - 機能拡張・品質改善**
 
@@ -262,50 +273,89 @@ Each issue is considered complete when:
 
 ### 🟢 **LOW - 機能拡張**
 
-| Issue | Title                                                | Category         | Status           |
-| ----- | ---------------------------------------------------- | ---------------- | ---------------- |
-| #150  | インフラ層のスクレイピング関連ディレクトリ構造を統合 | リファクタリング | ✅ **COMPLETED** |
-| #67   | ヴィッセル神戸対応                                   | 他チーム対応     | Open             |
-| #105  | 2026年シーズン制度変更対応                           | 長期計画         | Open             |
+| Issue | Title                      | Category     | Status                            |
+| ----- | -------------------------- | ------------ | --------------------------------- |
+| #67   | ヴィッセル神戸対応         | 他チーム対応 | 🔄 **DEFERRED** (2026年1-2月実装) |
+| #105  | 2026年シーズン制度変更対応 | 長期計画     | Open                              |
 
 ## Next Steps Priority (**UPDATED: 2025-09-28**)
 
 ### 🎯 **推奨実装順序**
 
-#### 📍 **次に実装可能なタスク** (アーキテクチャ改善)
+#### 📍 **最優先タスク** (アーキテクチャ統一・技術的負債)
 
-1. **#155** - SendTicketSummaryUseCaseのクリーンアーキテクチャ違反を修正：Application層Service導入
-   🔴 **NEW**
-   - **理由**: クリーンアーキテクチャ原則の遵守・コード品質向上
-   - **影響**: アーキテクチャ一貫性の向上、保守性改善
-   - **優先度**: 高 (phase-5-improvement、品質改善として重要)
+1. **#157** - 不要なPostgreSQL functionsとcron jobsを削除してアーキテクチャを統一 🔴
+   - **内容**: PostgreSQL関数・cron jobsの削除によるアーキテクチャ統一
+   - **期待効果**: システム簡素化・保守性向上・一貫性確保
 
-#### 📍 **余裕があれば** (パフォーマンス最適化)
+#### 📍 **次に実装可能なタスク** (パフォーマンス最適化・運用改善)
 
 2. **#72** - データベースクエリ最適化 🟡
+   - **内容**: 複数クエリの統合でパフォーマンス向上
+   - **期待効果**: レスポンス改善・DB負荷軽減
 3. **#68** - GCPログ料金最適化 🟡
+   - **内容**: 古いログ・履歴データの自動削除設定
+   - **期待効果**: 運用コスト削減
 4. **#86** - スクレイピング最適化 🟡
-5. **#84** - Playwright scraper mock化 🟡
+   - **内容**: サイト負荷軽減を優先した詳細ページアクセス改善
+   - **期待効果**: 安定性向上・サイト負荷軽減
 
-#### 📍 **機能拡張** (他チーム対応)
+#### 📍 **将来対応** (長期計画・来年以降)
 
-6. **#67** - ヴィッセル神戸対応 🟢
-
-#### 📍 **将来対応** (長期計画)
-
+5. **#67** - ヴィッセル神戸対応 🟢
+   - **延期理由**: 現在販売中チケットのみで販売前DOMパターンが不明
+   - **実装時期**: 2026年1-2月（新規チケット販売開始時）
+6. **#84** - Playwright scraper mock化 🟡
 7. **#105** - 2026年シーズン制度変更対応 🟢 (2026年2月まで)
+
+## Issue Label Management Strategy
+
+### 🏷️ **推奨ラベル体系**
+
+**優先度ラベル**:
+
+- `priority/critical` - システム停止・セキュリティ問題
+- `priority/high` - 機能改善・パフォーマンス向上
+- `priority/medium` - 運用最適化・コスト削減
+- `priority/low` - 将来機能・長期計画
+
+**実装時期ラベル**:
+
+- `immediate` - 即座に実装可能
+- `deferred/2026-q1` - 2026年1-2月実装予定
+- `deferred/long-term` - 長期計画
+
+**カテゴリラベル**:
+
+- `enhancement` - 機能拡張
+- `performance` - パフォーマンス改善
+- `cost-optimization` - コスト最適化
+- `testing` - テスト改善
+
+### 🎯 **現在のissueラベル適用推奨**
+
+| Issue | 推奨ラベル                                          |
+| ----- | --------------------------------------------------- |
+| #157  | `priority/critical`, `enhancement`, `immediate`     |
+| #72   | `priority/high`, `performance`, `immediate`         |
+| #68   | `priority/medium`, `cost-optimization`, `immediate` |
+| #86   | `priority/medium`, `performance`, `immediate`       |
+| #84   | `priority/medium`, `testing`, `immediate`           |
+| #67   | `priority/low`, `enhancement`, `deferred/2026-q1`   |
+| #105  | `priority/low`, `enhancement`, `deferred/long-term` |
 
 ## Progress Tracking
 
 ```bash
-# Check progress by phase
-gh issue list --label "phase-1-foundation" --state "open"
-gh issue list --label "phase-2-core" --state "open"
-gh issue list --label "phase-3-notification" --state "open"
+# Check progress by priority
+gh issue list --label "priority/critical" --state "open"
+gh issue list --label "priority/high" --state "open"
+gh issue list --label "priority/medium" --state "open"
+
+# Check progress by implementation timing
+gh issue list --label "immediate" --state "open"
+gh issue list --label "deferred/2026-q1" --state "open"
 
 # Check overall progress
 gh issue list --state "open"
-
-# Check completed
-gh issue list --state "closed"
 ```

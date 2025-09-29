@@ -8,7 +8,7 @@
 import { load } from 'std/dotenv/mod.ts';
 import { LINE_MESSAGE_TEMPLATES, NOTIFICATION_TYPE_STYLES } from '@/config/notification.ts';
 import { URAWA_URL_CONFIG } from '@/config/url.ts';
-import { NOTIFICATION_TYPES, NotificationType } from '@/domain/entities/NotificationTypes.ts';
+import { NOTIFICATION_TYPES, NotificationType } from '@/domain/config/NotificationConfig.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
 import { getErrorMessage } from '@/shared/utils/errorUtils.ts';
 
@@ -51,7 +51,7 @@ const BROADCAST_API = URAWA_URL_CONFIG.staticUrls.lineApiBroadcast;
  * 指定した通知タイプでLINE通知を送信
  */
 async function sendNotificationTest(notificationType: NotificationType) {
-  const style = NOTIFICATION_TYPE_STYLES[notificationType];
+  const style = NOTIFICATION_TYPE_STYLES[notificationType as keyof typeof NOTIFICATION_TYPE_STYLES];
 
   console.log(`📱 ${notificationType} 通知送信中...`);
   console.log(`   色: ${style.color}`);

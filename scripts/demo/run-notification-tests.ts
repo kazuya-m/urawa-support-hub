@@ -89,7 +89,10 @@ async function runScript(
       return { success: false, output: stderrText };
     }
   } catch (error) {
-    console.error(`💥 ${scriptPath} 実行エラー:`, error.message);
+    console.error(
+      `💥 ${scriptPath} 実行エラー:`,
+      error instanceof Error ? error.message : String(error),
+    );
     return { success: false };
   }
 }
@@ -116,7 +119,10 @@ async function checkServerHealth(): Promise<boolean> {
 
     return isHealthy;
   } catch (error) {
-    console.error('❌ ヘルスチェックエラー:', error.message);
+    console.error(
+      '❌ ヘルスチェックエラー:',
+      error instanceof Error ? error.message : String(error),
+    );
     console.log('\n💡 ローカルサーバー起動方法:');
     console.log('   deno task start\n');
     return false;

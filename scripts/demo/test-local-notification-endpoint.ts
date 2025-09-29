@@ -63,7 +63,10 @@ async function checkServerHealth(): Promise<boolean> {
 
     return isHealthy;
   } catch (error) {
-    console.error('❌ ヘルスチェックエラー:', error.message);
+    console.error(
+      '❌ ヘルスチェックエラー:',
+      error instanceof Error ? error.message : String(error),
+    );
     console.log('\n💡 ローカルサーバー起動方法:');
     console.log('   deno task start\n');
     return false;
@@ -74,10 +77,10 @@ async function testNotificationEndpoint(
   ticketId: string,
   notificationType: NotificationType,
 ): Promise<boolean> {
-  const style = NOTIFICATION_TYPE_STYLES[notificationType];
+  const style = NOTIFICATION_TYPE_STYLES[notificationType as keyof typeof NOTIFICATION_TYPE_STYLES];
 
   console.log(`\n📱 ${notificationType} 通知のテスト開始`);
-  console.log(`   表示名: ${style.displayName}`);
+  console.log(`   タイトル: ${style.title}`);
   console.log(`   色: ${style.color}`);
   console.log(`   エンドポイント: ${NOTIFICATION_ENDPOINT}`);
 
@@ -119,7 +122,10 @@ async function testNotificationEndpoint(
       return false;
     }
   } catch (error) {
-    console.error(`❌ ${notificationType} 通知エラー:`, error.message);
+    console.error(
+      `❌ ${notificationType} 通知エラー:`,
+      error instanceof Error ? error.message : String(error),
+    );
     return false;
   }
 }

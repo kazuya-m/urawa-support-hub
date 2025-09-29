@@ -11,7 +11,7 @@
  */
 
 import { TicketCollectionService } from '../../src/infrastructure/services/scraping/TicketCollectionService.ts';
-import { JLeagueScrapingService } from '../../src/infrastructure/scraping/jleague/JLeagueScrapingService.ts';
+import { JLeagueScrapingService } from '../../src/infrastructure/services/scraping/sources/jleague/JLeagueScrapingService.ts';
 import { PlaywrightClient } from '../../src/infrastructure/clients/PlaywrightClient.ts';
 import { BrowserManager } from '../../src/infrastructure/services/scraping/shared/BrowserManager.ts';
 import { Ticket } from '../../src/domain/entities/Ticket.ts';
