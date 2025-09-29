@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-28 (Issue #157 新規追加)\
+**Updated**: 2025-09-29 (Issue #158 新規追加, #157 完了)\
 **Goal**: ✅ Launch MVP by 2025-09-30 (**完了**: 2025-09-16)
 
 ## Implementation Status Summary
@@ -212,10 +212,10 @@ Each issue is considered complete when:
 
 ### 📈 **現在の開発フェーズ**: Post-MVP改善・機能拡張
 
-### ✅ **最近完了・クローズしたイシュー (2025-09-28)**:
+### ✅ **最近完了・クローズしたイシュー (2025-09-29)**:
 
+- #157 - 不要なPostgreSQL functionsとcron jobsを削除してアーキテクチャを統一 ✅ **NEW**
 - #155 - SendTicketSummaryUseCaseのクリーンアーキテクチャ違反を修正：Application層Service導入 ✅
-  **NEW**
 - #152 - YAGNI: 未使用コードとエンドポイントの削除 ✅
 - #150 - インフラ層のスクレイピング関連ディレクトリ構造を統合 ✅
 - #149 - 広島スクレイパーの複数の問題：エラーハンドリング、SaleStatusUtils未使用、会場警告 ✅
@@ -232,11 +232,11 @@ Each issue is considered complete when:
 
 ## 🚨 Active Issues - 優先順位別
 
-### 🔴 **NEW - アーキテクチャ統一・技術的負債**
+### 🔴 **HIGH PRIORITY - エラー監視・通知機能**
 
-| Issue | Title                                                               | Category         | Priority    | Status |
-| ----- | ------------------------------------------------------------------- | ---------------- | ----------- | ------ |
-| #157  | 不要なPostgreSQL functionsとcron jobsを削除してアーキテクチャを統一 | リファクタリング | 🔴 Critical | Open   |
+| Issue | Title                            | Category             | Priority | Status |
+| ----- | -------------------------------- | -------------------- | -------- | ------ |
+| #158  | エラーログ自動通知システムの実装 | エラー監視・通知強化 | 🟠 High  | Open   |
 
 ### ✅ **COMPLETED - 技術的負債・バグ修正**
 
@@ -253,6 +253,7 @@ Each issue is considered complete when:
 | #137  | 通知システムの改善: sent_atの誤更新修正とupdated_at追加                              | データ整合性向上                               | ✅ **COMPLETED** |
 | #130  | PostgreSQL セキュリティパッチ適用のためのデータベースアップグレード                  | セキュリティ維持                               | ✅ **COMPLETED** |
 | #129  | notificationsテーブルのnotification_scheduledカラム冗長性解決とスキーマ整合性修正    | データベース設計改善                           | ✅ **COMPLETED** |
+| #157  | 不要なPostgreSQL functionsとcron jobsを削除してアーキテクチャを統一                  | アーキテクチャ統一・リファクタリング           | ✅ **COMPLETED** |
 
 ### 🟠 **HIGH - 機能拡張・品質改善**
 
@@ -278,15 +279,15 @@ Each issue is considered complete when:
 | #67   | ヴィッセル神戸対応         | 他チーム対応 | 🔄 **DEFERRED** (2026年1-2月実装) |
 | #105  | 2026年シーズン制度変更対応 | 長期計画     | Open                              |
 
-## Next Steps Priority (**UPDATED: 2025-09-28**)
+## Next Steps Priority (**UPDATED: 2025-09-29**)
 
 ### 🎯 **推奨実装順序**
 
-#### 📍 **最優先タスク** (アーキテクチャ統一・技術的負債)
+#### 📍 **最優先タスク** (エラー監視・通知強化)
 
-1. **#157** - 不要なPostgreSQL functionsとcron jobsを削除してアーキテクチャを統一 🔴
-   - **内容**: PostgreSQL関数・cron jobsの削除によるアーキテクチャ統一
-   - **期待効果**: システム簡素化・保守性向上・一貫性確保
+1. **#158** - エラーログ自動通知システムの実装 🟠 **NEW**
+   - **内容**: Cloud LoggingのエラーログをDiscordに自動通知
+   - **期待効果**: リアルタイムエラー検知・早期問題解決・運用改善
 
 #### 📍 **次に実装可能なタスク** (パフォーマンス最適化・運用改善)
 
@@ -336,7 +337,7 @@ Each issue is considered complete when:
 
 | Issue | 推奨ラベル                                          |
 | ----- | --------------------------------------------------- |
-| #157  | `priority/critical`, `enhancement`, `immediate`     |
+| #158  | `priority/high`, `enhancement`, `immediate`         |
 | #72   | `priority/high`, `performance`, `immediate`         |
 | #68   | `priority/medium`, `cost-optimization`, `immediate` |
 | #86   | `priority/medium`, `performance`, `immediate`       |
