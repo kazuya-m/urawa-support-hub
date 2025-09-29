@@ -17,18 +17,6 @@ export interface INotificationSchedulingService {
   ): NotificationTiming[];
 
   /**
-   * チケットが通知スケジューリング対象かどうか判定
-   * ドメインルールに基づく判定
-   */
-  shouldScheduleNotification(ticket: Ticket): boolean;
-
-  /**
-   * 既存チケットが再スケジューリング対象かどうか判定
-   * saleStartDate変更等による再スケジューリング判定
-   */
-  shouldRescheduleNotification(ticket: Ticket, previousTicket?: Ticket): boolean;
-
-  /**
    * スケジューリング対象のチケットを抽出
    * 新規作成・更新の両方に対応
    */

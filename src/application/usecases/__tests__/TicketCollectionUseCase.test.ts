@@ -43,6 +43,70 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
     assertEquals(typeof result.executionDurationMs, 'number');
   });
 
+  await t.step(
+    'should preserve notificationScheduled state when updating existing tickets',
+    async () => {
+      // 既存チケット（通知スケジュール済み）
+      const existingTicket = Ticket.fromExisting({
+        id: 'test-ticket-preserve-notification',
+        matchName: 'Test Match',
+        matchDate: new Date('2024-12-01'),
+        venue: 'Test Stadium',
+        ticketUrl: 'https://test.example.com/tickets/1',
+        saleStartDate: new Date('2024-11-15'),
+        saleStatus: 'before_sale',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        scrapedAt: new Date(),
+        notificationScheduled: true, // 既に通知スケジュール済み
+      });
+
+      // 新しくスクレイピングされたチケット（通知未スケジュール）
+      const scrapedTicket = await Ticket.createNew({
+        matchName: 'Test Match',
+        matchDate: new Date('2024-12-01'),
+        venue: 'Test Stadium Updated', // venueが更新されている
+        ticketUrl: 'https://test.example.com/tickets/1',
+        saleStartDate: new Date('2024-11-15'),
+        saleStatus: 'before_sale',
+        scrapedAt: new Date(),
+        notificationScheduled: false, // スクレイピング時は未スケジュール
+      });
+
+      const dependencies = createMockDependencies();
+
+      // モックでは既存チケットが存在することを設定
+      dependencies.ticketRepository.findById = (id: string) => {
+        if (id === scrapedTicket.id) {
+          return Promise.resolve(existingTicket);
+        }
+        return Promise.resolve(null);
+      };
+
+      let upsertedTicket: Ticket | null = null;
+      dependencies.ticketRepository.upsert = (ticket: Ticket): Promise<Ticket> => {
+        upsertedTicket = ticket;
+        return Promise.resolve(ticket);
+      };
+
+      if (dependencies.ticketCollectionService instanceof MockTicketCollectionService) {
+        dependencies.ticketCollectionService.setMockTickets([scrapedTicket]);
+      }
+
+      const useCase = createMockTicketCollectionUseCase(dependencies);
+      const result = await useCase.execute();
+
+      // 実行成功確認
+      assertEquals(result.status, 'success');
+      assertEquals(result.updatedTickets, 1);
+
+      // notificationScheduled状態が保持されていることを確認（mergeWithによる）
+      assertEquals(upsertedTicket!.notificationScheduled, true);
+      assertEquals(upsertedTicket!.venue, 'Test Stadium Updated'); // ビジネスデータは更新されている
+      assertEquals(upsertedTicket!.id, existingTicket.id); // IDも保持されている
+    },
+  );
+
   await t.step('should handle collection service errors gracefully', async () => {
     const dependencies = createMockDependencies();
     if (dependencies.ticketCollectionService instanceof MockTicketCollectionService) {
