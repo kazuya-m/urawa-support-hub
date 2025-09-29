@@ -20,7 +20,6 @@ import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
 import { LineClient } from '@/infrastructure/clients/LineClient.ts';
 import { JLeagueScrapingService } from '@/infrastructure/services/scraping/sources/jleague/JLeagueScrapingService.ts';
 import { HiroshimaScrapingService } from '@/infrastructure/services/scraping/sources/hiroshima/HiroshimaScrapingService.ts';
-import { TestJLeagueScrapingService } from '@/infrastructure/services/scraping/__tests__/mocks/TestJLeagueScrapingService.ts';
 import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { BrowserManager } from '@/infrastructure/services/scraping/shared/BrowserManager.ts';
 import { createSupabaseAdminClient } from '@/config/supabase.ts';
@@ -56,26 +55,20 @@ export const createDependencies = () => {
 
   const notificationSchedulingService = new NotificationSchedulingService();
 
-  // スクレイピングサービス設定（テストモード対応）
+  // スクレイピングサービス設定
   const scrapingServices = [];
 
-  if (TestJLeagueScrapingService.isTestModeEnabled()) {
-    // テストモード: テスト用スクレイピングサービスを使用
-    const testScrapingService = new TestJLeagueScrapingService();
-    scrapingServices.push(testScrapingService);
-  } else {
-    // 本番モード: 実際のスクレイピングサービスを使用
-    const playwrightClient = new PlaywrightClient();
-    const browserManager = new BrowserManager(playwrightClient);
+  // 実際のスクレイピングサービスを使用
+  const playwrightClient = new PlaywrightClient();
+  const browserManager = new BrowserManager(playwrightClient);
 
-    // J-Leagueサイトスクレイピング
-    const jleagueScrapingService = new JLeagueScrapingService(browserManager);
-    scrapingServices.push(jleagueScrapingService);
+  // J-Leagueサイトスクレイピング
+  const jleagueScrapingService = new JLeagueScrapingService(browserManager);
+  scrapingServices.push(jleagueScrapingService);
 
-    // サンフレッチェ広島公式サイトスクレイピング（同じbrowserManagerを使用）
-    const hiroshimaScrapingService = new HiroshimaScrapingService(browserManager);
-    scrapingServices.push(hiroshimaScrapingService);
-  }
+  // サンフレッチェ広島公式サイトスクレイピング（同じbrowserManagerを使用）
+  const hiroshimaScrapingService = new HiroshimaScrapingService(browserManager);
+  scrapingServices.push(hiroshimaScrapingService);
 
   const ticketCollectionService = new TicketCollectionService(scrapingServices);
   const notificationSchedulerService = new NotificationSchedulerService(
