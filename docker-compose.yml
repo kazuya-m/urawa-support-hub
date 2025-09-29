@@ -1,0 +1,31 @@
+# 開発環境用Docker Compose設定
+# 本番環境（Cloud Run）では使用されません
+
+services:
+  urawa-support-hub-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - '8080:8080'
+    volumes:
+      # ソースコードをマウント（ホットリロード用）
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./scripts:/app/scripts
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - SUPABASE_URL=http://host.docker.internal:54321
+    # Supabaseローカル環境との連携
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    # ヘルスチェック
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

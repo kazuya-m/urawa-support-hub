@@ -19,16 +19,21 @@
     "@std/dotenv": "jsr:@std/dotenv@^0.225.0"
   },
   "tasks": {
-    "start": "docker build -f Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 -v $(pwd)/src:/app/src urawa-support-hub",
-    "stop": "docker stop urawa-support-hub-local && docker rm urawa-support-hub-local",
-    "restart": "docker stop urawa-support-hub-local && docker rm urawa-support-hub-local && docker build -f Dockerfile -t urawa-support-hub . && docker run -d --add-host host.docker.internal:host-gateway -e SUPABASE_URL=http://host.docker.internal:54321 --env-file .env --name urawa-support-hub-local -p 8080:8080 -v $(pwd)/src:/app/src urawa-support-hub",
-    "dev": "supabase functions serve --debug",
-    "logs": "docker logs urawa-support-hub-local",
+    "dev": "docker-compose up -d",
+    "dev:foreground": "docker-compose up",
+    "dev:down": "docker-compose down",
+    "dev:restart": "docker-compose down && docker-compose up -d",
+    "dev:build": "docker-compose build --no-cache",
+    "dev:logs": "docker-compose logs -f",
+    "dev:local": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run src/main.ts",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:restart": "supabase stop && supabase start",
+    "db:functions": "supabase functions serve --debug",
+    "db:reset": "supabase db reset",
     "test": "deno test --allow-env --allow-net=127.0.0.1 --coverage=coverage",
     "test:unit": "deno test src/ --coverage=coverage",
     "test:integration": "deno test tests/integration/ --allow-env --allow-net=127.0.0.1 --coverage=coverage",
-    "db:reset": "supabase db reset",
-    "db:push": "supabase db push",
     "lint": "deno lint",
     "fmt": "deno fmt",
     "pre-commit": "deno check src/ && deno lint && deno fmt --check",
@@ -41,8 +46,7 @@
     "demo:collect-ticket": "deno run --allow-env --allow-net --allow-read scripts/demo/test-collect-tickets.ts",
     "demo:collect-ticket-integration": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys tests/integration/collect-tickets-api-test.ts",
     "demo:ticket-summary": "deno run --allow-net --allow-env --allow-read scripts/demo/test-ticket-summary.ts",
-    "debug:db-tickets": "deno run --allow-env --allow-net --allow-read scripts/debug/check-tickets-db.ts",
-    "dev:cloud-run": "deno run --allow-env --allow-net --allow-read --allow-write --allow-sys --allow-run src/main.ts"
+    "debug:db-tickets": "deno run --allow-env --allow-net --allow-read scripts/debug/check-tickets-db.ts"
   },
   "lint": {
     "include": ["src/", "supabase/functions/"],

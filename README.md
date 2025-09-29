@@ -123,11 +123,37 @@ deno check src/
 deno lint src/
 ```
 
-### 4. Development Commands
+### 4. Development with Docker (Recommended)
 
 ```bash
-# Start local development server
-supabase functions serve
+# Start development server with watch mode (auto-reload)
+deno task dev
+
+# Stop development server
+deno task dev:down
+
+# View logs
+deno task dev:logs
+
+# Rebuild if dependencies changed
+deno task dev:build
+
+# Access container shell (if needed)
+docker-compose exec urawa-support-hub sh
+```
+
+**Features:**
+
+- 🔄 Auto-reload on file changes (watch mode)
+- 📁 Source code mounted as volumes
+- 🧪 Test files included for E2E testing
+- 🔧 Uses `.env.local` for development settings
+
+### 5. Other Development Commands
+
+```bash
+# Start Supabase local
+supabase start
 
 # Reset database
 supabase db reset
@@ -142,7 +168,7 @@ deno coverage coverage
 deno task pre-commit
 ```
 
-### 5. Pre-commit Hook Setup (Optional)
+### 6. Pre-commit Hook Setup (Optional)
 
 To automatically run type and lint checks before commits:
 
