@@ -2,7 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2025-09-29 (Issue #158 新規追加, #157 完了)\
+**Updated**: 2025-09-29 (最新状況: #161, #160 新規追加, #158 完了)\
 **Goal**: ✅ Launch MVP by 2025-09-30 (**完了**: 2025-09-16)
 
 ## Implementation Status Summary
@@ -214,7 +214,9 @@ Each issue is considered complete when:
 
 ### ✅ **最近完了・クローズしたイシュー (2025-09-29)**:
 
-- #157 - 不要なPostgreSQL functionsとcron jobsを削除してアーキテクチャを統一 ✅ **NEW**
+- #160 - チケット更新時の差分ログ出力機能 ✅ **NEW**
+- #158 - エラーログ自動通知システムの実装 ✅
+- #157 - 不要なPostgreSQL functionsとcron jobsを削除してアーキテクチャを統一 ✅
 - #155 - SendTicketSummaryUseCaseのクリーンアーキテクチャ違反を修正：Application層Service導入 ✅
 - #152 - YAGNI: 未使用コードとエンドポイントの削除 ✅
 - #150 - インフラ層のスクレイピング関連ディレクトリ構造を統合 ✅
@@ -232,11 +234,12 @@ Each issue is considered complete when:
 
 ## 🚨 Active Issues - 優先順位別
 
-### 🔴 **HIGH PRIORITY - エラー監視・通知機能**
+### 🔴 **HIGH PRIORITY - データ整合性・通知機能**
 
-| Issue | Title                            | Category             | Priority | Status |
-| ----- | -------------------------------- | -------------------- | -------- | ------ |
-| #158  | エラーログ自動通知システムの実装 | エラー監視・通知強化 | 🟠 High  | Open   |
+| Issue | Title                                                            | Category           | Priority | Status           |
+| ----- | ---------------------------------------------------------------- | ------------------ | -------- | ---------------- |
+| #161  | スクレイピング更新時のnotification_scheduledフィールド上書き問題 | データ整合性・通知 | 🔴 High  | Open             |
+| #160  | チケット更新時の差分ログ出力機能                                 | 運用改善・ログ出力 | 🟠 High  | ✅ **COMPLETED** |
 
 ### ✅ **COMPLETED - 技術的負債・バグ修正**
 
@@ -283,12 +286,15 @@ Each issue is considered complete when:
 
 ### 🎯 **推奨実装順序**
 
-#### 📍 **最優先タスク** (エラー監視・通知強化)
+#### 📍 **最優先タスク** (データ整合性・通知機能)
 
-1. **#158** - エラーログ自動通知システムの実装 🟠 **NEW**
-   - **内容**: Cloud LoggingのエラーログをDiscordに自動通知
-   - **実装済み**: Google Cloud Error Reportingのメール通知を有効化
-   - **期待効果**: リアルタイムエラー検知・早期問題解決・運用改善
+1. **#161** - スクレイピング更新時のnotification_scheduledフィールド上書き問題 🔴 **NEW**
+   - **内容**: チケット更新時にnotification_scheduled値が意図せず上書きされる問題の修正
+   - **影響**: 通知スケジュールが正しく動作しない可能性
+   - **期待効果**: 通知システムの安定性確保・データ整合性向上
+2. **#160** - チケット更新時の差分ログ出力機能 🟠 **NEW**
+   - **内容**: チケット情報更新時に変更内容をログ出力
+   - **期待効果**: 運用改善・データ変更の可視化
 
 #### 📍 **次に実装可能なタスク** (パフォーマンス最適化・運用改善)
 
