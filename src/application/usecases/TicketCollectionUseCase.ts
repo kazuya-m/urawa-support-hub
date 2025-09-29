@@ -266,6 +266,37 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
       context: {
         ticketId: ticket.id,
         matchName: ticket.matchName,
+        stage: 'upsert',
+      },
+      data: {
+        // 更新後のチケット情報
+        updated: {
+          id: ticket.id,
+          matchName: ticket.matchName,
+          saleStatus: ticket.saleStatus,
+          saleStartDate: ticket.saleStartDate?.toISOString(),
+          saleEndDate: ticket.saleEndDate?.toISOString(),
+          venue: ticket.venue,
+          ticketTypes: ticket.ticketTypes,
+          ticketUrl: ticket.ticketUrl,
+        },
+        // 更新前のチケット情報（存在する場合）
+        ...(previousTicket && {
+          existing: {
+            id: previousTicket.id,
+            matchName: previousTicket.matchName,
+            saleStatus: previousTicket.saleStatus,
+            saleStartDate: previousTicket.saleStartDate?.toISOString(),
+            saleEndDate: previousTicket.saleEndDate?.toISOString(),
+            venue: previousTicket.venue,
+            ticketTypes: previousTicket.ticketTypes,
+            ticketUrl: previousTicket.ticketUrl,
+          },
+        }),
+      },
+      metadata: {
+        operation: action,
+        hasChanges,
       },
     };
 

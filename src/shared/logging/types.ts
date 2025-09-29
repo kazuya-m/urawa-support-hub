@@ -106,6 +106,8 @@ export interface LogData {
   // チケットデータ比較用
   scraped?: TicketComparison; // スクレイピングで取得したデータ
   existing?: TicketComparison; // DBの既存データ
+  current?: TicketComparison; // 現在の（更新後の）データ
+  updated?: TicketComparison; // 更新後のデータ（currentと同義）
   changes?: Record<string, string> | ChangeDetails[]; // 検出された変更
 
   // チケット操作結果（スクレイピング後のDB操作詳細）
