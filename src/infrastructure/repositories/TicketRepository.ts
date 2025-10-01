@@ -43,6 +43,34 @@ export class TicketRepository implements ITicketRepository {
     return TicketConverter.toDomainEntity(data);
   }
 
+  async findByIds(ids: string[]): Promise<Map<string, Ticket>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const { data, error } = await this.client
+      .from('tickets')
+      .select('*')
+      .in('id', ids);
+
+    if (error) {
+      throwDatabaseError('TicketRepository', 'findByIds', error, {
+        table: 'tickets',
+        ticketIds: ids,
+      });
+    }
+
+    const resultMap = new Map<string, Ticket>();
+    if (data) {
+      for (const row of data) {
+        const ticket = TicketConverter.toDomainEntity(row);
+        resultMap.set(ticket.id, ticket);
+      }
+    }
+
+    return resultMap;
+  }
+
   async findByDateRange(column: string, startDate?: Date, endDate?: Date): Promise<Ticket[]> {
     let query = this.client
       .from('tickets')
