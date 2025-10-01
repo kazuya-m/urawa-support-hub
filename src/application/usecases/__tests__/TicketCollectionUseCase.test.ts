@@ -75,12 +75,13 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
 
       const dependencies = createMockDependencies();
 
-      // モックでは既存チケットが存在することを設定
-      dependencies.ticketRepository.findById = (id: string) => {
-        if (id === scrapedTicket.id) {
-          return Promise.resolve(existingTicket);
+      // モックでは既存チケットが存在することを設定（最適化後はfindByIdsを使用）
+      dependencies.ticketRepository.findByIds = (ids: string[]) => {
+        const resultMap = new Map<string, Ticket>();
+        if (ids.includes(scrapedTicket.id)) {
+          resultMap.set(scrapedTicket.id, existingTicket);
         }
-        return Promise.resolve(null);
+        return Promise.resolve(resultMap);
       };
 
       let upsertedTicket: Ticket | null = null;

@@ -20,6 +20,18 @@ export class MockTicketRepository implements ITicketRepository {
     return this.tickets.get(id) || null;
   }
 
+  async findByIds(ids: string[]): Promise<Map<string, Ticket>> {
+    await Promise.resolve();
+    const resultMap = new Map<string, Ticket>();
+    for (const id of ids) {
+      const ticket = this.tickets.get(id);
+      if (ticket) {
+        resultMap.set(id, ticket);
+      }
+    }
+    return resultMap;
+  }
+
   async findByDateRange(): Promise<Ticket[]> {
     await Promise.resolve();
     return Array.from(this.tickets.values());
