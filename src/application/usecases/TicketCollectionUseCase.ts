@@ -129,9 +129,12 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
   private async upsertCollectedTickets(tickets: Ticket[]): Promise<TicketUpsertResult[]> {
     const results: TicketUpsertResult[] = [];
 
+    const ticketIds = tickets.map((ticket) => ticket.id);
+    const existingTicketsMap = await this.ticketRepository.findByIds(ticketIds);
+
     for (const ticket of tickets) {
       try {
-        const result = await this.upsertTicket(ticket);
+        const result = await this.upsertTicket(ticket, existingTicketsMap.get(ticket.id));
         results.push(result);
         this.logTicketUpsertResult(result);
       } catch (error) {
@@ -152,25 +155,28 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
     return results;
   }
 
-  private async upsertTicket(ticket: Ticket): Promise<TicketUpsertResult> {
-    const previousTicket = await this.ticketRepository.findById(ticket.id);
+  private async upsertTicket(
+    ticket: Ticket,
+    previousTicket?: Ticket | null,
+  ): Promise<TicketUpsertResult> {
+    const existingTicket = previousTicket || null;
 
-    if (previousTicket && ticket.hasSameBusinessData(previousTicket)) {
+    if (existingTicket && ticket.hasSameBusinessData(existingTicket)) {
       return {
         ticket,
-        previousTicket,
+        previousTicket: existingTicket,
         hasChanges: false,
       };
     }
 
     // 既存チケットの場合は新しいデータとマージ
-    const ticketToUpsert = previousTicket ? previousTicket.mergeWith(ticket) : ticket;
+    const ticketToUpsert = existingTicket ? existingTicket.mergeWith(ticket) : ticket;
 
     const upsertedTicket = await this.ticketRepository.upsert(ticketToUpsert);
 
     return {
       ticket: upsertedTicket,
-      previousTicket,
+      previousTicket: existingTicket,
       hasChanges: true,
     };
   }
