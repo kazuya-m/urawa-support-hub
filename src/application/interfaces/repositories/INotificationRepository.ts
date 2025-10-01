@@ -3,6 +3,7 @@ import { Notification } from '@/domain/entities/Notification.ts';
 export interface INotificationRepository {
   findAll(): Promise<Notification[]>;
   findById(id: string): Promise<Notification | null>;
+  findByIds(ids: string[]): Promise<Map<string, Notification>>;
   findByTicketId(ticketId: string): Promise<Notification[]>;
   findByColumn(column: string, value: unknown): Promise<Notification[]>;
   findByDateRange(column: string, startDate?: Date, endDate?: Date): Promise<Notification[]>;
