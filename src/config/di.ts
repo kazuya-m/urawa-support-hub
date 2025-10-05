@@ -58,16 +58,12 @@ export const createDependencies = () => {
   // スクレイピングサービス設定
   const scrapingServices = [];
 
-  // 実際のスクレイピングサービスを使用
-  const playwrightClient = new PlaywrightClient();
-  const browserManager = new BrowserManager(playwrightClient);
-
-  // J-Leagueサイトスクレイピング
-  const jleagueScrapingService = new JLeagueScrapingService(browserManager);
+  const jleagueBrowserManager = new BrowserManager(new PlaywrightClient());
+  const jleagueScrapingService = new JLeagueScrapingService(jleagueBrowserManager);
   scrapingServices.push(jleagueScrapingService);
 
-  // サンフレッチェ広島公式サイトスクレイピング（同じbrowserManagerを使用）
-  const hiroshimaScrapingService = new HiroshimaScrapingService(browserManager);
+  const hiroshimaBrowserManager = new BrowserManager(new PlaywrightClient());
+  const hiroshimaScrapingService = new HiroshimaScrapingService(hiroshimaBrowserManager);
   scrapingServices.push(hiroshimaScrapingService);
 
   const ticketCollectionService = new TicketCollectionService(scrapingServices);
