@@ -74,6 +74,7 @@ export class HiroshimaDataParser {
         matchDate: matchDate,
         venue: rawTicket.venue || undefined,
         saleStartDate: saleStartDate,
+        saleEndDate: undefined, // 明示的にundefinedを設定
         saleStatus: saleStatus,
         ticketUrl: rawTicket.ticketUrl || '',
         ticketTypes: rawTicket.ticketTypes,
