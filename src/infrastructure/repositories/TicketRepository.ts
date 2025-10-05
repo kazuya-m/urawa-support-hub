@@ -43,6 +43,34 @@ export class TicketRepository implements ITicketRepository {
     return TicketConverter.toDomainEntity(data);
   }
 
+  async findByIds(ids: string[]): Promise<Map<string, Ticket>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const { data, error } = await this.client
+      .from('tickets')
+      .select('*')
+      .in('id', ids);
+
+    if (error) {
+      throwDatabaseError('TicketRepository', 'findByIds', error, {
+        table: 'tickets',
+        ticketIds: ids,
+      });
+    }
+
+    const resultMap = new Map<string, Ticket>();
+    if (data) {
+      for (const row of data) {
+        const ticket = TicketConverter.toDomainEntity(row);
+        resultMap.set(ticket.id, ticket);
+      }
+    }
+
+    return resultMap;
+  }
+
   async findByDateRange(column: string, startDate?: Date, endDate?: Date): Promise<Ticket[]> {
     let query = this.client
       .from('tickets')
@@ -112,5 +140,37 @@ export class TicketRepository implements ITicketRepository {
     }
 
     return TicketConverter.toDomainEntity(upsertedData as TicketRow);
+  }
+
+  async upsertMany(tickets: Ticket[]): Promise<Ticket[]> {
+    if (tickets.length === 0) {
+      return [];
+    }
+
+    const rows = tickets.map((ticket) => ({
+      ...TicketConverter.toDatabaseRow(ticket),
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { data, error } = await this.client
+      .from('tickets')
+      .upsert(rows)
+      .select();
+
+    if (error) {
+      throwDatabaseError('TicketRepository', 'upsertMany', error, {
+        table: 'tickets',
+        ticketCount: tickets.length,
+      });
+    }
+
+    if (!data || data.length === 0) {
+      throwDatabaseError('TicketRepository', 'upsertMany', {
+        message: 'Upsert operation did not return data',
+        code: 'NO_DATA',
+      }, { table: 'tickets', ticketCount: tickets.length });
+    }
+
+    return data.map((row) => TicketConverter.toDomainEntity(row as TicketRow));
   }
 }

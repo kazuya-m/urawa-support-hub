@@ -33,6 +33,34 @@ export class NotificationRepository implements INotificationRepository {
     return data ? NotificationConverter.toDomainEntity(data) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Map<string, Notification>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const { data, error } = await this.client
+      .from('notifications')
+      .select('*')
+      .in('id', ids);
+
+    if (error) {
+      throwDatabaseError('NotificationRepository', 'findByIds', error, {
+        table: 'notifications',
+        notificationIds: ids,
+      });
+    }
+
+    const resultMap = new Map<string, Notification>();
+    if (data) {
+      for (const row of data) {
+        const notification = NotificationConverter.toDomainEntity(row);
+        resultMap.set(notification.id, notification);
+      }
+    }
+
+    return resultMap;
+  }
+
   async findByTicketId(ticketId: string): Promise<Notification[]> {
     const { data, error } = await this.client
       .from('notifications')

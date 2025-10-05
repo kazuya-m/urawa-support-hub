@@ -127,52 +127,105 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
   }
 
   private async upsertCollectedTickets(tickets: Ticket[]): Promise<TicketUpsertResult[]> {
-    const results: TicketUpsertResult[] = [];
+    if (tickets.length === 0) {
+      return [];
+    }
+
+    // 1. 既存データを一括取得
+    const ticketIds = tickets.map((ticket) => ticket.id);
+    const existingTicketsMap = await this.ticketRepository.findByIds(ticketIds);
+
+    // 2. 変更のあるチケットとないチケットを分離
+    const ticketsToUpsert: Ticket[] = [];
+    const unchangedResults: TicketUpsertResult[] = [];
+    const ticketMetadataMap = new Map<string, { original: Ticket; existing: Ticket | null }>();
 
     for (const ticket of tickets) {
-      try {
-        const result = await this.upsertTicket(ticket);
-        results.push(result);
-        this.logTicketUpsertResult(result);
-      } catch (error) {
-        CloudLogger.error(`Failed to process ticket (ID: ${ticket.id})`, {
-          category: LogCategory.TICKET_COLLECTION,
-          context: { ticketId: ticket.id },
-          error: toErrorInfo(error, undefined, true),
-        });
-        results.push({
-          ticket: ticket,
-          previousTicket: null,
+      const existingTicket = existingTicketsMap.get(ticket.id) || null;
+
+      if (existingTicket && ticket.hasSameBusinessData(existingTicket)) {
+        // 変更なし
+        unchangedResults.push({
+          ticket,
+          previousTicket: existingTicket,
           hasChanges: false,
-          error: getErrorMessage(error),
+        });
+      } else {
+        // 変更あり：既存チケットがある場合はマージ
+        const ticketToUpsert = existingTicket ? existingTicket.mergeWith(ticket) : ticket;
+        ticketsToUpsert.push(ticketToUpsert);
+        ticketMetadataMap.set(ticketToUpsert.id, {
+          original: ticket,
+          existing: existingTicket,
         });
       }
     }
 
-    return results;
-  }
+    // 3. 変更のあるチケットを一括upsert
+    const upsertResults: TicketUpsertResult[] = [...unchangedResults];
 
-  private async upsertTicket(ticket: Ticket): Promise<TicketUpsertResult> {
-    const previousTicket = await this.ticketRepository.findById(ticket.id);
+    if (ticketsToUpsert.length > 0) {
+      try {
+        const upsertedTickets = await this.ticketRepository.upsertMany(ticketsToUpsert);
 
-    if (previousTicket && ticket.hasSameBusinessData(previousTicket)) {
-      return {
-        ticket,
-        previousTicket,
-        hasChanges: false,
-      };
+        // 成功した結果を記録
+        for (const upsertedTicket of upsertedTickets) {
+          const metadata = ticketMetadataMap.get(upsertedTicket.id);
+          if (metadata) {
+            const result: TicketUpsertResult = {
+              ticket: upsertedTicket,
+              previousTicket: metadata.existing,
+              hasChanges: true,
+            };
+            upsertResults.push(result);
+            this.logTicketUpsertResult(result);
+          }
+        }
+      } catch (error) {
+        // 一括upsert失敗時は個別処理にフォールバック
+        CloudLogger.warn('Bulk upsert failed, falling back to individual upserts', {
+          category: LogCategory.TICKET_COLLECTION,
+          error: toErrorInfo(error, undefined, true),
+          metadata: {
+            ticketCount: ticketsToUpsert.length,
+            fallbackReason: 'bulk_upsert_failed',
+          },
+        });
+
+        for (const ticket of ticketsToUpsert) {
+          try {
+            const metadata = ticketMetadataMap.get(ticket.id);
+            const upsertedTicket = await this.ticketRepository.upsert(ticket);
+            const result: TicketUpsertResult = {
+              ticket: upsertedTicket,
+              previousTicket: metadata?.existing || null,
+              hasChanges: true,
+            };
+            upsertResults.push(result);
+            this.logTicketUpsertResult(result);
+          } catch (individualError) {
+            CloudLogger.error(`Failed to process ticket (ID: ${ticket.id})`, {
+              category: LogCategory.TICKET_COLLECTION,
+              context: { ticketId: ticket.id },
+              error: toErrorInfo(individualError, undefined, true),
+            });
+            upsertResults.push({
+              ticket: ticket,
+              previousTicket: null,
+              hasChanges: false,
+              error: getErrorMessage(individualError),
+            });
+          }
+        }
+      }
     }
 
-    // 既存チケットの場合は新しいデータとマージ
-    const ticketToUpsert = previousTicket ? previousTicket.mergeWith(ticket) : ticket;
+    // 変更なしのチケットもログ出力
+    for (const unchangedResult of unchangedResults) {
+      this.logTicketUpsertResult(unchangedResult);
+    }
 
-    const upsertedTicket = await this.ticketRepository.upsert(ticketToUpsert);
-
-    return {
-      ticket: upsertedTicket,
-      previousTicket,
-      hasChanges: true,
-    };
+    return upsertResults;
   }
 
   private async scheduleTicketNotifications(upsertResults: TicketUpsertResult[]): Promise<void> {

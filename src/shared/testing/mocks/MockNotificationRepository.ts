@@ -14,6 +14,18 @@ export class MockNotificationRepository implements INotificationRepository {
     return this.notifications.get(id) || null;
   }
 
+  async findByIds(ids: string[]): Promise<Map<string, Notification>> {
+    await Promise.resolve();
+    const resultMap = new Map<string, Notification>();
+    for (const id of ids) {
+      const notification = this.notifications.get(id);
+      if (notification) {
+        resultMap.set(id, notification);
+      }
+    }
+    return resultMap;
+  }
+
   async findByTicketId(ticketId: string): Promise<Notification[]> {
     await Promise.resolve();
     return Array.from(this.notifications.values())
