@@ -84,9 +84,14 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
         return Promise.resolve(resultMap);
       };
 
-      let upsertedTicket: Ticket | null = null;
+      let upsertedTickets: Ticket[] = [];
+      dependencies.ticketRepository.upsertMany = (tickets: Ticket[]): Promise<Ticket[]> => {
+        upsertedTickets = tickets;
+        return Promise.resolve(tickets);
+      };
+      // フォールバック用の個別upsertも定義
       dependencies.ticketRepository.upsert = (ticket: Ticket): Promise<Ticket> => {
-        upsertedTicket = ticket;
+        upsertedTickets.push(ticket);
         return Promise.resolve(ticket);
       };
 
@@ -102,9 +107,10 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
       assertEquals(result.updatedTickets, 1);
 
       // notificationScheduled状態が保持されていることを確認（mergeWithによる）
-      assertEquals(upsertedTicket!.notificationScheduled, true);
-      assertEquals(upsertedTicket!.venue, 'Test Stadium Updated'); // ビジネスデータは更新されている
-      assertEquals(upsertedTicket!.id, existingTicket.id); // IDも保持されている
+      assertEquals(upsertedTickets.length, 1);
+      assertEquals(upsertedTickets[0]!.notificationScheduled, true);
+      assertEquals(upsertedTickets[0]!.venue, 'Test Stadium Updated'); // ビジネスデータは更新されている
+      assertEquals(upsertedTickets[0]!.id, existingTicket.id); // IDも保持されている
     },
   );
 

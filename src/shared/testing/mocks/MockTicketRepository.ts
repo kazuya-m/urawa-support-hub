@@ -55,6 +55,14 @@ export class MockTicketRepository implements ITicketRepository {
     return ticket;
   }
 
+  async upsertMany(tickets: Ticket[]): Promise<Ticket[]> {
+    await Promise.resolve();
+    for (const ticket of tickets) {
+      this.tickets.set(ticket.id, ticket);
+    }
+    return tickets;
+  }
+
   // テスト用ヘルパーメソッド
   clear(): void {
     this.tickets.clear();
