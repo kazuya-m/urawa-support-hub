@@ -931,7 +931,6 @@ export class NotificationService {
   constructor(
     private notificationRepository: NotificationRepository,
     private lineClient: LineClient,
-    private discordClient: DiscordClient,
   ) {}
 
   async sendNotification(ticketId: string, notificationType: NotificationType): Promise<void> {
@@ -948,23 +947,16 @@ export class NotificationService {
       // Send to LINE
       await this.lineClient.sendTicketNotification(ticketId, notificationType);
 
-      // Send monitoring alert to Discord
-      await this.discordClient.sendNotificationAlert(ticketId, notificationType, 'success');
-
       // Update status
       if (history) {
         await this.notificationRepository.update(history.markAsSent());
       }
     } catch (error) {
-      console.error('Notification failed:', error);
-
-      // Send error alert to Discord
-      await this.discordClient.sendNotificationAlert(
-        ticketId,
-        notificationType,
-        'error',
-        (error as Error).message,
-      );
+      CloudLogger.error('Notification failed', {
+        category: LogCategory.NOTIFICATION_DELIVERY,
+        context: { ticketId, notificationType },
+        metadata: { error: String(error) },
+      });
 
       // Update error status
       if (history) {
@@ -1035,19 +1027,13 @@ export function handleSupabaseError(operation: string, error: any): never {
 }
 
 export class ErrorRecoveryService {
-  constructor(private discordClient: DiscordClient) {}
-
   async handleError(error: BaseError): Promise<void> {
-    // Log error
-    console.error(
-      `[${error.severity.toUpperCase()}] ${error.code}: ${error.message}`,
-      error.context,
-    );
-
-    // Send alert for high/critical errors
-    if (error.severity === 'high' || error.severity === 'critical') {
-      await this.discordClient.sendErrorAlert(error);
-    }
+    // Log structured error
+    CloudLogger.error(error.message, {
+      category: LogCategory.ERROR,
+      context: { code: error.code, severity: error.severity },
+      metadata: error.context,
+    });
 
     // Implement recovery strategies based on error type
     switch (error.code) {
@@ -1438,41 +1424,6 @@ export class LineClient {
 
     if (!response.ok) {
       throw new Error(`LINE API error: ${response.status}`);
-    }
-  }
-}
-```
-
-### Discord Alert Client
-
-```typescript
-// src/infrastructure/clients/DiscordClient.ts
-export class DiscordClient {
-  constructor(
-    private readonly webhookUrl: string,
-  ) {}
-
-  async sendAlert(message: string, isError: boolean = false): Promise<void> {
-    const response = await fetch(this.webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: message,
-        embeds: isError
-          ? [{
-            title: '⚠️ Error Alert',
-            description: message,
-            color: 0xff0000,
-            timestamp: new Date().toISOString(),
-          }]
-          : undefined,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error(`Discord webhook error: ${response.status}`);
     }
   }
 }
