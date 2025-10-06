@@ -1,235 +1,212 @@
 # urawa-support-hub
 
-Automated notification system for Urawa Red Diamonds away match ticket sales information
+浦和レッズのアウェイチケット販売情報を自動通知するシステム
 
-> **Clean Architecture** | **Comprehensive Testing** | **Automated CI/CD**
+> **Google Cloud Run + Supabase** | **クリーンアーキテクチャ** | **自動CI/CD**
 
-## Overview
+## 概要
 
-A system that automatically retrieves Urawa Red Diamonds away match ticket information from the
-J-League ticket site and sends LINE notifications before sales start.
+浦和レッズのアウェイチケット情報を自動収集し、販売開始前にLINE通知を送信するシステムです。
 
-### System Features
+**主要機能:**
 
-- **Domain Layer**: Ticket, Notification entities with business logic
-- **Infrastructure Layer**: Repository pattern implementation
-- **Configuration-driven Design**: NOTIFICATION_TIMING_CONFIG for operational changes
-- **Integration Testing**: Comprehensive test coverage for entities, repositories, and integration
-- **CI/CD Pipeline**: Automated GitHub Actions workflow
-- **Error Handling**: Unified error processing infrastructure
+- 🎫 Playwrightスクレイピングによる自動チケット監視（Cloud Run）
+- 📱 Google Cloud Tasksによる通知スケジューリングとLINE通知送信（Cloud Run）
+- 🏗️ ハイブリッドアーキテクチャ: Google Cloud（スクレイピング・通知送信） + Supabase（データ管理）
+- 🔄 Google Cloud Schedulerによる毎日自動実行
+- ✅ MVP稼働中（2025-09-16ローンチ）
 
-## Architecture
+## アーキテクチャ
 
-### Clean Architecture Structure
+### Google Cloud + Supabase ハイブリッド構成
 
 ```
-┌─────────────────────────────────────┐
-│     Edge Functions (Interface)     │  ← daily-check, notification-check
-├─────────────────────────────────────┤
-│      Application Services          │  ← ScrapingService, NotificationService  
-├─────────────────────────────────────┤
-│        Domain Layer                │  ← Entities: Ticket, Notification
-│                                     │    Interfaces: TicketRepository
-├─────────────────────────────────────┤
-│     Infrastructure Layer           │  ← RepositoryImpl, Supabase Client
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│  Google Cloud Scheduler (毎日05:00 JST実行)     │
+└─────────────────┬───────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────┐
+│  Cloud Run（スクレイピング・通知送信）          │
+│  ├── Playwrightスクレイピング (2GB, 300s)       │
+│  ├── チケットデータ収集・保存                   │
+│  ├── Cloud Tasksスケジューリング                │
+│  └── LINE通知送信（Cloud Tasks経由）            │
+└─────────────────┬───────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────┐
+│  Supabase PostgreSQL（データベース）            │
+│  └── チケット、通知、スケジュール               │
+└─────────────────────────────────────────────────┘
 ```
 
-### Directory Structure
+### 技術スタック
 
-```
-src/
-├── domain/                    # Domain layer
-│   ├── entities/             # Business entities (Classes)
-│   │   ├── Ticket.ts         # Ticket entity + business logic
-│   │   ├── Notification.ts
-│   │   └── __tests__/        # Entity unit tests
-│   └── interfaces/           # Repository interfaces
-├── infrastructure/           # Infrastructure layer  
-│   ├── repositories/         # Repository implementations
-│   │   ├── TicketRepositoryImpl.ts
-│   │   ├── converters/       # DB↔Domain conversion
-│   │   └── __tests__/        # Repository unit tests
-│   └── utils/                # Infrastructure common processing
-└── tests/integration/        # Integration tests
-```
+- **スクレイピング**: Google Cloud Run + Playwright
+- **スケジューリング**: Google Cloud Scheduler + Cloud Tasks
+- **通知送信**: Cloud Run + LINE Messaging API
+- **データベース**: Supabase PostgreSQL
+- **ログ管理**: Google Cloud Logging（構造化ログ）
+- **ランタイム**: Deno + TypeScript
+- **CI/CD**: GitHub Actions
 
-## Technology Stack
+## ドキュメント
 
-- **Runtime**: Deno + TypeScript
-- **Database**: Supabase PostgreSQL
-- **Functions**: Supabase Edge Functions
-- **Scraping**: Playwright
-- **Notifications**: LINE Messaging API + Discord Webhook
-- **Scheduler**: pg_cron
-- **CI/CD**: GitHub Actions (optimized)
+📚 **必須ドキュメント**（`/docs`配下）:
 
-## Documentation
+- **[ドキュメント索引](docs/INDEX.md)** - 全ドキュメントの目次とナビゲーション
+- **[システムアーキテクチャ](docs/system-architecture.md)** - ハイブリッド構成の完全設計
+- **[実装ガイド](docs/implementation-guide.md)** - コードパターンと実装例
+- **[セットアップガイド](docs/setup-guide.md)** - 環境構築とデプロイ
+- **[テストガイドライン](docs/testing-guidelines.md)** - テスト戦略とパターン
 
-Detailed design and requirements documents are organized in the `/docs` directory.
+📋 **プロジェクト管理**:
 
-- [Requirements](docs/requirements.md)
-- [Technology Selection](docs/tech-selection.md) - Updated with implementation status
-- [Basic Design](docs/basic-design.md) - Reflects Clean Architecture
-- [Detailed Design](docs/detailed-design.md) - Reflects implemented entities
-- [Architecture Design](docs/architecture.md) - Reflects implementation structure
-- [Environment Setup](docs/environment-setup.md) - Updated to current environment
+- **[Issue優先度ロードマップ](docs/issue-priority-roadmap.md)** - 開発フェーズと優先順位
 
-## Development Environment Setup
+🌐 **言語**: 日本語（主言語） | [English](docs/INDEX.md)
 
-### 1. Prerequisites
+## クイックスタート
 
-- **Deno** v2.x
-- **Supabase CLI**
+### 前提条件
+
+- Deno v2.x
+- Docker & Docker Compose（ローカル開発用）
+- Supabase CLI（オプション）
+
+### 開発環境セットアップ
 
 ```bash
-# Install Deno
-curl -fsSL https://deno.land/install.sh | sh
-
-# Install Supabase CLI
-npm install -g supabase
-```
-
-### 2. Project Setup
-
-```bash
-# Clone repository
+# リポジトリをクローン
 git clone https://github.com/kazuya-m/urawa-support-hub.git
 cd urawa-support-hub
 
-# Start Supabase local environment
-supabase start
-
-# Check dependencies
-deno check **/*.ts
-```
-
-### 3. Test Execution
-
-```bash
-# Run all tests (45 cases)
-deno test --allow-env --allow-net=127.0.0.1 --coverage=coverage
-
-# Unit tests only
-deno test src/ --coverage=coverage
-
-# Integration tests only  
-deno test tests/integration/ --allow-env --allow-net=127.0.0.1
-
-# Type check
-deno check src/
-
-# Lint check
-deno lint src/
-```
-
-### 4. Development with Docker (Recommended)
-
-```bash
-# Start development server with watch mode (auto-reload)
+# Docker開発環境を起動
 deno task dev
 
-# Stop development server
-deno task dev:down
+# テスト実行
+deno test --allow-env --allow-net=127.0.0.1
 
-# View logs
-deno task dev:logs
-
-# Rebuild if dependencies changed
-deno task dev:build
-
-# Access container shell (if needed)
-docker-compose exec urawa-support-hub sh
-```
-
-**Features:**
-
-- 🔄 Auto-reload on file changes (watch mode)
-- 📁 Source code mounted as volumes
-- 🧪 Test files included for E2E testing
-- 🔧 Uses `.env.local` for development settings
-
-### 5. Other Development Commands
-
-```bash
-# Start Supabase local
-supabase start
-
-# Reset database
-supabase db reset
-
-# Format
-deno fmt
-
-# Display test coverage
-deno coverage coverage
-
-# Pre-commit checks (type + lint)
+# 型チェック & Lint
 deno task pre-commit
 ```
 
-### 6. Pre-commit Hook Setup (Optional)
-
-To automatically run type and lint checks before commits:
+### 開発コマンド
 
 ```bash
-# Copy the pre-commit hook
-cp hooks/pre-commit .git/hooks/
+# 開発
+deno task dev              # watchモードで起動
+deno task dev:down         # コンテナ停止
+deno task dev:logs         # ログ表示
 
-# Make it executable
-chmod +x .git/hooks/pre-commit
+# テスト
+deno test --allow-env --allow-net=127.0.0.1  # 全テスト実行
+deno task pre-commit       # 型チェック + Lint
+
+# コード品質
+deno fmt                   # コードフォーマット
+deno check **/*.ts         # 型チェック
+deno lint                  # Lintチェック
 ```
 
-This will automatically run `deno check` and `deno lint` before each commit, preventing commits with
-type errors or lint violations.
+## プロジェクト構造
+
+```
+src/
+├── adapters/                 # アダプター層
+│   ├── controllers/          # HTTPコントローラー
+│   ├── helpers/              # HTTPレスポンスビルダー
+│   └── validators/           # リクエストバリデーター
+├── application/              # アプリケーション層
+│   ├── interfaces/           # インターフェース定義
+│   └── usecases/             # ユースケース実装
+├── domain/                   # ドメイン層
+│   ├── entities/             # ビジネスエンティティ
+│   ├── config/               # ドメイン設定
+│   ├── services/             # ドメインサービス
+│   └── types/                # ドメイン型定義
+├── infrastructure/           # インフラ層
+│   ├── clients/              # 外部サービスクライアント
+│   ├── repositories/         # リポジトリ実装
+│   ├── services/             # インフラサービス
+│   │   ├── notification/     # 通知サービス
+│   │   └── scraping/         # スクレイピングサービス
+│   └── utils/                # インフラユーティリティ
+├── config/                   # アプリケーション設定
+├── middleware/               # ミドルウェア
+└── shared/                   # 共有ユーティリティ
+    ├── constants/            # 定数定義
+    ├── errors/               # エラー定義
+    ├── logging/              # Google Cloud Logging
+    ├── testing/              # テストユーティリティ
+    └── utils/                # 汎用ユーティリティ
+
+tests/integration/            # 統合テスト
+docs/                         # ドキュメント
+```
+
+## テスト
+
+**テストカバレッジ**: 60+ テストケース
+
+```bash
+# 全テスト実行
+deno test --allow-env --allow-net=127.0.0.1
+
+# ユニットテストのみ
+deno test src/
+
+# 統合テスト
+deno test tests/integration/ --allow-env --allow-net=127.0.0.1
+
+# カバレッジレポート
+deno test --coverage=coverage
+deno coverage coverage
+```
 
 ## CI/CD
 
-### GitHub Actions Optimized
+### GitHub Actions
 
-- **Single job structure**: Efficiently executes lint → test → coverage
-- **GitHub Secrets**: Secure management of environment variables
-- **Minimum privileges**: Security enhancement with `--allow-env --allow-net=127.0.0.1`
+- ✅ Lint → 型チェック → テスト → カバレッジ
+- ✅ Cloud Run & Supabaseへの自動デプロイ
+- ✅ Supabase CLIによるデータベースマイグレーション
 
-### Required GitHub Secrets
+### 必要なシークレット
 
 ```
-SUPABASE_URL: https://your-project.supabase.co
-SUPABASE_ANON_KEY: your-anon-key
-SUPABASE_SERVICE_ROLE_KEY: your-service-role-key
+SUPABASE_URL
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+GCP_PROJECT_ID
+GCP_SERVICE_ACCOUNT_KEY
+LINE_CHANNEL_ACCESS_TOKEN
 ```
 
-## Testing
+詳細は[GitHub Secrets設定](docs/github-secrets-setup.md)を参照。
 
-### Test Structure (45 Cases)
+## 運用
 
-- **Entity tests**: 19 cases (Ticket: 8, Notification: 11)
-- **Repository tests**: 17 cases (TicketRepo: 9, NotificationRepo: 8)
-- **Integration tests**: 9 cases (General repository operations)
+### コスト効率
 
-### Test Execution Permissions
+**目標**: 月額$0.00（無料枠のみ）
 
-```bash
-# ✅ Recommended: Minimum privileges
-deno test --allow-env --allow-net=127.0.0.1
+- **Google Cloud**: 無料枠（Cloud Run, Scheduler, Tasks, Logging）
+- **Supabase**: 500MB DB（無料枠）
+- **LINE**: 月1,000メッセージ（無料）
 
-# ❌ Not recommended: All privileges
-deno test --allow-all
-```
+**実際の使用量**:
 
-## Operations
+- Cloud Run: 約8,760回/月実行
+- DB: < 10MB
+- 通知: 約20 LINEメッセージ/月
+- ログ: Cloud Logging無料枠内
 
-### Free Tier Operations
+### 監視
 
-- **Supabase**: DB 500MB + Functions 500,000 calls/month
-- **LINE Messaging API**: 1,000 messages/month
-- **Discord Webhook**: Unlimited
+- **エラー追跡**: Google Cloud Logging構造化ログ
+- **システムヘルスチェック**: 自動ヘルスチェック機能
+- **通知失敗監視**: ログベースのエラー検出
 
-### Estimated Usage
+## 開発ガイドライン
 
-- DB usage: Less than 10MB
-- Functions execution: Approximately 8,760 calls/month
-- Notification sending: Approximately 20 messages/month (LINE) + 50 messages/month (Discord
-  monitoring)
-
-**Total cost: $0.00/month (All within free tier)**
+開発時は[実装ガイド](docs/implementation-guide.md)と[CLAUDE.md](CLAUDE.md)を参照してください。
