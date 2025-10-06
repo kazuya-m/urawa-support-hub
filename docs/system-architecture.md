@@ -79,7 +79,7 @@ ticket sales begin.
 - **Cloud Run Service**: Unified execution environment for all business logic
   - `/api/collect-tickets`: Daily ticket extraction endpoint (triggered by Cloud Scheduler)
     - **Flow**: TicketCollectionController → TicketCollectionUseCase → TicketCollectionService
-  - `/api/send-notification`: LINE and Discord notification delivery (triggered by Cloud Tasks)
+  - `/api/send-notification`: LINE notification delivery (triggered by Cloud Tasks)
     - **Flow**: NotificationController → NotificationUseCase → NotificationService
   - `/api/process-pending-notifications`: Manual pending notification processing (triggered by Cloud
     Scheduler)
@@ -222,9 +222,7 @@ graph TD
     C --> D{Check Due Notifications}
     D --> E[NotificationRepositoryImpl]
     E --> F[LINE Messaging API]
-    E --> G[Discord Webhook]
-    F --> H[Update Delivery Status]
-    G --> H
+    F --> G[Update Delivery Status]
 ```
 
 ## Database Schema (Supabase PostgreSQL)
@@ -286,7 +284,7 @@ System health monitoring is now handled via Google Cloud Logging with structured
 
 - **CloudLogger**: Outputs structured JSON logs
 - **Log-based Metrics**: Automatic metric generation from logs
-- **Alert Policies**: Automatic Discord notifications for CRITICAL logs
+- **Alert Policies**: Monitor CRITICAL logs via Cloud Logging console
 - **30-day retention**: Automatic cleanup for cost optimization
 
 See `docs/logging-specification.md` for complete logging implementation details.
@@ -408,9 +406,6 @@ export class ErrorRecoveryService {
     // Log structured error
     await this.logger.error('Scraping failed', { error, timestamp: new Date() });
 
-    // Send alert to Discord
-    await this.alertService.sendErrorAlert(error);
-
     // Schedule retry if appropriate
     if (this.shouldRetry(error)) {
       await this.scheduleRetry();
@@ -509,7 +504,7 @@ interface TraceContext {
 interface LogEntry {
   timestamp: string;
   severity: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL';
-  service: 'cloud-run' | 'edge-functions' | 'cloud-tasks';
+  service: 'cloud-run' | 'cloud-tasks';
   operation: string;
   traceId?: string;
   duration_ms?: number;
@@ -559,7 +554,7 @@ const ALERT_THRESHOLDS = {
 - **Cloud Tasks**: Automatic retry with exponential backoff
 - **Maximum 3 retry attempts**
 - **Dead letter queue for persistent failures**
-- **Automated error alerting via Discord webhooks**
+- **Automated error tracking via Cloud Logging**
 
 ## Current Directory Structure (Clean Architecture)
 
@@ -567,112 +562,138 @@ const ALERT_THRESHOLDS = {
 
 ```
 src/
-├── application/
+├── adapters/                         # Interface Adapters Layer
+│   ├── controllers/                  # HTTP Controllers
+│   │   ├── TicketCollectionController.ts
+│   │   ├── NotificationController.ts
+│   │   ├── TicketSummaryController.ts
+│   │   └── __tests__/
+│   ├── helpers/                      # HTTP Response Builders
+│   │   └── HttpResponseBuilder.ts
+│   └── validators/                   # Request Validators
+│       └── NotificationRequestValidator.ts
+├── application/                      # Application Business Rules
 │   ├── interfaces/                   # Application Layer Interfaces
-│   │   ├── clients/                  # Client interfaces (moved from infrastructure)
+│   │   ├── clients/                  # External Client Interfaces
 │   │   │   ├── IBrowserManager.ts
 │   │   │   ├── ICloudTasksClient.ts
 │   │   │   ├── IPlaywrightClient.ts
 │   │   │   └── index.ts
-│   │   ├── repositories/             # Repository interfaces
-│   │   │   ├── INotificationRepository.ts
-│   │   │   └── ITicketRepository.ts
-│   │   ├── results/                  # UseCase result types
+│   │   ├── results/                  # UseCase Result Types
 │   │   │   └── UseCaseResults.ts
-│   │   ├── services/                 # Service interfaces
+│   │   ├── services/                 # Service Interfaces
 │   │   │   ├── INotificationSchedulerService.ts
-│   │   │   ├── INotificationService.ts
-│   │   │   ├── INotificationSchedulingService.ts
 │   │   │   ├── ITicketCollectionService.ts
 │   │   │   └── ITicketScraper.ts
-│   │   └── usecases/                 # UseCase interfaces
-│   │       ├── INotificationBatchUseCase.ts
-│   │       ├── INotificationUseCase.ts
-│   │       ├── ITicketCollectionUseCase.ts
-│   │       ├── ITicketSummaryUseCase.ts
-│   │       └── index.ts
+│   │   ├── usecases/                 # UseCase Interfaces
+│   │   │   ├── INotificationUseCase.ts
+│   │   │   ├── ITicketCollectionUseCase.ts
+│   │   │   ├── ITicketSummaryUseCase.ts
+│   │   │   └── index.ts
+│   │   └── index.ts
 │   └── usecases/                     # Application Use Cases
 │       ├── TicketCollectionUseCase.ts
 │       ├── NotificationUseCase.ts
-│       ├── NotificationBatchUseCase.ts
-│       ├── SendTicketSummaryUseCase.ts
 │       └── __tests__/
-├── domain/
+├── config/                           # Application Configuration
+│   ├── app-config.ts
+│   ├── notification.ts
+│   ├── supabase.ts
+│   ├── url.ts
+│   ├── types/
+│   │   └── UrlConfig.ts
+│   └── __tests__/
+├── domain/                           # Enterprise Business Rules
+│   ├── config/                       # Domain Configuration
+│   │   └── NotificationConfig.ts
 │   ├── entities/                     # Domain Entities
 │   │   ├── Ticket.ts
 │   │   ├── Notification.ts
 │   │   ├── DataQuality.ts
 │   │   ├── index.ts
 │   │   └── __tests__/
-│   ├── services/                     # Domain Services (Issue #150)
-│   │   ├── DateCalculationService.ts # J-League season-aware date calculations
-│   │   ├── SaleStatusService.ts      # Sale status determination logic
-│   │   └── NotificationSchedulingService.ts
-│   ├── config/                       # Domain Configuration
-│   │   └── NotificationConfig.ts     # Notification timing configuration
+│   ├── services/                     # Domain Services
+│   │   ├── DateCalculationService.ts
+│   │   └── SaleStatusService.ts
 │   └── types/                        # Domain Types
-│       └── SaleStatus.ts
-└── infrastructure/
-    ├── config/                      # Configuration Management
-    │   ├── notification.ts
-    │   ├── scraping.ts
-    │   ├── url.ts
-    │   ├── supabase.ts
-    │   ├── types/
-    │   │   ├── ScrapingConfig.ts
-    │   │   └── UrlConfig.ts
-    │   └── __tests__/
-    ├── repositories/                # Repository Implementations
-    │   ├── TicketRepositoryImpl.ts
-    │   ├── NotificationRepositoryImpl.ts
-    │   ├── HealthRepositoryImpl.ts
-    │   ├── (repositories with DI support)
-    │   ├── converters/
-    │   │   ├── TicketConverter.ts
-    │   │   ├── NotificationConverter.ts
-    │   │   └── HealthConverter.ts
-    │   └── __tests__/
-    ├── services/
-    │   ├── scraping/                # Unified Scraping Services (Issue #150)
-    │   │   ├── TicketCollectionService.ts
-    │   │   ├── shared/
-    │   │   │   ├── BrowserManager.ts
-    │   │   │   └── interfaces/      # Shared interfaces for scraping
-    │   │   │       ├── IDataExtractor.ts
-    │   │   │       ├── IDataParser.ts
-    │   │   │       ├── ISiteScrapingService.ts
-    │   │   │       └── index.ts
-    │   │   ├── sources/             # Site-specific implementations
-    │   │   │   ├── jleague/         # J-League scraping implementation
-    │   │   │   │   ├── JLeagueScrapingService.ts
-    │   │   │   │   ├── JLeagueConfig.ts
-    │   │   │   │   ├── extractor/
-    │   │   │   │   │   └── JLeagueDataExtractor.ts
-    │   │   │   │   ├── parser/
-    │   │   │   │   │   └── JLeagueDataParser.ts
-    │   │   │   │   ├── types/
-    │   │   │   │   │   └── JLeagueTypes.ts
-    │   │   │   │   └── __tests__/
-    │   │   │   └── hiroshima/       # Hiroshima scraping implementation
-    │   │   │       ├── HiroshimaScrapingService.ts
-    │   │   │       ├── HiroshimaConfig.ts
-    │   │   │       ├── extractor/
-    │   │   │       │   └── HiroshimaDataExtractor.ts
-    │   │   │       ├── parser/
-    │   │   │       │   └── HiroshimaDataParser.ts
-    │   │   │       ├── types/
-    │   │   │       │   └── HiroshimaTypes.ts
-    │   │   │       └── __tests__/
-    │   │   └── __tests__/
-    │   └── notification/            # Notification Services
-    │       ├── NotificationService.ts
-    │       ├── NotificationSchedulerService.ts
-    │       └── __tests__/
-    ├── types/
-    │   └── database.ts              # Database Type Definitions
+│       ├── SaleStatus.ts
+│       └── __tests__/
+├── infrastructure/                   # Frameworks and Drivers
+│   ├── clients/                      # External Service Clients
+│   │   ├── CloudTasksClient.ts
+│   │   ├── LineClient.ts
+│   │   ├── PlaywrightClient.ts
+│   │   └── __tests__/
+│   ├── repositories/                 # Repository Implementations
+│   │   ├── TicketRepositoryImpl.ts
+│   │   ├── NotificationRepositoryImpl.ts
+│   │   ├── HealthRepositoryImpl.ts
+│   │   ├── converters/
+│   │   │   ├── TicketConverter.ts
+│   │   │   └── NotificationConverter.ts
+│   │   ├── types/
+│   │   │   ├── RepositoryResults.ts
+│   │   │   └── UpsertResult.ts
+│   │   └── __tests__/
+│   ├── services/
+│   │   ├── notification/             # Notification Services
+│   │   │   ├── NotificationSchedulerService.ts
+│   │   │   └── __tests__/
+│   │   └── scraping/                 # Scraping Services
+│   │       ├── TicketCollectionService.ts
+│   │       ├── shared/
+│   │       │   ├── BrowserManager.ts
+│   │       │   └── interfaces/
+│   │       │       ├── IDataExtractor.ts
+│   │       │       ├── IDataParser.ts
+│   │       │       ├── ISiteScrapingService.ts
+│   │       │       └── index.ts
+│   │       ├── sources/
+│   │       │   ├── jleague/
+│   │       │   │   ├── JLeagueScrapingService.ts
+│   │       │   │   ├── JLeagueConfig.ts
+│   │       │   │   ├── extractor/
+│   │       │   │   ├── parser/
+│   │       │   │   ├── types/
+│   │       │   │   └── __tests__/
+│   │       │   └── hiroshima/
+│   │       │       ├── HiroshimaScrapingService.ts
+│   │       │       ├── HiroshimaConfig.ts
+│   │       │       ├── extractor/
+│   │       │       ├── parser/
+│   │       │       ├── types/
+│   │       │       └── __tests__/
+│   │       ├── types/
+│   │       │   ├── ScrapedTicketData.ts
+│   │       │   └── ValidationResult.ts
+│   │       └── __tests__/
+│   └── utils/
+│       ├── constants.ts
+│       └── database-error-handler.ts
+├── middleware/                       # Middleware
+│   ├── health.ts
+│   └── __tests__/
+└── shared/                           # Shared Utilities
+    ├── constants/
+    │   └── HttpStatusCodes.ts
+    ├── errors/
+    │   ├── BaseError.ts
+    │   ├── DomainError.ts
+    │   ├── ApplicationError.ts
+    │   ├── InfrastructureError.ts
+    │   ├── ErrorCodes.ts
+    │   └── index.ts
+    ├── logging/
+    │   ├── CloudLogger.ts
+    │   └── ErrorCodes.ts
+    ├── testing/
+    │   ├── mocks/
+    │   └── TestSupabaseClient.ts
     └── utils/
-        ├── constants.ts
-        └── error-handler.ts
+        ├── datetime.ts
+        ├── errorUtils.ts
+        ├── match.ts
+        └── __tests__/
 ```
 
 ### Key Architectural Changes
