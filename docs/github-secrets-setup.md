@@ -26,14 +26,7 @@ The following secrets must be configured in your GitHub repository:
 | `LINE_CHANNEL_ACCESS_TOKEN` | LINE Bot channel access token   | ✅       | `Bearer xxx...` |
 | `LINE_GROUP_ID`             | Target LINE group ID (optional) | ⚪       | `Cxxxxx...`     |
 
-### 3. Discord Configuration
-
-| Secret Name           | Description                          | Required | Example Value                          |
-| --------------------- | ------------------------------------ | -------- | -------------------------------------- |
-| `DISCORD_WEBHOOK_URL` | Discord webhook URL for error alerts | ✅       | `https://discord.com/api/webhooks/...` |
-| `DISCORD_CHANNEL_ID`  | Discord channel ID (optional)        | ⚪       | `123456789012345678`                   |
-
-### 4. Google Cloud Platform (Workload Identity)
+### 3. Google Cloud Platform (Workload Identity)
 
 | Secret Name       | Description                                    | Required | Example Value                                                                                                 |
 | ----------------- | ---------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
@@ -80,14 +73,6 @@ For each required secret:
 2. Select your channel
 3. Go to **Messaging API** tab
 4. Copy **Channel access token** → `LINE_CHANNEL_ACCESS_TOKEN`
-
-#### Discord Webhook
-
-1. Open Discord and go to your server
-2. Right-click on the channel → **Edit Channel**
-3. Go to **Integrations** → **Webhooks**
-4. Create or select a webhook
-5. Copy **Webhook URL** → `DISCORD_WEBHOOK_URL`
 
 #### Google Cloud Platform (Workload Identity)
 
@@ -256,5 +241,4 @@ For issues related to:
 
 - **Supabase**: Check [Supabase Docs](https://supabase.com/docs)
 - **LINE API**: Refer to [LINE Developers Docs](https://developers.line.biz/en/docs/)
-- **Discord**: See [Discord Developer Portal](https://discord.com/developers/docs)
 - **GCP**: Visit [Google Cloud Docs](https://cloud.google.com/docs)
