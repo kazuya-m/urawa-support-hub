@@ -70,9 +70,9 @@
 - **#9** - J-League ticket site web scraping service ✅
 - **#10** - LINE Messaging API notification service ✅
 - **#11** - Discord Webhook system monitoring ✅
-- **#14** - Daily ticket scraping Edge Function ✅
-- **#15** - Notification delivery Edge Function ✅
-- **#16** - System health monitoring Edge Function ✅
+- **#14** - Daily ticket scraping implementation ✅
+- **#15** - Notification delivery implementation ✅
+- **#16** - System health monitoring implementation ✅
 - **#18** - End-to-end integration test suite ✅
 - **#21** - Architecture documentation update ✅
 - **#22** - External scraping environment implementation ✅
@@ -124,7 +124,7 @@ Each issue is considered complete when:
 ### 🎉 MVP Launch ✅ **COMPLETED** (2025-09-16)
 
 - **✅ Achieved**: Google Cloud統合・本番環境デプロイ完了
-- **✅ Success Criteria**: 自動チケット監視・LINE/Discord通知システム稼働中
+- **✅ Success Criteria**: 自動チケット監視・LINE通知システム稼働中
 - **✅ 実績**: 目標より14日早期完成
 
 ### 📈 Post-MVP Phase (2025-09-17 ~)
@@ -195,7 +195,7 @@ Each issue is considered complete when:
 - ✅ LINE通知配信機能稼働中
 - ✅ Cloud Run + Cloud Scheduler自動実行
 - ✅ CI/CD自動デプロイ機能稼働中
-- ✅ エラー監視・Discord通知稼働中
+- ✅ エラー監視・Cloud Logging稼働中
 
 ### 🔧 **最近の追加実装** (2025-09-15～17):
 
@@ -213,9 +213,10 @@ Each issue is considered complete when:
 
 ### 📈 **現在の開発フェーズ**: Post-MVP改善・機能拡張
 
-### ✅ **最近完了・クローズしたイシュー (2025-10-05)**:
+### ✅ **最近完了・クローズしたイシュー (2025-10-06)**:
 
-- #168 - 開発環境でのwatch機能とプロダクション環境でのテストモード機能の両立実装 ✅ **NEW**
+- #173 - スクレイピング並行実行時のBrowserManager共有による競合問題 ✅ **NEW**
+- #168 - 開発環境でのwatch機能とプロダクション環境でのテストモード機能の両立実装 ✅
 - #161 - スクレイピング更新時のnotification_scheduledフィールド上書き問題を修正 ✅
 - #160 - チケット更新時の差分ログ出力機能を実装 ✅
 - #158 - エラーログ自動通知システムの実装 ✅
@@ -236,16 +237,16 @@ Each issue is considered complete when:
 
 ### 🔴 **HIGH PRIORITY - 機能拡張・改善**
 
-| Issue | Title                                                      | Category         | Priority | Status      |
-| ----- | ---------------------------------------------------------- | ---------------- | -------- | ----------- |
-| #173  | スクレイピング並行実行時のBrowserManager共有による競合問題 | バグ修正         | 🔴 High  | 🚨 **OPEN** |
-| #171  | 開発環境でのCloudTasksモック実装                           | 開発効率改善     | 🟠 High  | 🚨 **OPEN** |
-| #172  | ドキュメント構造の整理とREADME.md最適化                    | ドキュメント改善 | 🟡 Med   | 🚨 **OPEN** |
+| Issue | Title                                   | Category         | Priority | Status      |
+| ----- | --------------------------------------- | ---------------- | -------- | ----------- |
+| #171  | 開発環境でのCloudTasksモック実装        | 開発効率改善     | 🟠 High  | 🚨 **OPEN** |
+| #172  | ドキュメント構造の整理とREADME.md最適化 | ドキュメント改善 | 🟡 Med   | 🚨 **OPEN** |
 
 ### ✅ **COMPLETED - 技術的負債・バグ修正**
 
 | Issue | Title                                                                                | Reason                                         | Status           |
 | ----- | ------------------------------------------------------------------------------------ | ---------------------------------------------- | ---------------- |
+| #173  | スクレイピング並行実行時のBrowserManager共有による競合問題                           | **並行処理バグ・システム安定性向上**           | ✅ **COMPLETED** |
 | #155  | SendTicketSummaryUseCaseのクリーンアーキテクチャ違反を修正：Application層Service導入 | **クリーンアーキテクチャ原則違反の修正**       | ✅ **COMPLETED** |
 | #152  | YAGNI: 未使用コードとエンドポイントの削除                                            | コード品質向上・メンテナンス性改善             | ✅ **COMPLETED** |
 | #150  | インフラ層のスクレイピング関連ディレクトリ構造を統合                                 | アーキテクチャ整理・構造統一                   | ✅ **COMPLETED** |
@@ -266,54 +267,56 @@ Each issue is considered complete when:
 | #86   | スクレイピング最適化検討：サイト負荷軽減を優先した改善 | パフォーマンス | 🚨 **OPEN** |
 | #68   | データベース履歴とGCPログの料金最適化                  | コスト削減     | 🚨 **OPEN** |
 | #84   | Playwright scraperのmock化対応                         | テスト改善     | 🚨 **OPEN** |
+| #176  | Ticketエンティティのoptionalプロパティをnullに統一     | リファクタ     | 🚨 **OPEN** |
 
 ### 🟢 **LOW - 機能拡張・運用改善**
 
 | Issue | Title                                               | Category        | Status                            |
 | ----- | --------------------------------------------------- | --------------- | --------------------------------- |
+| #177  | スクレイパー間でのログ出力戦略の一貫性を確保        | コード品質改善  | 🚨 **OPEN**                       |
 | #165  | createdAt/updatedAtの管理をデータベース側に移行する | Phase 5運用改善 | 🚨 **OPEN**                       |
 | #164  | Ticketエンティティのデフォルト値設定を一元化する    | コード品質改善  | 🚨 **OPEN**                       |
 | #67   | ヴィッセル神戸対応                                  | 他チーム対応    | 🔄 **DEFERRED** (2026年1-2月実装) |
 | #105  | 2026年シーズン制度変更対応                          | 長期計画        | 🔄 **DEFERRED** (2026年2月まで)   |
 
-## Next Steps Priority (**UPDATED: 2025-10-05**)
+## Next Steps Priority (**UPDATED: 2025-10-06**)
 
 ### 🎯 **推奨実装順序**
 
-#### 📍 **最優先タスク** (バグ修正・緊急対応)
-
-1. **#173** - スクレイピング並行実行時のBrowserManager共有による競合問題 🔴 **CRITICAL**
-   - **内容**: 複数スクレイピングタスク並行実行時のBrowserインスタンス競合解決
-   - **期待効果**: システム安定性向上・スクレイピング成功率改善
-   - **優先理由**: パフォーマンス問題・並行処理バグ
-
 #### 📍 **高優先タスク** (開発効率改善)
 
-2. **#171** - 開発環境でのCloudTasksモック実装 🟠 **HIGH PRIORITY**
+1. **#171** - 開発環境でのCloudTasksモック実装 🟠 **HIGH PRIORITY**
    - **内容**: ローカル開発環境でのCloud Tasksモック機能実装
    - **期待効果**: 開発効率改善・テスト環境統一
 
 #### 📍 **中優先タスク** (ドキュメント整理・運用改善)
 
-3. **#172** - ドキュメント構造の整理とREADME.md最適化 🟡
+2. **#172** - ドキュメント構造の整理とREADME.md最適化 🟡
    - **内容**: プロジェクトドキュメント構造の整理とREADME改善
    - **期待効果**: プロジェクト理解しやすさ向上・メンテナンス性改善
 
-4. **#86** - スクレイピング最適化 🟡
+3. **#86** - スクレイピング最適化 🟡
    - **内容**: サイト負荷軽減を優先した詳細ページアクセス改善
    - **期待効果**: 安定性向上・サイト負荷軽減
 
-5. **#68** - GCPログ料金最適化 🟡
+4. **#68** - GCPログ料金最適化 🟡
    - **内容**: 古いログ・履歴データの自動削除設定
    - **期待効果**: 運用コスト削減
 
+5. **#176** - Ticketエンティティのoptionalプロパティをnullに統一 🟡
+   - **内容**: オブジェクト比較の安定性向上のためnull統一
+   - **期待効果**: コード品質向上・バグ防止
+
 #### 📍 **将来対応** (長期計画・来年以降)
 
-6. **#67** - ヴィッセル神戸対応 🟢
+6. **#177** - スクレイパー間でのログ出力戦略の一貫性を確保 🟢
+   - **内容**: ログフォーマット統一・出力レベル調整
+   - **期待効果**: 保守性向上・デバッグ効率改善
+7. **#67** - ヴィッセル神戸対応 🟢
    - **延期理由**: 現在販売中チケットのみで販売前DOMパターンが不明
    - **実装時期**: 2026年1-2月（新規チケット販売開始時）
-7. **#84** - Playwright scraper mock化 🟡
-8. **#105** - 2026年シーズン制度変更対応 🟢 (2026年2月まで)
+8. **#84** - Playwright scraper mock化 🟡
+9. **#105** - 2026年シーズン制度変更対応 🟢 (2026年2月まで)
 
 ## Issue Label Management Strategy
 
