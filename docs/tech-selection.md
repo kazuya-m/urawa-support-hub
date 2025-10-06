@@ -13,7 +13,7 @@ requirements for web scraping workloads.
 
 - **Deno + TypeScript**: Modern runtime with built-in TypeScript support
 - **Reason**: Type safety, modern JavaScript features, secure by default
-- **Use Cases**: All application logic, Edge Functions, Cloud Run services
+- **Use Cases**: All application logic in Cloud Run services
 
 ### Cloud Computing Platform
 
@@ -27,9 +27,8 @@ requirements for web scraping workloads.
 #### Supabase Platform
 
 - **Supabase PostgreSQL**: Cloud-native PostgreSQL with REST API
-- **Supabase Edge Functions**: Serverless notification delivery
 - **Supabase PostgREST API**: Auto-generated REST API from schema
-- **Reason**: Free tier availability, real-time capabilities, integrated with database
+- **Reason**: Free tier availability, real-time capabilities, integrated database management
 
 ### Database
 
@@ -39,12 +38,11 @@ requirements for web scraping workloads.
   - Built-in Row Level Security (RLS)
   - Real-time subscriptions
   - Auto-generated REST API
-  - Integrated with Edge Functions
 
 ### Web Scraping
 
 - **Playwright**: Modern browser automation library
-- **Execution Environment**: Google Cloud Run (changed from Edge Functions)
+- **Execution Environment**: Google Cloud Run
 - **Reason**:
   - Reliable scraping with JavaScript execution support
   - Multiple browser support (Chromium, Firefox, WebKit)
@@ -55,7 +53,6 @@ requirements for web scraping workloads.
 ### Notification Services
 
 - **LINE Messaging API**: Primary user notifications
-- **Discord Webhook**: Developer/system monitoring and error alerts
 - **Reason**: Target user base preferences, reliable delivery, rich formatting
 
 ### Scheduling Architecture
@@ -135,8 +132,8 @@ import { assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
 
 - **J-League Ticket Site**: Primary data source
 - **LINE Messaging API**: User notification delivery
-- **Discord Webhooks**: System monitoring and alerts
 - **Google Cloud APIs**: Tasks, Scheduler, Run services
+- **Google Cloud Logging**: System monitoring and structured logs
 
 ## Performance Characteristics
 
@@ -166,9 +163,8 @@ import { assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
 const AUTH_MATRIX = {
   'Cloud Scheduler → Cloud Run': 'OIDC Token (Service Account)',
   'Cloud Run → Supabase': 'Service Role Key',
-  'Cloud Tasks → Edge Functions': 'Service Role Key',
-  'Edge Functions → LINE API': 'Channel Access Token',
-  'Edge Functions → Discord': 'Webhook URL (no auth)',
+  'Cloud Tasks → Cloud Run': 'OIDC Token',
+  'Cloud Run → LINE API': 'Channel Access Token',
 };
 ```
 
@@ -201,7 +197,6 @@ const AUTH_MATRIX = {
 #### External Services
 
 - **LINE Messaging API**: Free (push messages within limits)
-- **Discord Webhooks**: Free
 
 **Total Monthly Cost**: $0 (completely within all free tiers)
 
