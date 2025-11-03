@@ -52,6 +52,7 @@ Deno.test('SupabaseTicketRepository - upsert error handling', async () => {
     awayTeam: 'アウェイ',
     competition: 'J1リーグ',
     saleStartDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    saleEndDate: null,
     venue: 'テストスタジアム',
     ticketTypes: ['test'],
     ticketUrl: 'https://example.com',
@@ -59,6 +60,7 @@ Deno.test('SupabaseTicketRepository - upsert error handling', async () => {
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   await assertRejects(
@@ -100,7 +102,9 @@ Deno.test('TicketRepository - upsert creates new ticket', async () => {
     matchDate: new Date('2025-03-15T19:30:00+09:00'),
     homeTeam: 'ガンバ大阪',
     awayTeam: '浦和レッズ',
+    competition: null,
     saleStartDate: new Date('2025-03-01T01:00:00.000Z'),
+    saleEndDate: null,
     venue: 'パナソニックスタジアム吹田',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/test',
@@ -108,6 +112,7 @@ Deno.test('TicketRepository - upsert creates new ticket', async () => {
     updatedAt: new Date('2025-01-01T00:00:00Z'),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   const result = await repository.upsert(testTicket);
@@ -154,7 +159,9 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
     matchDate: new Date('2025-03-15T19:30:00+09:00'),
     homeTeam: 'ガンバ大阪',
     awayTeam: '浦和レッズ',
+    competition: null,
     saleStartDate: new Date('2025-03-01T02:00:00.000Z'),
+    saleEndDate: null,
     venue: 'パナソニックスタジアム吹田',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/test',
@@ -162,6 +169,7 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   const result = await repository.upsert(updatedTicket);
@@ -207,7 +215,9 @@ Deno.test('TicketRepository - upsert detects no changes', async () => {
     matchDate: new Date('2025-03-15T19:30:00+09:00'),
     homeTeam: 'ガンバ大阪',
     awayTeam: '浦和レッズ',
+    competition: null,
     saleStartDate: new Date('2025-03-01T01:00:00.000Z'), // UTCで統一
+    saleEndDate: null,
     venue: 'パナソニックスタジアム吹田',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/test',
@@ -215,6 +225,7 @@ Deno.test('TicketRepository - upsert detects no changes', async () => {
     updatedAt: new Date('2025-01-01T00:00:00Z'),
     scrapedAt: fixedScrapedAt,
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   const result = await repository.upsert(sameTicket);
@@ -237,7 +248,9 @@ Deno.test('TicketRepository - upsert handles database error properly', async () 
     matchDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // 明日
     homeTeam: 'ホーム',
     awayTeam: 'アウェイ',
+    competition: null,
     saleStartDate: new Date(), // 今日
+    saleEndDate: null,
     venue: 'テストスタジアム',
     ticketTypes: ['test'],
     ticketUrl: 'https://example.com',
@@ -245,6 +258,7 @@ Deno.test('TicketRepository - upsert handles database error properly', async () 
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   await assertRejects(
@@ -267,7 +281,9 @@ Deno.test('TicketRepository - upsert handles upsert error properly', async () =>
     matchDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // 明日
     homeTeam: 'ホーム',
     awayTeam: 'アウェイ',
+    competition: null,
     saleStartDate: new Date(), // 今日
+    saleEndDate: null,
     venue: 'テストスタジアム',
     ticketTypes: ['test'],
     ticketUrl: 'https://example.com',
@@ -275,6 +291,7 @@ Deno.test('TicketRepository - upsert handles upsert error properly', async () =>
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   await assertRejects(
@@ -322,7 +339,9 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     matchDate: new Date('2025-03-15T19:30:00+09:00'),
     homeTeam: 'ガンバ大阪',
     awayTeam: '浦和レッズ',
+    competition: null,
     saleStartDate: new Date('2025-03-01T01:00:00.000Z'),
+    saleEndDate: null,
     venue: 'パナソニックスタジアム吹田',
     ticketTypes: ['ビジター席', 'ホーム席'], // ホーム席を追加
     ticketUrl: 'https://example.com/test',
@@ -330,6 +349,7 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   const result = await repository.upsert(updatedTicket);
