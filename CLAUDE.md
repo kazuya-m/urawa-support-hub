@@ -206,6 +206,8 @@ system, not learn about its development history.
 - Practice test-driven development
 - **Code Formatting**: Always use `deno fmt` for consistent code formatting across all TypeScript
   and Markdown files
+- **Entity Design**: Follow explicit null policy for optional properties (see
+  docs/implementation-guide.md#optional-properties-policy)
 
 ## Required Development Process
 
