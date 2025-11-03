@@ -56,11 +56,16 @@ export class HiroshimaDataParser {
         return null;
       }
 
-      // 販売開始日をパース（もしあれば）
-      const saleStartDate = this.parseSaleDate(rawTicket.saleDate);
-
-      // 販売状況を判定
+      // 販売状況を判定（販売開始日のパース前に実行）
       const saleStatus = this.determineSaleStatus(rawTicket.saleStatus);
+
+      // 販売開始日をパース
+      // Jリーグと同じロジック：販売中の場合はnull、販売前の場合のみ設定
+      let saleStartDate: Date | null = null;
+      if (saleStatus === 'before_sale' && rawTicket.saleDate) {
+        // 販売前の場合のみ販売開始日を設定
+        saleStartDate = this.parseSaleDate(rawTicket.saleDate);
+      }
 
       // チケットタイトルを生成（アウェイ戦なので「サンフレッチェ広島 vs 浦和レッズ」）
       const ticketTitle = `サンフレッチェ広島 vs 浦和レッズ`;
@@ -176,7 +181,8 @@ export class HiroshimaDataParser {
    * 販売状況を判定（サンフレッチェ広島サイト固有）
    */
   private determineSaleStatus(statusStr: string): SaleStatus {
-    const lowerStatus = statusStr.toLowerCase();
+    // 文字列の前処理: 空白や改行を除去
+    const cleanedStatus = statusStr.trim().replace(/\s+/g, ' ');
 
     // キーワードによる判定
     const soldOutKeywords = ['完売', '売り切れ', '全席種完売'];
@@ -184,22 +190,25 @@ export class HiroshimaDataParser {
     const onSaleKeywords = ['販売中', '発売中', 'WEBで購入', '購入可能'];
     const beforeSaleKeywords = ['販売開始前', '発売前', '販売予定'];
 
-    switch (true) {
-      case soldOutKeywords.some((keyword) => lowerStatus.includes(keyword)):
-        return 'sold_out';
-
-      case endedKeywords.some((keyword) => lowerStatus.includes(keyword)):
-        return 'ended';
-
-      case onSaleKeywords.some((keyword) => lowerStatus.includes(keyword)):
-        return 'on_sale';
-
-      case beforeSaleKeywords.some((keyword) => lowerStatus.includes(keyword)):
-        return 'before_sale';
-
-      default:
-        return 'before_sale';
+    // 各キーワードグループでマッチング確認
+    if (soldOutKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+      return 'sold_out';
     }
+
+    if (endedKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+      return 'ended';
+    }
+
+    if (onSaleKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+      return 'on_sale';
+    }
+
+    if (beforeSaleKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+      return 'before_sale';
+    }
+
+    // デフォルトは販売前
+    return 'before_sale';
   }
 
   /**
