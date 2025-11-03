@@ -72,15 +72,16 @@ export class HiroshimaDataParser {
         matchName: ticketTitle,
         competition: competition,
         matchDate: matchDate,
-        venue: rawTicket.venue || undefined,
+        venue: rawTicket.venue || null,
         saleStartDate: saleStartDate,
-        saleEndDate: undefined, // 明示的にundefinedを設定
-        saleStatus: saleStatus,
-        ticketUrl: rawTicket.ticketUrl || '',
-        ticketTypes: rawTicket.ticketTypes,
+        saleEndDate: null, // 明示的にnullを設定
+        saleStatus: saleStatus ?? null,
+        ticketUrl: rawTicket.ticketUrl || null,
+        ticketTypes: rawTicket.ticketTypes || null,
         homeTeam: 'サンフレッチェ広島', // ホームチーム
         awayTeam: '浦和レッズ', // アウェイチーム
         scrapedAt: new Date(),
+        notificationScheduled: false,
       });
 
       return ticket;
@@ -174,7 +175,7 @@ export class HiroshimaDataParser {
   /**
    * 販売状況を判定（サンフレッチェ広島サイト固有）
    */
-  private determineSaleStatus(statusStr: string): SaleStatus | undefined {
+  private determineSaleStatus(statusStr: string): SaleStatus {
     const lowerStatus = statusStr.toLowerCase();
 
     // キーワードによる判定
@@ -197,14 +198,14 @@ export class HiroshimaDataParser {
         return 'before_sale';
 
       default:
-        return undefined;
+        return 'before_sale';
     }
   }
 
   /**
    * 大会名を正規化
    */
-  private normalizeCompetition(competition?: string): string {
+  private normalizeCompetition(competition?: string): string | null {
     if (!competition) {
       return 'J1リーグ';
     }
