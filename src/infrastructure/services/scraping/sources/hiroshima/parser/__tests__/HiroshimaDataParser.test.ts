@@ -32,7 +32,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
     assertEquals(ticket.homeTeam, 'サンフレッチェ広島');
     assertEquals(ticket.awayTeam, '浦和レッズ');
     assertExists(ticket.matchDate);
-    assertExists(ticket.saleStartDate);
+    assertEquals(ticket.saleStartDate, null);
     assertExists(ticket.scrapedAt);
   });
 
@@ -153,7 +153,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
         matchTime: '13:00',
         opponent: '浦和レッズ',
         venue: 'エディオンピースウイング広島',
-        saleStatus: '販売中',
+        saleStatus: '販売開始前',
         ticketUrl: 'https://ticket.sanfrecce.co.jp/',
         saleDate: testCase.saleDate,
         ticketTypes: ['ビジター席'],
@@ -217,7 +217,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
     assertEquals(tickets.length, 0);
   });
 
-  await t.step('販売開始日が不正な場合はnullになる', async () => {
+  await t.step('販売中の場合は販売開始日がnullになる', async () => {
     const rawTicketData: HiroshimaRawTicketData = {
       matchDate: '11.9',
       matchTime: '13:00',
@@ -225,7 +225,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
       venue: 'エディオンピースウイング広島',
       saleStatus: '販売中',
       ticketUrl: 'https://ticket.sanfrecce.co.jp/',
-      saleDate: '不正な日付形式',
+      saleDate: '10/10(金) 12:00～',
       ticketTypes: ['ビジター席'],
     };
 
