@@ -11,7 +11,9 @@ Deno.test('Ticket - 新規チケット作成と決定論的ID生成', async () =
     matchDate: futureMatchDate,
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: futureSaleDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -39,7 +41,9 @@ Deno.test('Ticket - 同じ対戦カード+日付から同じID生成', async () 
     matchDate,
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: saleDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -53,7 +57,9 @@ Deno.test('Ticket - 同じ対戦カード+日付から同じID生成', async () 
     matchDate,
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: saleDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -79,7 +85,9 @@ Deno.test('Ticket - 既存チケットの復元', () => {
     matchDate: futureMatchDate,
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: futureSaleDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -87,6 +95,7 @@ Deno.test('Ticket - 既存チケットの復元', () => {
     updatedAt: now,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   assertEquals(ticket.id, 'test-id');
@@ -104,7 +113,9 @@ Deno.test('Ticket - 販売状態判定', () => {
     matchDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -112,6 +123,7 @@ Deno.test('Ticket - 販売状態判定', () => {
     updatedAt: now,
     scrapedAt: new Date(),
     saleStatus: 'on_sale', // 販売中状態
+    notificationScheduled: false,
   });
 
   assertEquals(ticket.saleStatus, 'on_sale');
@@ -126,7 +138,9 @@ Deno.test('Ticket - 通知対象判定', () => {
     matchDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -134,6 +148,7 @@ Deno.test('Ticket - 通知対象判定', () => {
     updatedAt: now,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   assertEquals(validTicket.isValidForNotification(), true);
@@ -144,7 +159,9 @@ Deno.test('Ticket - 通知対象判定', () => {
     matchDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -152,6 +169,7 @@ Deno.test('Ticket - 通知対象判定', () => {
     updatedAt: now,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   assertEquals(pastMatchTicket.isValidForNotification(), false);
@@ -169,8 +187,14 @@ Deno.test('Ticket - shouldScheduleNotification判定', () => {
     id: 'test-id',
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate,
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
+    ticketTypes: null,
+    ticketUrl: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     scrapedAt: new Date(),
@@ -185,8 +209,14 @@ Deno.test('Ticket - shouldScheduleNotification判定', () => {
     id: 'test-id-2',
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate,
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
+    ticketTypes: null,
+    ticketUrl: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     scrapedAt: new Date(),
@@ -201,8 +231,14 @@ Deno.test('Ticket - shouldScheduleNotification判定', () => {
     id: 'test-id-3',
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate,
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
+    ticketTypes: null,
+    ticketUrl: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     scrapedAt: new Date(),
@@ -228,7 +264,9 @@ Deno.test('Ticket - UUID形式のID検証', () => {
     matchDate: futureMatchDate,
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: futureSaleDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -236,6 +274,7 @@ Deno.test('Ticket - UUID形式のID検証', () => {
     updatedAt: now,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   assertEquals(ticket.id, testId);
@@ -251,7 +290,11 @@ Deno.test('Ticket - homeTeam/awayTeamがundefinedでも作成可能', async () =
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate: futureMatchDate,
     // homeTeam と awayTeam を省略
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: futureSaleDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -263,8 +306,8 @@ Deno.test('Ticket - homeTeam/awayTeamがundefinedでも作成可能', async () =
   // IDが生成されていることを確認
   assertExists(ticket.id);
   assertEquals(ticket.matchName, 'FC東京 vs 浦和レッズ');
-  assertEquals(ticket.homeTeam, undefined);
-  assertEquals(ticket.awayTeam, undefined);
+  assertEquals(ticket.homeTeam, null);
+  assertEquals(ticket.awayTeam, null);
 });
 
 Deno.test('Ticket - データ品質レベル判定: COMPLETE', async () => {
@@ -276,7 +319,9 @@ Deno.test('Ticket - データ品質レベル判定: COMPLETE', async () => {
     matchDate: futureMatchDate,
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: futureSaleDate,
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -295,9 +340,15 @@ Deno.test('Ticket - データ品質レベル判定: PARTIAL', async () => {
   const ticket = await Ticket.createNew({
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate: futureMatchDate,
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: futureSaleDate,
+    saleEndDate: null,
     venue: '味の素スタジアム', // venueのみ存在
     // ticketTypes, ticketUrl は省略
+    ticketTypes: null,
+    ticketUrl: null,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
     notificationScheduled: false,
@@ -313,8 +364,15 @@ Deno.test('Ticket - データ品質レベル判定: MINIMAL', async () => {
   const ticket = await Ticket.createNew({
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate: futureMatchDate,
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: futureSaleDate,
+    saleEndDate: null,
     // venue, ticketTypes, ticketUrl を省略（undefined）
+    venue: null,
+    ticketTypes: null,
+    ticketUrl: null,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
     notificationScheduled: false,
@@ -328,7 +386,11 @@ Deno.test('Ticket - 販売状態管理メソッド: before_sale', async () => {
   const ticket = await Ticket.createNew({
     matchName: 'テストマッチ vs チーム2',
     matchDate: new Date('2024-09-15T14:00:00Z'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: new Date('2024-08-15T10:00:00Z'),
+    saleEndDate: null,
     venue: 'テストスタジアム',
     ticketTypes: ['S席', 'A席'],
     ticketUrl: 'https://example.com/tickets',
@@ -345,6 +407,9 @@ Deno.test('Ticket - 販売状態管理メソッド: on_sale', async () => {
   const ticket = await Ticket.createNew({
     matchName: 'テストマッチ vs チーム2',
     matchDate: new Date('2024-09-15T14:00:00Z'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: new Date('2024-08-15T10:00:00Z'),
     saleEndDate: new Date('2024-09-12T23:59:00Z'),
     venue: 'テストスタジアム',
@@ -367,6 +432,9 @@ Deno.test('Ticket - 販売状態管理メソッド: ended', async () => {
   const ticket = await Ticket.createNew({
     matchName: 'テストマッチ vs チーム2',
     matchDate: new Date('2024-09-15T14:00:00Z'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: new Date('2024-08-15T10:00:00Z'),
     saleEndDate: new Date('2024-09-12T23:59:00Z'),
     venue: 'テストスタジアム',
@@ -385,7 +453,11 @@ Deno.test('Ticket - 通知済みの場合の制御', async () => {
   const ticket = await Ticket.createNew({
     matchName: 'テストマッチ vs チーム2',
     matchDate: new Date('2024-09-15T14:00:00Z'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: new Date('2024-08-15T10:00:00Z'),
+    saleEndDate: null,
     venue: 'テストスタジアム',
     ticketTypes: ['S席', 'A席'],
     ticketUrl: 'https://example.com/tickets',
@@ -409,6 +481,9 @@ Deno.test('Ticket - 新しいプロパティのgetter', async () => {
   const ticket = await Ticket.createNew({
     matchName: 'テストマッチ vs チーム2',
     matchDate: new Date('2024-09-15T14:00:00Z'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: new Date('2024-08-15T10:00:00Z'),
     saleEndDate,
     venue: 'テストスタジアム',
@@ -434,7 +509,11 @@ Deno.test('Ticket - 販売日時がnullの場合の通知制御', async () => {
   const ticket = await Ticket.createNew({
     matchName: 'テストマッチ vs チーム2',
     matchDate: new Date('2024-09-15T14:00:00Z'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: null, // 販売日時が取得できなかった場合
+    saleEndDate: null,
     venue: 'テストスタジアム',
     ticketTypes: ['S席', 'A席'],
     ticketUrl: 'https://example.com/tickets',
@@ -471,7 +550,9 @@ Deno.test('Ticket - 販売日時がnullでもチケット作成可能', () => {
     matchDate: futureMatchDate,
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: null, // NULL許容
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -479,6 +560,7 @@ Deno.test('Ticket - 販売日時がnullでもチケット作成可能', () => {
     updatedAt: now,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   assertEquals(ticket.id, 'test-id');
@@ -492,16 +574,23 @@ Deno.test('Ticket - optionalフィールドが省略可能', async () => {
   const ticket = await Ticket.createNew({
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate: futureMatchDate,
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: null,
+    saleEndDate: null,
     // venue, ticketTypes, ticketUrl を省略
+    venue: null,
+    ticketTypes: null,
+    ticketUrl: null,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
     notificationScheduled: false,
   });
 
-  assertEquals(ticket.venue, undefined);
+  assertEquals(ticket.venue, null);
   assertEquals(ticket.ticketTypes, []); // 空配列が返される
-  assertEquals(ticket.ticketUrl, undefined);
+  assertEquals(ticket.ticketUrl, null);
   assertEquals(ticket.getDataQuality(), DataQuality.MINIMAL);
 });
 
@@ -513,28 +602,41 @@ Deno.test('Ticket - optionalフィールドでundefinedとnullの区別', () => 
     id: 'test-id',
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate: futureMatchDate,
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: null,
-    venue: undefined, // undefinedを明示的に設定
-    ticketTypes: undefined,
-    ticketUrl: undefined,
+    saleEndDate: null,
+    venue: null, // nullを設定（undefinedは許可されないため）
+    ticketTypes: null,
+    ticketUrl: null,
     createdAt: now,
     updatedAt: now,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
-  assertEquals(ticket.venue, undefined);
-  assertEquals(ticket.ticketTypes, []); // undefinedでも空配列が返される
-  assertEquals(ticket.ticketUrl, undefined);
+  assertEquals(ticket.venue, null);
+  assertEquals(ticket.ticketTypes, []); // nullでも空配列が返される
+  assertEquals(ticket.ticketUrl, null);
 });
 
 Deno.test('Ticket - markNotificationScheduled creates new instance with updated state', async () => {
   const originalTicket = await Ticket.createNew({
     matchName: 'テストマッチ',
     matchDate: new Date('2025-12-31T19:00:00+09:00'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: new Date('2025-12-01T10:00:00+09:00'),
+    saleEndDate: null,
+    venue: null,
+    ticketTypes: null,
+    ticketUrl: null,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
+    notificationScheduled: false,
   });
 
   assertEquals(originalTicket.notificationScheduled, false);
@@ -578,11 +680,15 @@ Deno.test('Ticket - hasSameBusinessData should exclude notificationScheduled fro
 
   const ticket1 = await Ticket.createNew({
     ...baseTicketData,
+    competition: 'J1リーグ',
+    saleEndDate: null,
     notificationScheduled: false,
   });
 
   const ticket2 = await Ticket.createNew({
     ...baseTicketData,
+    competition: 'J1リーグ',
+    saleEndDate: null,
     notificationScheduled: true, // notificationScheduledのみ異なる
   });
 
@@ -597,7 +703,9 @@ Deno.test('Ticket - hasSameBusinessData should detect business data changes', as
     matchDate: new Date('2025-03-15T19:00:00+09:00'),
     homeTeam: 'FC東京',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: new Date('2025-03-14T10:00:00+09:00'),
+    saleEndDate: null,
     venue: '味の素スタジアム',
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/tickets',
@@ -612,18 +720,24 @@ Deno.test('Ticket - hasSameBusinessData should detect business data changes', as
   const venueChangedTicket = await Ticket.createNew({
     ...baseTicketData,
     venue: '埼玉スタジアム', // 変更されたvenue
+    competition: 'J1リーグ',
+    saleEndDate: null,
   });
 
   // saleStartDate が変更されたチケット
   const saleStartDateChangedTicket = await Ticket.createNew({
     ...baseTicketData,
     saleStartDate: new Date('2025-03-15T10:00:00+09:00'), // 変更されたsaleStartDate
+    competition: 'J1リーグ',
+    saleEndDate: null,
   });
 
   // ticketTypes が変更されたチケット
   const ticketTypesChangedTicket = await Ticket.createNew({
     ...baseTicketData,
     ticketTypes: ['ビジター席', 'ホーム席'], // 変更されたticketTypes
+    competition: 'J1リーグ',
+    saleEndDate: null,
   });
 
   // ビジネスデータの変更を検出する
@@ -650,6 +764,8 @@ Deno.test('Ticket - hasSameBusinessData should ignore technical fields', () => {
   const ticket1 = Ticket.fromExisting({
     id: 'test-id-1',
     ...baseTicketData,
+    competition: 'J1リーグ',
+    saleEndDate: null,
     createdAt: now,
     updatedAt: now,
     scrapedAt: new Date('2025-03-13T12:00:00+09:00'),
@@ -658,6 +774,8 @@ Deno.test('Ticket - hasSameBusinessData should ignore technical fields', () => {
   const ticket2 = Ticket.fromExisting({
     id: 'test-id-2', // 異なるID
     ...baseTicketData,
+    competition: 'J1リーグ',
+    saleEndDate: null,
     createdAt: new Date(now.getTime() + 1000), // 異なるcreatedAt
     updatedAt: new Date(now.getTime() + 2000), // 異なるupdatedAt
     scrapedAt: new Date('2025-03-13T13:00:00+09:00'), // 異なるscrapedAt
@@ -676,8 +794,13 @@ Deno.test('Ticket - mergeWith should preserve specific fields and update others'
     id: 'existing-ticket-id',
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     venue: '味の素スタジアム',
     saleStartDate: new Date('2025-03-14T10:00:00+09:00'),
+    saleEndDate: null,
+    ticketTypes: null,
     ticketUrl: 'https://example.com/old',
     saleStatus: 'before_sale',
     notificationScheduled: true, // 既に通知スケジュール済み
@@ -690,8 +813,13 @@ Deno.test('Ticket - mergeWith should preserve specific fields and update others'
   const newTicket = await Ticket.createNew({
     matchName: 'FC東京 vs 浦和レッズ',
     matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     venue: '埼玉スタジアム', // 変更された会場
     saleStartDate: new Date('2025-03-14T11:00:00+09:00'), // 変更された販売開始時刻
+    saleEndDate: null,
+    ticketTypes: null,
     ticketUrl: 'https://example.com/new', // 変更されたURL
     saleStatus: 'on_sale', // 変更された販売状態
     scrapedAt: newScrapedTime,
@@ -731,7 +859,14 @@ Deno.test('Ticket - mergeWith should handle new ticket without existing metadata
     id: 'existing-minimal-id',
     matchName: 'テストマッチ',
     matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     saleStartDate: null,
+    saleEndDate: null,
+    venue: null,
+    ticketTypes: null,
+    ticketUrl: null,
     createdAt: originalTime,
     updatedAt: originalTime,
     scrapedAt: originalTime,
@@ -743,8 +878,12 @@ Deno.test('Ticket - mergeWith should handle new ticket without existing metadata
   const newTicket = await Ticket.createNew({
     matchName: 'テストマッチ',
     matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
     venue: 'テストスタジアム', // 新しく追加
     saleStartDate: new Date('2025-03-14T10:00:00+09:00'), // 新しく判明した販売開始日
+    saleEndDate: null,
     ticketTypes: ['一般席', 'VIP席'], // 新しく追加
     ticketUrl: 'https://example.com/tickets', // 新しく追加
     scrapedAt: new Date(),

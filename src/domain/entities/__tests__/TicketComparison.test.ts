@@ -8,6 +8,7 @@ Deno.test('Ticket hasSameBusinessData method', async (t) => {
     matchDate: new Date('2025-10-01T14:00:00Z'),
     homeTeam: 'Urawa',
     awayTeam: 'Away Team',
+    competition: 'J1 League',
     saleStartDate: new Date('2025-09-10T10:00:00Z'),
     saleEndDate: new Date('2025-09-15T23:59:59Z'),
     venue: 'Test Stadium',
@@ -106,10 +107,10 @@ Deno.test('Ticket hasSameBusinessData method', async (t) => {
     assertEquals(ticket1.hasSameBusinessData(ticket2), false);
   });
 
-  await t.step('オプショナルプロパティの null と undefined の違いを検知する', () => {
+  await t.step('オプショナルプロパティの null と string の違いを検知する', () => {
     const ticket1 = Ticket.fromExisting({
       ...baseProps,
-      homeTeam: undefined,
+      homeTeam: null,
     });
     const ticket2 = Ticket.fromExisting({
       ...baseProps,

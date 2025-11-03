@@ -10,8 +10,12 @@ Deno.test('Notification - 正常な通知履歴作成', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
+    sentAt: null,
     status: 'scheduled',
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: now,
+    updatedAt: null,
   });
 
   assertEquals(notification.id, 'test-id');
@@ -31,8 +35,12 @@ Deno.test('Notification - バリデーション: 空のID', () => {
         ticketId: 'ticket-123',
         notificationType: 'day_before',
         scheduledAt: scheduledTime,
+        sentAt: null,
         status: 'scheduled',
+        errorMessage: null,
+        cloudTaskId: null,
         createdAt: now,
+        updatedAt: null,
       }),
     Error,
     'Notification ID is required',
@@ -50,8 +58,12 @@ Deno.test('Notification - バリデーション: 不正な通知タイプ', () =
         ticketId: 'ticket-123',
         notificationType: 'invalid_type' as 'day_before',
         scheduledAt: scheduledTime,
+        sentAt: null,
         status: 'scheduled',
+        errorMessage: null,
+        cloudTaskId: null,
         createdAt: now,
+        updatedAt: null,
       }),
     Error,
     'Invalid notification type',
@@ -69,8 +81,12 @@ Deno.test('Notification - バリデーション: sent状態でsentAtなし', () 
         ticketId: 'ticket-123',
         notificationType: 'day_before',
         scheduledAt: scheduledTime,
+        sentAt: null,
         status: 'sent',
+        errorMessage: null,
+        cloudTaskId: null,
         createdAt: now,
+        updatedAt: null,
       }),
     Error,
     'Sent notifications must have sentAt timestamp',
@@ -88,9 +104,12 @@ Deno.test('Notification - バリデーション: failed状態でエラーメッ�
         ticketId: 'ticket-123',
         notificationType: 'day_before',
         scheduledAt: scheduledTime,
-        status: 'failed',
         sentAt: now,
+        status: 'failed',
+        errorMessage: null,
+        cloudTaskId: null,
         createdAt: now,
+        updatedAt: null,
       }),
     Error,
     'Failed notifications must have error message',
@@ -106,8 +125,12 @@ Deno.test('Notification - 送信可能性判定', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
+    sentAt: null,
     status: 'scheduled',
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: now,
+    updatedAt: null,
   });
 
   assertEquals(notification.canBeSent(now), true);
@@ -128,8 +151,12 @@ Deno.test('Notification - 期限切れ判定', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
+    sentAt: null,
     status: 'scheduled',
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+    updatedAt: null,
   });
 
   assertEquals(notification.isExpired(now), true);
@@ -139,9 +166,12 @@ Deno.test('Notification - 期限切れ判定', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
-    status: 'sent',
     sentAt: scheduledTime,
+    status: 'sent',
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+    updatedAt: null,
   });
 
   assertEquals(sentNotification.isExpired(now), false);
@@ -156,10 +186,12 @@ Deno.test('Notification - リトライ可能性判定', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: new Date(now.getTime() + 60 * 60 * 1000), // まだ期限内
-    status: 'failed',
     sentAt: failedTime,
+    status: 'failed',
     errorMessage: 'Network error',
+    cloudTaskId: null,
     createdAt: new Date(now.getTime() - 30 * 60 * 1000),
+    updatedAt: null,
   });
 
   // 失敗から10分経過しているのでリトライ可能
@@ -171,10 +203,12 @@ Deno.test('Notification - リトライ可能性判定', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: new Date(now.getTime() + 60 * 60 * 1000),
-    status: 'failed',
     sentAt: new Date(now.getTime() - 3 * 60 * 1000),
+    status: 'failed',
     errorMessage: 'Network error',
+    cloudTaskId: null,
     createdAt: new Date(now.getTime() - 30 * 60 * 1000),
+    updatedAt: null,
   });
 
   assertEquals(recentFailed.canRetry(now), false);
@@ -189,8 +223,12 @@ Deno.test('Notification - 送信完了マーク', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
+    sentAt: null,
     status: 'scheduled',
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: now,
+    updatedAt: null,
   });
 
   const sentTime = new Date();
@@ -198,7 +236,7 @@ Deno.test('Notification - 送信完了マーク', () => {
 
   assertEquals(sentNotification.status, 'sent');
   assertEquals(sentNotification.sentAt, sentTime);
-  assertEquals(sentNotification.errorMessage, undefined);
+  assertEquals(sentNotification.errorMessage, null);
 });
 
 Deno.test('Notification - 送信失敗マーク', () => {
@@ -210,8 +248,12 @@ Deno.test('Notification - 送信失敗マーク', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
+    sentAt: null,
     status: 'scheduled',
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: now,
+    updatedAt: null,
   });
 
   const failedTime = new Date();
@@ -232,8 +274,12 @@ Deno.test('Notification - 通知タイプ表示名', () => {
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
+    sentAt: null,
     status: 'scheduled',
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: now,
+    updatedAt: null,
   });
 
   assertEquals(dayBeforeNotification.getNotificationTypeDisplayName(), '販売開始前日');
@@ -243,8 +289,12 @@ Deno.test('Notification - 通知タイプ表示名', () => {
     ticketId: 'ticket-123',
     notificationType: 'hour_before',
     scheduledAt: scheduledTime,
+    sentAt: null,
     status: 'scheduled',
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: now,
+    updatedAt: null,
   });
 
   assertEquals(hourBeforeNotification.getNotificationTypeDisplayName(), '販売開始1時間前');
@@ -259,8 +309,12 @@ Deno.test('Notification - キャンセルマーク（sentAtは変更されない
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
+    sentAt: null,
     status: 'scheduled',
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: now,
+    updatedAt: null,
   });
 
   const cancelledTime = new Date();
@@ -269,7 +323,7 @@ Deno.test('Notification - キャンセルマーク（sentAtは変更されない
 
   assertEquals(cancelledNotification.status, 'cancelled');
   assertEquals(cancelledNotification.errorMessage, reason);
-  assertEquals(cancelledNotification.sentAt, undefined); // sentAtは設定されない
+  assertEquals(cancelledNotification.sentAt, null); // sentAtは設定されない
 });
 
 Deno.test('Notification - キャンセルマーク（既存のsentAtは保持される）', () => {
@@ -282,10 +336,12 @@ Deno.test('Notification - キャンセルマーク（既存のsentAtは保持さ
     ticketId: 'ticket-123',
     notificationType: 'day_before',
     scheduledAt: scheduledTime,
-    status: 'failed',
     sentAt: existingSentAt,
+    status: 'failed',
     errorMessage: 'Previous error',
+    cloudTaskId: null,
     createdAt: now,
+    updatedAt: null,
   });
 
   const cancelledTime = new Date();
