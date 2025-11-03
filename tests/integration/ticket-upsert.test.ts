@@ -22,7 +22,9 @@ Deno.test(
       matchDate: new Date('2025-03-15T19:30:00+09:00'),
       homeTeam: 'ガンバ大阪',
       awayTeam: '浦和レッズ',
+      competition: 'J1リーグ',
       saleStartDate: new Date('2025-03-01T10:00:00+09:00'),
+      saleEndDate: null,
       venue: 'パナソニックスタジアム吹田',
       ticketTypes: ['ビジター席'],
       ticketUrl: 'https://example.com/test-upsert',
@@ -30,6 +32,7 @@ Deno.test(
       updatedAt: new Date('2025-01-01T00:00:00Z'),
       scrapedAt: new Date(),
       saleStatus: 'before_sale' as const,
+      notificationScheduled: false,
     };
 
     // テスト前にクリーンアップ
@@ -98,7 +101,9 @@ Deno.test(
       matchDate: new Date('2025-04-20T19:00:00+09:00'),
       homeTeam: 'FC東京',
       awayTeam: '浦和レッズ',
+      competition: 'J1リーグ',
       saleStartDate: new Date('2025-04-01T12:00:00+09:00'),
+      saleEndDate: null,
       venue: '味の素スタジアム',
       ticketTypes: ['アウェイ指定席'],
       ticketUrl: 'https://example.com/test-idempotent',
@@ -106,6 +111,7 @@ Deno.test(
       updatedAt: new Date('2025-01-01T00:00:00Z'),
       scrapedAt: new Date(),
       saleStatus: 'before_sale' as const,
+      notificationScheduled: false,
     };
 
     try {
@@ -152,13 +158,16 @@ Deno.test('Ticket UPSERT - UNIQUE constraint test', {}, async () => {
     venue: 'ヤンマースタジアム長居',
     homeTeam: 'セレッソ大阪',
     awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
     saleStartDate: new Date('2025-04-25T10:00:00+09:00'),
+    saleEndDate: null,
     ticketTypes: ['ビジター席'],
     ticketUrl: 'https://example.com/cerezo',
     createdAt: new Date(),
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale' as const,
+    notificationScheduled: false,
   };
 
   try {
