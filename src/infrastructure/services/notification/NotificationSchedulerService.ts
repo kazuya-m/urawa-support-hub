@@ -43,9 +43,12 @@ export class NotificationSchedulerService implements INotificationSchedulerServi
           ticketId: ticket.id,
           notificationType: type,
           scheduledAt: scheduledTime,
+          sentAt: null,
           status: 'scheduled',
+          errorMessage: null,
           cloudTaskId: taskId,
           createdAt: new Date(),
+          updatedAt: null,
         });
         await this.notificationRepository.save(notification);
 

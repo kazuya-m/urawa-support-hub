@@ -46,8 +46,17 @@ Deno.test('NotificationSchedulerService - scheduleNotifications should call Clou
     const testTicket = await Ticket.createNew({
       matchName: 'Test Match',
       matchDate: new Date('2024-12-25'),
+      homeTeam: null,
+      awayTeam: null,
+      competition: null,
       saleStartDate: new Date(Date.now() + 60 * 60 * 1000), // 1 hour later
+      saleEndDate: null,
+      venue: null,
+      ticketTypes: null,
+      ticketUrl: null,
       scrapedAt: new Date(),
+      saleStatus: 'before_sale',
+      notificationScheduled: false,
     });
 
     // Create notification timing
@@ -112,8 +121,17 @@ Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors'
     const testTicket = await Ticket.createNew({
       matchName: 'Test Match',
       matchDate: new Date('2024-12-25'),
+      homeTeam: null,
+      awayTeam: null,
+      competition: null,
       saleStartDate: new Date(Date.now() + 60 * 60 * 1000),
+      saleEndDate: null,
+      venue: null,
+      ticketTypes: null,
+      ticketUrl: null,
       scrapedAt: new Date(),
+      saleStatus: 'before_sale',
+      notificationScheduled: false,
     });
 
     const notificationTimings: NotificationTiming[] = [
