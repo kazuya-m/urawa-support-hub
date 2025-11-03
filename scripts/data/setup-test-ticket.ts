@@ -51,10 +51,16 @@ async function createTestTicket(): Promise<string> {
   const testTicket = await Ticket.createNew({
     matchName: '【テスト】浦和レッズ vs FC東京',
     matchDate: new Date('2024-03-15T19:00:00+09:00'),
+    homeTeam: '浦和レッズ',
+    awayTeam: 'FC東京',
+    competition: null,
     venue: '味の素スタジアム',
     saleStartDate: new Date('2024-03-01T10:00:00+09:00'),
+    saleEndDate: null,
+    ticketTypes: null,
     ticketUrl: 'https://www.jleague-ticket.jp/',
     saleStatus: 'on_sale',
+    notificationScheduled: false,
     scrapedAt: new Date(),
   });
 
@@ -80,10 +86,16 @@ async function createNotificationTestTickets(): Promise<string[]> {
     await Ticket.createNew({
       matchName: '【通知テスト】浦和レッズ vs FC東京',
       matchDate: tomorrow,
+      homeTeam: '浦和レッズ',
+      awayTeam: 'FC東京',
+      competition: null,
       venue: '埼玉スタジアム2002',
       saleStartDate: new Date(now.getTime() + 2 * 60 * 60 * 1000), // 2時間後に販売開始
+      saleEndDate: null,
+      ticketTypes: null,
       ticketUrl: 'https://www.jleague-ticket.jp/test-1',
       saleStatus: 'before_sale',
+      notificationScheduled: false,
       scrapedAt: new Date(),
     }),
 
@@ -91,10 +103,16 @@ async function createNotificationTestTickets(): Promise<string[]> {
     await Ticket.createNew({
       matchName: '【サマリーテスト】浦和レッズ vs 横浜F・マリノス',
       matchDate: nextWeek,
+      homeTeam: '浦和レッズ',
+      awayTeam: '横浜F・マリノス',
+      competition: null,
       venue: '埼玉スタジアム2002',
       saleStartDate: new Date(now.getTime() - 24 * 60 * 60 * 1000), // 昨日から販売開始
+      saleEndDate: null,
+      ticketTypes: null,
       ticketUrl: 'https://www.jleague-ticket.jp/test-2',
       saleStatus: 'on_sale',
+      notificationScheduled: false,
       scrapedAt: new Date(),
     }),
 
@@ -102,10 +120,16 @@ async function createNotificationTestTickets(): Promise<string[]> {
     await Ticket.createNew({
       matchName: '【サマリーテスト】浦和レッズ vs セレッソ大阪',
       matchDate: nextMonth,
+      homeTeam: '浦和レッズ',
+      awayTeam: 'セレッソ大阪',
+      competition: null,
       venue: '埼玉スタジアム2002',
       saleStartDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), // 3日前から販売開始
+      saleEndDate: null,
+      ticketTypes: null,
       ticketUrl: 'https://www.jleague-ticket.jp/test-3',
       saleStatus: 'on_sale',
+      notificationScheduled: false,
       scrapedAt: new Date(),
     }),
   ];
