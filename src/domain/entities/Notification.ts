@@ -14,12 +14,12 @@ interface NotificationProps {
   ticketId: string;
   notificationType: NotificationType;
   scheduledAt: Date;
-  sentAt?: Date;
+  sentAt: Date | null;
   status: NotificationStatus;
-  errorMessage?: string;
-  cloudTaskId?: string;
+  errorMessage: string | null;
+  cloudTaskId: string | null;
   createdAt: Date;
-  updatedAt?: Date;
+  updatedAt: Date | null;
 }
 
 export class Notification {
@@ -57,22 +57,22 @@ export class Notification {
   get scheduledAt(): Date {
     return this.props.scheduledAt;
   }
-  get sentAt(): Date | undefined {
+  get sentAt(): Date | null {
     return this.props.sentAt;
   }
   get status(): NotificationStatus {
     return this.props.status;
   }
-  get errorMessage(): string | undefined {
+  get errorMessage(): string | null {
     return this.props.errorMessage;
   }
   get createdAt(): Date {
     return this.props.createdAt;
   }
-  get updatedAt(): Date | undefined {
+  get updatedAt(): Date | null {
     return this.props.updatedAt;
   }
-  get cloudTaskId(): string | undefined {
+  get cloudTaskId(): string | null {
     return this.props.cloudTaskId;
   }
 
@@ -88,7 +88,7 @@ export class Notification {
       ...this.props,
       status: 'sent',
       sentAt: sentTime,
-      errorMessage: undefined,
+      errorMessage: null,
     });
   }
 

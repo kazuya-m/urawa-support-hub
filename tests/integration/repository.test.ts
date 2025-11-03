@@ -121,8 +121,12 @@ Deno.test('NotificationRepository - save and findById', async () => {
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    sentAt: null,
     status: 'scheduled' as const,
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: new Date(),
+    updatedAt: null,
   });
 
   try {
@@ -147,8 +151,12 @@ Deno.test('NotificationRepository - findByTicketId', async () => {
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    sentAt: null,
     status: 'scheduled' as const,
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: new Date(),
+    updatedAt: null,
   });
 
   try {
@@ -173,8 +181,12 @@ Deno.test('NotificationRepository - findByColumn', async () => {
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    sentAt: null,
     status: 'scheduled' as const,
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: new Date(),
+    updatedAt: null,
   });
 
   try {
@@ -199,8 +211,12 @@ Deno.test('NotificationRepository - update', async () => {
     ticketId: testTicket.id,
     notificationType: 'day_before' as const,
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    sentAt: null,
     status: 'scheduled' as const,
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: new Date(),
+    updatedAt: null,
   });
 
   try {

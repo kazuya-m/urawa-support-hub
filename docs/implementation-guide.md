@@ -70,6 +70,31 @@ export class TicketCollectionUseCase {
 
 ## Domain Entities
 
+### Entity Design Standards
+
+#### Optional Properties Policy
+
+All entities must use explicit `null` instead of optional properties (`?`) for consistent object
+structures:
+
+```typescript
+// ✅ Correct: Explicit null
+interface EntityProps {
+  required: string;
+  optional: string | null;
+  optionalDate: Date | null;
+  optionalArray: string[] | null;
+}
+
+// ❌ Incorrect: Optional properties
+interface EntityProps {
+  required: string;
+  optional?: string; // Creates inconsistent object structure
+}
+```
+
+**Rationale**: Ensures consistent object comparison, database alignment, and TypeScript type safety.
+
 ### Ticket Entity
 
 ```typescript

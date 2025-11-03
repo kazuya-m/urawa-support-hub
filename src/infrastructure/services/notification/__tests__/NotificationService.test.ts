@@ -120,8 +120,12 @@ Deno.test('NotificationService', async (t) => {
       ticketId: 'test-ticket-123',
       notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
       scheduledAt,
+      sentAt: null,
       status: 'scheduled',
+      errorMessage: null,
+      cloudTaskId: null,
       createdAt,
+      updatedAt: null,
     });
 
     const _ticket = Ticket.fromExisting({
@@ -130,14 +134,17 @@ Deno.test('NotificationService', async (t) => {
       matchDate: new Date('2024-03-15T19:00:00'),
       homeTeam: 'ホームチーム',
       awayTeam: 'アウェイチーム',
+      competition: null,
       venue: 'テスト会場',
       saleStartDate: new Date('2024-03-01T10:00:00'),
+      saleEndDate: null,
       ticketUrl: 'https://example.com/ticket',
       ticketTypes: ['一般'],
       createdAt: new Date(),
       updatedAt: new Date(),
       scrapedAt: new Date(),
       saleStatus: 'before_sale',
+      notificationScheduled: false,
     });
 
     // DB操作はモックできないが、processScheduledNotification経由でリトライロジックの動作確認

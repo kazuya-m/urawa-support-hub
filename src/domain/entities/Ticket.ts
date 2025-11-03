@@ -11,19 +11,19 @@ interface TicketProps {
   id: string;
   matchName: string;
   matchDate: Date;
-  homeTeam?: string;
-  awayTeam?: string;
-  competition?: string; // 大会名フィールド（例: "J1リーグ", "ルヴァンカップ"）
+  homeTeam: string | null;
+  awayTeam: string | null;
+  competition: string | null; // 大会名フィールド（例: "J1リーグ", "ルヴァンカップ"）
   saleStartDate: Date | null;
-  saleEndDate?: Date;
-  venue?: string;
-  ticketTypes?: string[];
-  ticketUrl?: string;
+  saleEndDate: Date | null;
+  venue: string | null;
+  ticketTypes: string[] | null;
+  ticketUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
   scrapedAt: Date;
-  saleStatus?: SaleStatus;
-  notificationScheduled?: boolean;
+  saleStatus: SaleStatus | null;
+  notificationScheduled: boolean;
 }
 
 export class Ticket {
@@ -92,15 +92,15 @@ export class Ticket {
     return this.props.matchDate;
   }
 
-  get homeTeam(): string | undefined {
+  get homeTeam(): string | null {
     return this.props.homeTeam;
   }
 
-  get awayTeam(): string | undefined {
+  get awayTeam(): string | null {
     return this.props.awayTeam;
   }
 
-  get competition(): string | undefined {
+  get competition(): string | null {
     return this.props.competition;
   }
 
@@ -108,11 +108,11 @@ export class Ticket {
     return this.props.saleStartDate;
   }
 
-  get saleEndDate(): Date | undefined {
+  get saleEndDate(): Date | null {
     return this.props.saleEndDate;
   }
 
-  get venue(): string | undefined {
+  get venue(): string | null {
     return this.props.venue;
   }
 
@@ -120,16 +120,16 @@ export class Ticket {
     return this.props.ticketTypes ? [...this.props.ticketTypes] : [];
   }
 
-  get ticketUrl(): string | undefined {
+  get ticketUrl(): string | null {
     return this.props.ticketUrl;
   }
 
-  get saleStatus(): SaleStatus {
-    return this.props.saleStatus ?? 'before_sale';
+  get saleStatus(): SaleStatus | null {
+    return this.props.saleStatus;
   }
 
   get notificationScheduled(): boolean {
-    return this.props.notificationScheduled ?? false;
+    return this.props.notificationScheduled;
   }
 
   get createdAt(): Date {
@@ -242,9 +242,19 @@ export class Ticket {
    * 新しいチケットデータとマージし、特定フィールドは既存値を保持
    * 保持するフィールド: id, createdAt, notificationScheduled
    * 新しい値を使用: その他のビジネスデータ、scrapedAt
-   * 自動更新: updatedAt
+   * 自動更新: updatedAt（ビジネスデータが変更された場合のみ）
    */
   mergeWith(newTicket: Ticket): Ticket {
+    // ビジネスデータが同じ場合は scraped_at のみを更新
+    if (this.hasSameBusinessData(newTicket)) {
+      return Ticket.fromExisting({
+        ...this.props,
+        scrapedAt: newTicket.scrapedAt,
+        // ビジネスデータが変わらない場合は updatedAt を更新しない
+      });
+    }
+
+    // ビジネスデータが異なる場合は全体をマージし、updatedAtも更新
     return Ticket.fromExisting({
       ...newTicket.toPlainObject(),
       // 既存の値を保持するフィールド

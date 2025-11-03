@@ -43,8 +43,12 @@ export class NotificationService implements INotificationService {
           ticketId,
           notificationType,
           scheduledAt: new Date(),
+          sentAt: null,
           status: 'scheduled',
+          errorMessage: null,
+          cloudTaskId: null,
           createdAt: new Date(),
+          updatedAt: null,
         });
         await this.notificationRepository.save(history);
       }
@@ -65,7 +69,7 @@ export class NotificationService implements INotificationService {
             ticket.venue || '未定',
             ticket.saleStartDate ? formatJST(ticket.saleStartDate, 'M/d(eeeee) HH:mm') : '未定',
             notificationType,
-            ticket.ticketUrl,
+            ticket.ticketUrl ?? undefined,
           );
 
           await this.lineClient.broadcast(lineMessage);

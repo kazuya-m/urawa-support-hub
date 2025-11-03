@@ -332,9 +332,9 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
           saleStatus: ticket.saleStatus,
           saleStartDate: ticket.saleStartDate?.toISOString(),
           saleEndDate: ticket.saleEndDate?.toISOString(),
-          venue: ticket.venue,
+          venue: ticket.venue ?? undefined,
           ticketTypes: ticket.ticketTypes,
-          ticketUrl: ticket.ticketUrl,
+          ticketUrl: ticket.ticketUrl ?? undefined,
         },
         // 更新前のチケット情報（存在する場合）
         ...(previousTicket && {
@@ -344,9 +344,9 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
             saleStatus: previousTicket.saleStatus,
             saleStartDate: previousTicket.saleStartDate?.toISOString(),
             saleEndDate: previousTicket.saleEndDate?.toISOString(),
-            venue: previousTicket.venue,
+            venue: previousTicket.venue ?? undefined,
             ticketTypes: previousTicket.ticketTypes,
-            ticketUrl: previousTicket.ticketUrl,
+            ticketUrl: previousTicket.ticketUrl ?? undefined,
           },
         }),
       },

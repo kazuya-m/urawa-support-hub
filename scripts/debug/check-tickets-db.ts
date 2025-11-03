@@ -58,7 +58,11 @@ async function checkTicketsInDB(): Promise<void> {
       console.log(`  Sale Status breakdown:`);
 
       const statusCounts = allTickets.reduce((acc, ticket) => {
-        acc[ticket.saleStatus] = (acc[ticket.saleStatus] || 0) + 1;
+        if (ticket.saleStatus) {
+          acc[ticket.saleStatus] = (acc[ticket.saleStatus] || 0) + 1;
+        } else {
+          acc['null'] = (acc['null'] || 0) + 1;
+        }
         return acc;
       }, {} as Record<string, number>);
 

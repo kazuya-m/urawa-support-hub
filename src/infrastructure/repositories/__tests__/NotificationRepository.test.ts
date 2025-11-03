@@ -42,8 +42,12 @@ Deno.test('SupabaseNotificationRepository - save error handling', async () => {
     ticketId: 'test-ticket-id',
     notificationType: 'day_before',
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 明日
+    sentAt: null,
     status: 'scheduled',
+    errorMessage: null,
+    cloudTaskId: null,
     createdAt: new Date(),
+    updatedAt: null,
   });
 
   await assertRejects(

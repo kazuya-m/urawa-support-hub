@@ -3,9 +3,9 @@
  */
 
 import { Ticket } from '@/domain/entities/Ticket.ts';
+import { Notification, NotificationStatus } from '@/domain/entities/Notification.ts';
+import { NotificationType } from '@/domain/config/NotificationConfig.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
-// import { NotificationHistory } from '@/domain/entities/NotificationHistory.ts';
-// import { NotificationType } from '@/domain/config/NotificationConfig.ts';
 
 /**
  * テスト用のTicketエンティティを作成
@@ -14,19 +14,19 @@ export function createTestTicket(overrides: Partial<{
   id: string;
   matchName: string;
   matchDate: Date;
-  homeTeam?: string;
-  awayTeam?: string;
-  competition?: string;
+  homeTeam: string | null;
+  awayTeam: string | null;
+  competition: string | null;
   saleStartDate: Date | null;
-  saleEndDate?: Date;
-  venue?: string;
-  ticketTypes?: string[];
-  ticketUrl?: string;
+  saleEndDate: Date | null;
+  venue: string | null;
+  ticketTypes: string[] | null;
+  ticketUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
   scrapedAt: Date;
-  saleStatus?: SaleStatus;
-  notificationScheduled?: boolean;
+  saleStatus: SaleStatus;
+  notificationScheduled: boolean;
 }> = {}): Ticket {
   const defaultProps = {
     id: 'test-ticket-1',
@@ -34,18 +34,23 @@ export function createTestTicket(overrides: Partial<{
     matchDate: new Date('2025-10-01T15:00:00+09:00'),
     homeTeam: '浦和レッズ',
     awayTeam: 'FC東京',
+    competition: 'J1リーグ',
     venue: 'さいたまスタジアム2002',
     saleStartDate: new Date('2025-09-25T10:00:00+09:00'),
     saleEndDate: new Date('2025-10-01T12:00:00+09:00'),
     saleStatus: 'on_sale' as const,
+    ticketTypes: ['一般', 'ホームゲート指定席'],
     ticketUrl: 'https://example.com/tickets/test-ticket-1',
+    notificationScheduled: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     scrapedAt: new Date(),
-    ...overrides,
   };
 
-  return Ticket.fromExisting(defaultProps);
+  // Merge overrides, ensuring all properties match the required type
+  const merged = { ...defaultProps, ...overrides };
+
+  return Ticket.fromExisting(merged);
 }
 
 /**
@@ -81,4 +86,37 @@ export function createTestTickets(count: number): Ticket[] {
       matchName: `テストマッチ${index + 1} vs FC東京`,
       matchDate: new Date(`2025-10-${String(index + 1).padStart(2, '0')}T15:00:00+09:00`),
     }));
+}
+
+/**
+ * テスト用のNotificationエンティティを作成
+ */
+export function createTestNotification(overrides: Partial<{
+  id: string;
+  ticketId: string;
+  notificationType: NotificationType;
+  scheduledAt: Date;
+  sentAt: Date | null;
+  status: NotificationStatus;
+  errorMessage: string | null;
+  cloudTaskId: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+}> = {}): Notification {
+  const now = new Date();
+  const defaultProps = {
+    id: 'test-notification-1',
+    ticketId: 'test-ticket-1',
+    notificationType: 'day_before' as NotificationType,
+    scheduledAt: new Date(now.getTime() + 60 * 60 * 1000),
+    sentAt: null,
+    status: 'scheduled' as NotificationStatus,
+    errorMessage: null,
+    cloudTaskId: null,
+    createdAt: now,
+    updatedAt: null,
+    ...overrides,
+  };
+
+  return new Notification(defaultProps);
 }

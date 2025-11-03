@@ -43,12 +43,12 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
       awayTeam: teams.awayTeam,
       competition,
       saleStartDate: saleInfo?.saleStartDate || null,
-      saleEndDate: saleInfo?.saleEndDate,
+      saleEndDate: saleInfo?.saleEndDate || null,
       venue: this.normalizeVenue(rawData.venue),
-      ticketTypes: rawData.ticketTypes,
-      ticketUrl: rawData.ticketUrl,
+      ticketTypes: rawData.ticketTypes || null,
+      ticketUrl: rawData.ticketUrl || null,
       scrapedAt: rawData.scrapedAt,
-      saleStatus: saleInfo?.saleStatus,
+      saleStatus: saleInfo?.saleStatus ?? null,
       notificationScheduled: false,
     });
   }
@@ -182,8 +182,8 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
   /**
    * チーム情報の抽出
    */
-  private extractTeams(matchName: string): { homeTeam?: string; awayTeam?: string } {
-    if (!matchName) return {};
+  private extractTeams(matchName: string): { homeTeam: string | null; awayTeam: string | null } {
+    if (!matchName) return { homeTeam: null, awayTeam: null };
 
     const normalized = matchName.trim();
 
@@ -234,7 +234,7 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
       };
     }
 
-    return {};
+    return { homeTeam: null, awayTeam: null };
   }
 
   /**
@@ -255,9 +255,9 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
   /**
    * 会場名の正規化
    */
-  private normalizeVenue(venue: string): string {
+  private normalizeVenue(venue: string | null | undefined): string | null {
     if (!venue?.trim()) {
-      return venue;
+      return null;
     }
 
     // 連続する空白文字を単一のスペースに置換
@@ -374,9 +374,9 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
   /**
    * 大会名の正規化
    */
-  private normalizeCompetition(competition: string | null | undefined): string | undefined {
+  private normalizeCompetition(competition: string | null | undefined): string | null {
     if (!competition?.trim()) {
-      return undefined;
+      return null;
     }
 
     const normalized = competition.trim();

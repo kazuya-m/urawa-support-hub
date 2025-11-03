@@ -8,12 +8,12 @@ export class NotificationConverter {
       ticketId: data.ticket_id,
       notificationType: data.notification_type,
       scheduledAt: new Date(data.notification_time),
-      sentAt: data.sent_at ? new Date(data.sent_at) : undefined,
+      sentAt: data.sent_at ? new Date(data.sent_at) : null,
       status: data.status,
-      errorMessage: data.error_message ?? undefined,
-      cloudTaskId: data.cloud_task_id ?? undefined,
+      errorMessage: data.error_message ?? null,
+      cloudTaskId: data.cloud_task_id ?? null,
       createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
+      updatedAt: data.updated_at ? new Date(data.updated_at) : null,
     });
   }
 
@@ -24,10 +24,10 @@ export class NotificationConverter {
       ticket_id: plainObject.ticketId,
       notification_type: plainObject.notificationType,
       notification_time: plainObject.scheduledAt.toISOString(),
-      sent_at: plainObject.sentAt?.toISOString(),
+      sent_at: plainObject.sentAt?.toISOString() ?? null,
       status: plainObject.status,
-      error_message: plainObject.errorMessage,
-      cloud_task_id: plainObject.cloudTaskId,
+      error_message: plainObject.errorMessage ?? null,
+      cloud_task_id: plainObject.cloudTaskId ?? null,
     };
   }
 }
