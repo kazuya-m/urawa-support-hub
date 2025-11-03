@@ -54,7 +54,7 @@ export interface TicketComparison {
   id: string;
   matchName?: string;
   matchDate?: string | Date;
-  saleStatus?: string;
+  saleStatus?: string | null;
   saleStartDate?: string | Date;
   saleEndDate?: string | Date;
   venue?: string;
@@ -82,7 +82,7 @@ export interface TicketOperationResult {
   id: string;
   matchName?: string;
   matchDate?: string | Date;
-  saleStatus?: string;
+  saleStatus?: string | null;
   operation: TicketOperationType;
   changes?: ChangeDetails[]; // 更新時の変更内容
   error?: string; // 失敗時のエラーメッセージ

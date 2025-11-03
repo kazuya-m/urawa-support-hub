@@ -16,7 +16,7 @@ export interface TicketRow {
   created_at: string;
   updated_at: string;
   scraped_at: string;
-  sale_status: SaleStatus;
+  sale_status: SaleStatus | null;
   notification_scheduled: boolean;
 }
 
@@ -46,7 +46,7 @@ export interface TicketInsert {
   ticket_types?: string[] | null;
   ticket_url?: string | null;
   scraped_at: string;
-  sale_status: SaleStatus;
+  sale_status?: SaleStatus | null;
   notification_scheduled?: boolean;
 }
 
@@ -55,8 +55,8 @@ export interface NotificationInsert {
   ticket_id: string;
   notification_type: NotificationType;
   notification_time: string;
-  sent_at?: string;
+  sent_at?: string | null;
   status: 'scheduled' | 'sent' | 'failed' | 'cancelled';
-  error_message?: string;
-  cloud_task_id?: string;
+  error_message?: string | null;
+  cloud_task_id?: string | null;
 }
