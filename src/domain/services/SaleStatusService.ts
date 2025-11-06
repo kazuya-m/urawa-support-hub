@@ -27,9 +27,14 @@ export class SaleStatusService {
 
   /**
    * 販売日時テキストをパースして日付と状況を返す
+   *
+   * @param saleText - 販売日時テキスト（例: "11/06(水)10:00〜"）
+   * @param matchDate - 試合日（販売日の年を決定するために使用）
+   * @param referenceDate - 現在日時（デフォルト: new Date()）
    */
   static parseSaleDate(
     saleText: string,
+    matchDate: Date,
     referenceDate: Date = new Date(),
   ): {
     saleStartDate?: Date;
@@ -44,12 +49,12 @@ export class SaleStatusService {
     const beforeSaleMatch = saleText.match(beforeSalePattern);
     if (beforeSaleMatch) {
       const [, month, day, hour, minute] = beforeSaleMatch;
-      const saleStartDate = DateCalculationService.createMatchDateFromJST(
+      const saleStartDate = this.createSaleDateFromMatchDate(
+        matchDate,
         parseInt(month),
         parseInt(day),
         parseInt(hour),
         parseInt(minute),
-        referenceDate,
       );
       return { saleStartDate, saleStatus: 'before_sale' };
     }
@@ -57,12 +62,12 @@ export class SaleStatusService {
     const onSaleMatch = saleText.match(onSalePattern);
     if (onSaleMatch) {
       const [, month, day, hour, minute] = onSaleMatch;
-      const saleEndDate = DateCalculationService.createMatchDateFromJST(
+      const saleEndDate = this.createSaleDateFromMatchDate(
+        matchDate,
         parseInt(month),
         parseInt(day),
         parseInt(hour),
         parseInt(minute),
-        referenceDate,
       );
       return { saleEndDate, saleStatus: 'on_sale' };
     }
@@ -71,24 +76,60 @@ export class SaleStatusService {
     if (fullRangeMatch) {
       const [, startMonth, startDay, startHour, startMinute, endMonth, endDay, endHour, endMinute] =
         fullRangeMatch;
-      const saleStartDate = DateCalculationService.createMatchDateFromJST(
+      const saleStartDate = this.createSaleDateFromMatchDate(
+        matchDate,
         parseInt(startMonth),
         parseInt(startDay),
         parseInt(startHour),
         parseInt(startMinute),
-        referenceDate,
       );
-      const saleEndDate = DateCalculationService.createMatchDateFromJST(
+      const saleEndDate = this.createSaleDateFromMatchDate(
+        matchDate,
         parseInt(endMonth),
         parseInt(endDay),
         parseInt(endHour),
         parseInt(endMinute),
-        referenceDate,
       );
       const saleStatus = this.determineSaleStatus(saleStartDate, saleEndDate, referenceDate);
       return { saleStartDate, saleEndDate, saleStatus };
     }
 
     throw new Error(`Unknown sale date format: ${saleText}`);
+  }
+
+  /**
+   * 試合日を基準に販売日を作成
+   * 販売日は試合日より前でなければならないため、試合日より後になる場合は前年にする
+   */
+  private static createSaleDateFromMatchDate(
+    matchDate: Date,
+    month: number,
+    day: number,
+    hour: number,
+    minute: number,
+  ): Date {
+    const matchYear = matchDate.getFullYear();
+
+    // まず試合と同じ年で販売日を作成
+    const saleDate = DateCalculationService.createMatchDateFromJST(
+      month,
+      day,
+      hour,
+      minute,
+      new Date(matchYear, 0, 1), // 試合年の1月1日を基準日として使用
+    );
+
+    // 販売日が試合日より後になる場合は前年にする
+    if (saleDate > matchDate) {
+      return DateCalculationService.createMatchDateFromJST(
+        month,
+        day,
+        hour,
+        minute,
+        new Date(matchYear - 1, 0, 1), // 前年の1月1日を基準日として使用
+      );
+    }
+
+    return saleDate;
   }
 }
