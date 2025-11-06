@@ -24,8 +24,8 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
     // 2. チーム情報抽出
     const teams = this.extractTeams(rawData.matchName);
 
-    // 3. 販売日時処理
-    const saleInfo = this.parseSaleInfo(rawData.saleDate || null, referenceDate);
+    // 3. 販売日時処理（試合日を基準に年を決定）
+    const saleInfo = this.parseSaleInfo(rawData.saleDate || null, matchDate, referenceDate);
 
     // 4. 販売データ整合性検証とログ出力
     this.validateSaleDataIntegrity(rawData, saleInfo, referenceDate);
@@ -240,13 +240,13 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
   /**
    * 販売情報の解析
    */
-  private parseSaleInfo(saleDate: string | null, referenceDate: Date) {
+  private parseSaleInfo(saleDate: string | null, matchDate: Date, referenceDate: Date) {
     if (!saleDate?.trim()) {
       return null;
     }
 
     try {
-      return SaleStatusService.parseSaleDate(saleDate, referenceDate);
+      return SaleStatusService.parseSaleDate(saleDate, matchDate, referenceDate);
     } catch (_error) {
       return null;
     }
