@@ -149,7 +149,11 @@ Deno.test('TicketCollectionService Test Mode Tests', async (t) => {
       // 販売開始日が明日10:00 JSTに設定されているかチェック
       const now = new Date();
       const today = toJSTDate(now);
-      const expectedDate = today.getDate() + 1;
+
+      // 明日の日付を正しく計算（月跨ぎ対応）
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const expectedDate = tomorrow.getDate();
 
       // UTC時刻をJST時刻に変換して検証
       const saleStartJST = toJSTDate(result[0].saleStartDate!);

@@ -104,7 +104,6 @@ Deno.test('JLeagueDataParser - 不正な日時フォーマット時のエラー�
   const referenceDate = new Date('2025-02-01T03:00:00.000Z');
   const ticket = await parser.parseToTicket(rawData, referenceDate);
 
-  // 不正な日時の場合は基本日付解析（matchDate: "3/15"）にフォールバックすることを確認
-  // 年跨ぎロジックにより2025年3月15日と判定され、JST→UTC変換適用
-  assertEquals(ticket.matchDate.toISOString(), '2025-02-14T17:10:00.000Z');
+  // 不正な日時の場合はreferenceDateにフォールバックすることを確認
+  assertEquals(ticket.matchDate.toISOString(), referenceDate.toISOString());
 });

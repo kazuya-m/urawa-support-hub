@@ -8,6 +8,7 @@ import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
+import { createJSTDateTime } from '@/shared/utils/datetime.ts';
 
 /**
  * J-League固有のデータパーサー
@@ -24,8 +25,8 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
     // 2. チーム情報抽出
     const teams = this.extractTeams(rawData.matchName);
 
-    // 3. 販売日時処理
-    const saleInfo = this.parseSaleInfo(rawData.saleDate || null, referenceDate);
+    // 3. 販売日時処理（試合日を基準に年を決定）
+    const saleInfo = this.parseSaleInfo(rawData.saleDate || null, matchDate, referenceDate);
 
     // 4. 販売データ整合性検証とログ出力
     this.validateSaleDataIntegrity(rawData, saleInfo, referenceDate);
@@ -113,19 +114,17 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
       const hour = parseInt(timeParts[0]);
       const minute = parseInt(timeParts[1]);
 
-      // 4桁年が明示されている場合もJST→UTC変換を適用
+      // 4桁年が明示されている場合は年が確定しているため、直接createJSTDateTimeを使用
       if (year >= 1000) {
-        if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute)) {
+        if (
+          isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute) ||
+          month < 1 || month > 12 || day < 1 || day > 31 || hour < 0 || hour > 23 ||
+          minute < 0 || minute > 59
+        ) {
           throw new Error(`Invalid date values: ${dateTimeStr}`);
         }
-        // DateCalculationService.createMatchDateFromJST関数を使用してJST→UTC変換を実行
-        return DateCalculationService.createMatchDateFromJST(
-          month,
-          day,
-          hour,
-          minute,
-          new Date(year, 0, 1),
-        );
+        // 年が明示されている場合は年跨ぎロジック不要
+        return createJSTDateTime(year, month, day, hour, minute);
       }
 
       // 2桁年の場合は年跨ぎロジックを適用
@@ -240,13 +239,13 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
   /**
    * 販売情報の解析
    */
-  private parseSaleInfo(saleDate: string | null, referenceDate: Date) {
+  private parseSaleInfo(saleDate: string | null, matchDate: Date, referenceDate: Date) {
     if (!saleDate?.trim()) {
       return null;
     }
 
     try {
-      return SaleStatusService.parseSaleDate(saleDate, referenceDate);
+      return SaleStatusService.parseSaleDate(saleDate, matchDate, referenceDate);
     } catch (_error) {
       return null;
     }
