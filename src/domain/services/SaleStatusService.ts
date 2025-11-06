@@ -1,5 +1,5 @@
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
-import { DateCalculationService } from './DateCalculationService.ts';
+import { createJSTDateTime } from '@/shared/utils/datetime.ts';
 
 /**
  * 販売状況管理ドメインサービス
@@ -109,25 +109,19 @@ export class SaleStatusService {
     minute: number,
   ): Date {
     const matchYear = matchDate.getFullYear();
+    const matchMonth = matchDate.getMonth() + 1; // 0-11 to 1-12
+    const matchDay = matchDate.getDate();
 
-    // まず試合と同じ年で販売日を作成
-    const saleDate = DateCalculationService.createMatchDateFromJST(
-      month,
-      day,
-      hour,
-      minute,
-      new Date(matchYear, 0, 1), // 試合年の1月1日を基準日として使用
-    );
+    // まず試合と同じ年で販売日を作成（年が確定しているためcreateJSTDateTimeを使用）
+    const saleDate = createJSTDateTime(matchYear, month, day, hour, minute);
 
-    // 販売日が試合日より後になる場合は前年にする
-    if (saleDate > matchDate) {
-      return DateCalculationService.createMatchDateFromJST(
-        month,
-        day,
-        hour,
-        minute,
-        new Date(matchYear - 1, 0, 1), // 前年の1月1日を基準日として使用
-      );
+    // 販売日が試合日より後の「日付」になる場合は前年にする
+    // 同じ日の場合は時刻が異なっても同年とする（例：試合18:00、販売終了23:59）
+    const saleDateKey = month * 100 + day;
+    const matchDateKey = matchMonth * 100 + matchDay;
+
+    if (saleDateKey > matchDateKey) {
+      return createJSTDateTime(matchYear - 1, month, day, hour, minute);
     }
 
     return saleDate;

@@ -55,14 +55,19 @@ export class TestJLeagueScrapingService implements ISiteScrapingService {
     const today = toJSTDate(now);
 
     // 明日の日付を計算（JST基準）
-    const tomorrowYear = today.getFullYear();
-    const tomorrowMonth = today.getMonth() + 1; // createJSTDateTimeは1-12月
-    const tomorrowDay = today.getDate() + 1;
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // 試合日は2週間後
-    const matchYear = tomorrowYear;
-    const matchMonth = tomorrowMonth;
-    const matchDay = tomorrowDay + 14;
+    const tomorrowMonth = tomorrow.getMonth() + 1; // 1-12月
+    const tomorrowDay = tomorrow.getDate();
+
+    // 試合日は2週間後（JST基準）
+    const matchDate = new Date(tomorrow);
+    matchDate.setDate(matchDate.getDate() + 14);
+
+    const matchYear = matchDate.getFullYear();
+    const matchMonth = matchDate.getMonth() + 1;
+    const matchDay = matchDate.getDate();
 
     return {
       matchName: '[TEST] 川崎フロンターレ vs 浦和レッズ',
@@ -94,14 +99,19 @@ export class TestJLeagueScrapingService implements ISiteScrapingService {
     const today = toJSTDate(now);
 
     // 明日の日付を計算（JST基準）
-    const tomorrowYear = today.getFullYear();
-    const tomorrowMonth = today.getMonth() + 1;
-    const tomorrowDay = today.getDate() + 1;
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // 試合日は2週間後（新規チケットと同じ）
-    const matchYear = tomorrowYear;
-    const matchMonth = tomorrowMonth;
-    const matchDay = tomorrowDay + 14;
+    const tomorrowMonth = tomorrow.getMonth() + 1;
+    const tomorrowDay = tomorrow.getDate();
+
+    // 試合日は2週間後（新規チケットと同じ）（JST基準）
+    const matchDate = new Date(tomorrow);
+    matchDate.setDate(matchDate.getDate() + 14);
+
+    const matchYear = matchDate.getFullYear();
+    const matchMonth = matchDate.getMonth() + 1;
+    const matchDay = matchDate.getDate();
 
     return {
       matchName: '[TEST] 川崎フロンターレ vs 浦和レッズ', // 新規チケットと同じ試合名
