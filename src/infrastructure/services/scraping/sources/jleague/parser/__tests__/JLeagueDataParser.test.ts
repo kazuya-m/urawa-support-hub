@@ -107,3 +107,113 @@ Deno.test('JLeagueDataParser - 不正な日時フォーマット時のエラー�
   // 不正な日時の場合はreferenceDateにフォールバックすることを確認
   assertEquals(ticket.matchDate.toISOString(), referenceDate.toISOString());
 });
+
+/**
+ * Jリーグサイト固有の販売日時フォーマット解析テスト
+ */
+Deno.test('JLeagueDataParser - 販売前フォーマット解析（曜日付き）', async () => {
+  const parser = new JLeagueDataParser();
+
+  const rawData: JLeagueRawTicketData = {
+    matchName: '浦和レッズ vs FC東京',
+    matchDate: '9/15',
+    enhancedMatchDateTime: '2025/09/15 14:00',
+    venue: '埼玉スタジアム2002',
+    competition: 'J1リーグ',
+    saleDate: '08/15(金)10:00〜', // Jリーグ固有フォーマット
+    ticketTypes: [],
+    ticketUrl: 'https://example.com/ticket',
+    scrapedAt: new Date('2025-08-01T00:00:00.000Z'),
+  };
+
+  const referenceDate = new Date('2025-08-01T00:00:00.000Z');
+  const ticket = await parser.parseToTicket(rawData, referenceDate);
+
+  assertEquals(ticket.saleStatus, 'before_sale');
+  assertEquals(ticket.saleStartDate?.getUTCMonth(), 7); // August (0-indexed)
+  assertEquals(ticket.saleStartDate?.getUTCDate(), 15);
+  assertEquals(ticket.saleStartDate?.getUTCHours(), 1); // JST 10:00 = UTC 01:00
+  assertEquals(ticket.saleEndDate, null);
+});
+
+Deno.test('JLeagueDataParser - 販売中フォーマット解析（終了日指定）', async () => {
+  const parser = new JLeagueDataParser();
+
+  const rawData: JLeagueRawTicketData = {
+    matchName: '浦和レッズ vs FC東京',
+    matchDate: '10/15',
+    enhancedMatchDateTime: '2025/10/15 14:00',
+    venue: '埼玉スタジアム2002',
+    competition: 'J1リーグ',
+    saleDate: '〜09/12(金)23:59', // Jリーグ固有フォーマット
+    ticketTypes: [],
+    ticketUrl: 'https://example.com/ticket',
+    scrapedAt: new Date('2025-09-01T00:00:00.000Z'),
+  };
+
+  const referenceDate = new Date('2025-09-01T00:00:00.000Z');
+  const ticket = await parser.parseToTicket(rawData, referenceDate);
+
+  assertEquals(ticket.saleStatus, 'on_sale');
+  assertEquals(ticket.saleStartDate, null);
+  assertEquals(ticket.saleEndDate?.getUTCMonth(), 8); // September (0-indexed)
+  assertEquals(ticket.saleEndDate?.getUTCDate(), 12);
+  assertEquals(ticket.saleEndDate?.getUTCHours(), 14); // JST 23:59 = UTC 14:59
+});
+
+Deno.test('JLeagueDataParser - フルレンジフォーマット解析', async () => {
+  const parser = new JLeagueDataParser();
+
+  const rawData: JLeagueRawTicketData = {
+    matchName: '浦和レッズ vs FC東京',
+    matchDate: '10/15',
+    enhancedMatchDateTime: '2025/10/15 14:00',
+    venue: '埼玉スタジアム2002',
+    competition: 'J1リーグ',
+    saleDate: '08/15(金)10:00〜09/12(金)23:59', // Jリーグ固有フォーマット
+    ticketTypes: [],
+    ticketUrl: 'https://example.com/ticket',
+    scrapedAt: new Date('2025-08-01T00:00:00.000Z'),
+  };
+
+  const referenceDate = new Date('2025-08-01T00:00:00.000Z');
+  const ticket = await parser.parseToTicket(rawData, referenceDate);
+
+  assertEquals(ticket.saleStartDate?.getUTCMonth(), 7); // August (0-indexed)
+  assertEquals(ticket.saleStartDate?.getUTCDate(), 15);
+  assertEquals(ticket.saleEndDate?.getUTCMonth(), 8); // September (0-indexed)
+  assertEquals(ticket.saleEndDate?.getUTCDate(), 12);
+});
+
+Deno.test('JLeagueDataParser - 年跨ぎ対応（試合日基準）', async () => {
+  const parser = new JLeagueDataParser();
+
+  const rawData: JLeagueRawTicketData = {
+    matchName: '浦和レッズ vs FC東京',
+    matchDate: '3/20',
+    enhancedMatchDateTime: '2025/03/20 14:00', // 2025年3月の試合
+    venue: '埼玉スタジアム2002',
+    competition: 'J1リーグ',
+    saleDate: '11/20(水)10:00〜', // 11月の販売開始（前年）
+    ticketTypes: [],
+    ticketUrl: 'https://example.com/ticket',
+    scrapedAt: new Date('2024-11-15T00:00:00.000Z'),
+  };
+
+  const referenceDate = new Date('2024-11-15T00:00:00.000Z');
+  const ticket = await parser.parseToTicket(rawData, referenceDate);
+
+  assertEquals(ticket.saleStatus, 'before_sale');
+  // 販売開始日が試合日より後になる場合は前年にする
+  assertEquals(ticket.saleStartDate?.getUTCFullYear(), 2024);
+  assertEquals(ticket.saleStartDate?.getUTCMonth(), 10); // November (0-indexed)
+
+  // 販売開始日 < 試合日 を確認
+  if (ticket.saleStartDate && ticket.matchDate) {
+    assertEquals(
+      ticket.saleStartDate < ticket.matchDate,
+      true,
+      '販売開始日は試合日より前でなければならない',
+    );
+  }
+});
