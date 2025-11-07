@@ -237,7 +237,8 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
   }
 
   /**
-   * 販売情報の解析
+   * Jリーグサイト固有の販売情報解析
+   * Jリーグ固有のフォーマット（曜日付き）をパース
    */
   private parseSaleInfo(saleDate: string | null, matchDate: Date, referenceDate: Date) {
     if (!saleDate?.trim()) {
@@ -245,10 +246,102 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
     }
 
     try {
-      return SaleStatusService.parseSaleDate(saleDate, matchDate, referenceDate);
+      return this.parseJLeagueSaleDate(saleDate, matchDate, referenceDate);
     } catch (_error) {
       return null;
     }
+  }
+
+  /**
+   * Jリーグサイト固有の販売日時フォーマット解析
+   *
+   * @param saleText - 販売日時テキスト（例: "11/06(水)10:00〜"）
+   * @param matchDate - 試合日（販売日の年を決定するために使用）
+   * @param referenceDate - 現在日時
+   */
+  private parseJLeagueSaleDate(
+    saleText: string,
+    matchDate: Date,
+    referenceDate: Date,
+  ): {
+    saleStartDate?: Date;
+    saleEndDate?: Date;
+    saleStatus: SaleStatus;
+  } {
+    // Jリーグサイト固有のフォーマット（曜日の括弧付き）
+    const beforeSalePattern = /^(\d{2})\/(\d{2})\([月火水木金土日]\)(\d{2}):(\d{2})〜$/;
+    const onSalePattern = /^〜(\d{2})\/(\d{2})\([月火水木金土日]\)(\d{2}):(\d{2})$/;
+    const fullRangePattern =
+      /(\d{2})\/(\d{2})\([月火水木金土日]\)(\d{2}):(\d{2})〜(\d{2})\/(\d{2})\([月火水木金土日]\)(\d{2}):(\d{2})/;
+
+    const beforeSaleMatch = saleText.match(beforeSalePattern);
+    if (beforeSaleMatch) {
+      const [, month, day, hour, minute] = beforeSaleMatch;
+      const saleStartDate = this.createSaleDateFromMatchDate(
+        matchDate,
+        parseInt(month),
+        parseInt(day),
+        parseInt(hour),
+        parseInt(minute),
+      );
+      return { saleStartDate, saleStatus: 'before_sale' };
+    }
+
+    const onSaleMatch = saleText.match(onSalePattern);
+    if (onSaleMatch) {
+      const [, month, day, hour, minute] = onSaleMatch;
+      const saleEndDate = this.createSaleDateFromMatchDate(
+        matchDate,
+        parseInt(month),
+        parseInt(day),
+        parseInt(hour),
+        parseInt(minute),
+      );
+      return { saleEndDate, saleStatus: 'on_sale' };
+    }
+
+    const fullRangeMatch = saleText.match(fullRangePattern);
+    if (fullRangeMatch) {
+      const [, startMonth, startDay, startHour, startMinute, endMonth, endDay, endHour, endMinute] =
+        fullRangeMatch;
+      const saleStartDate = this.createSaleDateFromMatchDate(
+        matchDate,
+        parseInt(startMonth),
+        parseInt(startDay),
+        parseInt(startHour),
+        parseInt(startMinute),
+      );
+      const saleEndDate = this.createSaleDateFromMatchDate(
+        matchDate,
+        parseInt(endMonth),
+        parseInt(endDay),
+        parseInt(endHour),
+        parseInt(endMinute),
+      );
+      const saleStatus = SaleStatusService.determineSaleStatus(
+        saleStartDate,
+        saleEndDate,
+        referenceDate,
+      );
+      return { saleStartDate, saleEndDate, saleStatus };
+    }
+
+    throw new Error(`Unknown sale date format: ${saleText}`);
+  }
+
+  /**
+   * 試合日を基準に販売日を作成
+   * 販売日の年は試合日との比較により決定（販売日は試合日より前である必要がある）
+   */
+  private createSaleDateFromMatchDate(
+    matchDate: Date,
+    month: number,
+    day: number,
+    hour: number,
+    minute: number,
+  ): Date {
+    const year = DateCalculationService.determineSaleYear(matchDate, month, day);
+    return createJSTDateTime(year, month, day, hour, minute);
   }
 
   /**

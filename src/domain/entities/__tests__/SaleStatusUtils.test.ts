@@ -2,6 +2,10 @@ import { assertEquals } from 'std/assert/mod.ts';
 import { DateCalculationService } from '@/domain/services/DateCalculationService.ts';
 import { SaleStatusService } from '@/domain/services/SaleStatusService.ts';
 
+/**
+ * SaleStatusService - 純粋なビジネスロジックのテスト
+ * サイト固有のフォーマット解析テストは各サイトのParserテストに移動済み
+ */
 Deno.test('determineSaleStatus should return correct status based on dates', () => {
   const baseTime = new Date('2024-08-15T12:00:00Z');
 
@@ -34,61 +38,6 @@ Deno.test('determineSaleStatus should return correct status based on dates', () 
     'on_sale',
     'Should default to on_sale when no start date is provided',
   );
-});
-
-Deno.test('SaleStatusService.parseSaleDate should parse before_sale format correctly', () => {
-  const beforeSaleText = '08/15(金)10:00〜';
-  const matchDate = new Date('2025-09-15T14:00:00+09:00'); // 9月の試合（販売日より後）
-  const result = SaleStatusService.parseSaleDate(beforeSaleText, matchDate);
-
-  assertEquals(result.saleStatus, 'before_sale');
-  assertEquals(result.saleStartDate?.getUTCMonth(), 7); // August (0-indexed)
-  assertEquals(result.saleStartDate?.getUTCDate(), 15); // JST 10:00 -> UTC same day 01:00
-  assertEquals(result.saleStartDate?.getUTCHours(), 1); // JST 10:00 = UTC 01:00 (10-9)
-  assertEquals(result.saleStartDate?.getUTCMinutes(), 0);
-  assertEquals(result.saleEndDate, undefined);
-});
-
-Deno.test('SaleStatusService.parseSaleDate should parse on_sale format correctly', () => {
-  const onSaleText = '〜09/12(金)23:59';
-  const matchDate = new Date('2025-10-15T14:00:00+09:00'); // 10月の試合（販売終了日より後）
-  const result = SaleStatusService.parseSaleDate(onSaleText, matchDate);
-
-  assertEquals(result.saleStatus, 'on_sale');
-  assertEquals(result.saleStartDate, undefined);
-  assertEquals(result.saleEndDate?.getUTCMonth(), 8); // September (0-indexed)
-  assertEquals(result.saleEndDate?.getUTCDate(), 12); // JST 23:59 -> UTC same day 14:59
-  assertEquals(result.saleEndDate?.getUTCHours(), 14); // JST 23:59 = UTC 14:59 (23-9)
-  assertEquals(result.saleEndDate?.getUTCMinutes(), 59);
-});
-
-Deno.test('SaleStatusService.parseSaleDate should parse full range format correctly', () => {
-  const fullRangeText = '08/15(金)10:00〜09/12(金)23:59';
-  const matchDate = new Date('2025-10-15T14:00:00+09:00'); // 10月の試合（販売期間より後）
-  const result = SaleStatusService.parseSaleDate(fullRangeText, matchDate);
-
-  assertEquals(result.saleStartDate?.getMonth(), 7); // August
-  assertEquals(result.saleStartDate?.getDate(), 15);
-  assertEquals(result.saleEndDate?.getMonth(), 8); // September
-  assertEquals(result.saleEndDate?.getDate(), 12);
-
-  assertEquals(typeof result.saleStatus, 'string');
-  assertEquals(['before_sale', 'on_sale', 'sold_out', 'ended'].includes(result.saleStatus!), true);
-});
-
-Deno.test('SaleStatusService.parseSaleDate should throw error for unknown format', () => {
-  const matchDate = new Date('2025-10-15T14:00:00+09:00');
-  let errorThrown = false;
-  try {
-    SaleStatusService.parseSaleDate('Unknown format', matchDate);
-  } catch (error) {
-    errorThrown = true;
-    assertEquals(error instanceof Error, true);
-    if (error instanceof Error) {
-      assertEquals(error.message.includes('Unknown sale date format'), true);
-    }
-  }
-  assertEquals(errorThrown, true, 'Should throw error for unknown format');
 });
 
 // 年跨ぎテストケース
@@ -127,68 +76,29 @@ Deno.test('DateCalculationService.createMatchDateFromJST - 年跨ぎ対応', () 
   assertEquals(marchMatch.getUTCHours(), 5, 'JST 14:00 = UTC 05:00 (14-9)'); // JST 14:00 = UTC 05:00
 });
 
-Deno.test('SaleStatusService.parseSaleDate - 年跨ぎ対応テスト（試合日基準）', () => {
-  const referenceDate = new Date(2024, 11, 15); // 2024年12月15日
-  const matchDate = new Date('2025-03-20T14:00:00+09:00'); // 2025年3月の試合
+// 販売日の年数計算テスト
+Deno.test('DateCalculationService.determineSaleYear - 販売日が試合日より前（同年）', () => {
+  const matchDate = new Date('2025-09-15T14:00:00+09:00'); // 2025年9月の試合
 
-  // 翌年3月の販売期間（試合日より前の販売開始日）
-  const result = SaleStatusService.parseSaleDate('03/15(土)10:00〜', matchDate, referenceDate);
-
-  assertEquals(result.saleStatus, 'before_sale');
-  assertEquals(
-    result.saleStartDate?.getUTCFullYear(),
-    2025,
-    '販売開始日の年は試合年と同じ（2025年）として設定されるべき',
-  );
-  assertEquals(result.saleStartDate?.getUTCMonth(), 2, '販売開始日の月は正しく設定されるべき');
-  assertEquals(result.saleStartDate?.getUTCDate(), 15, 'JST 03/15 10:00 -> UTC 03/15 01:00'); // JST 3/15 10:00 -> UTC 3/15 01:00
+  // 8月の販売開始日（試合より前） → 同年
+  const year = DateCalculationService.determineSaleYear(matchDate, 8, 15);
+  assertEquals(year, 2025, '販売日が試合日より前の場合は同年');
 });
 
-Deno.test('SaleStatusService.parseSaleDate - 年跨ぎフルレンジテスト（試合日基準）', () => {
-  const referenceDate = new Date(2024, 10, 15); // 2024年11月15日
-  const matchDate = new Date('2025-03-20T14:00:00+09:00'); // 2025年3月の試合
-
-  // 12月〜翌年3月の販売期間
-  const result = SaleStatusService.parseSaleDate(
-    '12/20(金)10:00〜03/15(土)23:59',
-    matchDate,
-    referenceDate,
-  );
-
-  assertEquals(result.saleStatus, 'before_sale');
-  // 販売開始: 12月は試合年の前年
-  assertEquals(result.saleStartDate?.getUTCFullYear(), 2024);
-  assertEquals(result.saleStartDate?.getUTCMonth(), 11); // 12月 = 11 (0-indexed)
-
-  // 販売終了: 3月は試合年と同じ
-  assertEquals(result.saleEndDate?.getUTCFullYear(), 2025);
-  assertEquals(result.saleEndDate?.getUTCMonth(), 2); // 3月 = 2 (0-indexed)
-});
-
-// 新しいロジックのテスト: 販売日が試合日より後になる場合は前年にする
-Deno.test('SaleStatusService.parseSaleDate - 販売日が試合日より後の場合は前年にする', () => {
+Deno.test('DateCalculationService.determineSaleYear - 販売日が試合日より後（前年）', () => {
   const matchDate = new Date('2025-03-15T14:00:00+09:00'); // 2025年3月の試合
-  const referenceDate = new Date(2024, 11, 15); // 2024年12月15日
 
-  // 11月の販売開始日（試合と同じ年にすると試合より後になるため前年にする）
-  const result = SaleStatusService.parseSaleDate('11/20(水)10:00〜', matchDate, referenceDate);
+  // 11月の販売開始日（試合より後） → 前年
+  const year = DateCalculationService.determineSaleYear(matchDate, 11, 20);
+  assertEquals(year, 2024, '販売日が試合日より後の場合は前年');
+});
 
-  assertEquals(result.saleStatus, 'before_sale');
-  assertEquals(
-    result.saleStartDate?.getUTCFullYear(),
-    2024,
-    '販売開始日が試合日より後になる場合は前年にするべき',
-  );
-  assertEquals(result.saleStartDate?.getUTCMonth(), 10); // 11月 = 10 (0-indexed)
+Deno.test('DateCalculationService.determineSaleYear - 販売日と試合日が同じ日', () => {
+  const matchDate = new Date('2025-09-15T14:00:00+09:00'); // 2025年9月15日の試合
 
-  // 販売開始日 < 試合日 を確認
-  if (result.saleStartDate && matchDate) {
-    assertEquals(
-      result.saleStartDate < matchDate,
-      true,
-      '販売開始日は試合日より前でなければならない',
-    );
-  }
+  // 同じ日（時刻は異なる） → 同年
+  const year = DateCalculationService.determineSaleYear(matchDate, 9, 15);
+  assertEquals(year, 2025, '同じ日の場合は同年（時刻が異なっても）');
 });
 
 // JST→UTC変換の具体的テスト
