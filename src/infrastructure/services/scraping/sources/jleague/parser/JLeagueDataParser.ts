@@ -58,7 +58,29 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
     rawData: JLeagueRawTicketData[],
     referenceDate: Date = new Date(),
   ): Promise<Ticket[]> {
-    return await Promise.all(rawData.map((data) => this.parseToTicket(data, referenceDate)));
+    const tickets: Ticket[] = [];
+
+    for (const data of rawData) {
+      try {
+        const ticket = await this.parseToTicket(data, referenceDate);
+        tickets.push(ticket);
+      } catch (error) {
+        CloudLogger.error('Failed to parse ticket', {
+          category: LogCategory.PARSING,
+          context: {
+            stage: 'data_parsing',
+          },
+          metadata: {
+            source: 'jleague',
+          },
+          error: {
+            message: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+    }
+
+    return tickets;
   }
 
   /**

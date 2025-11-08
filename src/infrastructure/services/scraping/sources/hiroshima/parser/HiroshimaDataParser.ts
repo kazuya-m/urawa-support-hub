@@ -20,15 +20,17 @@ export class HiroshimaDataParser {
           tickets.push(ticket);
         }
       } catch (error) {
-        CloudLogger.error('Failed to parse Hiroshima ticket', {
-          category: LogCategory.TICKET_COLLECTION,
+        CloudLogger.error('Failed to parse ticket', {
+          category: LogCategory.PARSING,
           context: {
             stage: 'data_parsing',
           },
           metadata: {
             source: 'hiroshima',
             rawTicket,
-            error: error instanceof Error ? error.message : String(error),
+          },
+          error: {
+            message: error instanceof Error ? error.message : String(error),
           },
         });
       }
