@@ -6,6 +6,8 @@ import { J_LEAGUE_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/sou
 import { JLeagueDataExtractor } from './extractor/JLeagueDataExtractor.ts';
 import { JLeagueDataParser } from './parser/JLeagueDataParser.ts';
 import { IBrowserManager } from '@/application/interfaces/clients/IBrowserManager.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
 import type { ElementHandle } from 'playwright';
 
 /**
@@ -28,6 +30,16 @@ export class JLeagueScrapingService implements ISiteScrapingService {
   }
 
   async collectTickets(): Promise<Ticket[]> {
+    CloudLogger.info('Starting ticket collection', {
+      category: LogCategory.TICKET_COLLECTION,
+      context: {
+        stage: 'service_start',
+      },
+      metadata: {
+        source: 'jleague',
+      },
+    });
+
     await this.browserManager.launch(J_LEAGUE_SCRAPING_CONFIG.timeouts.pageLoad);
     try {
       const page = await this.browserManager.createPage(
@@ -50,6 +62,17 @@ export class JLeagueScrapingService implements ISiteScrapingService {
       const tickets = await this.dataParser.parseMultipleToTickets(detailedTickets);
 
       this.dataExtractor.getAndClearWarnings();
+
+      CloudLogger.info('Ticket collection completed', {
+        category: LogCategory.TICKET_COLLECTION,
+        context: {
+          stage: 'service_complete',
+        },
+        metadata: {
+          source: 'jleague',
+          totalCollected: tickets.length,
+        },
+      });
 
       return tickets;
     } finally {

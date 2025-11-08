@@ -5,6 +5,8 @@ import { HIROSHIMA_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/so
 import { HiroshimaDataExtractor } from './extractor/HiroshimaDataExtractor.ts';
 import { HiroshimaDataParser } from './parser/HiroshimaDataParser.ts';
 import { IBrowserManager } from '@/application/interfaces/clients/IBrowserManager.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
 
 /**
  * サンフレッチェ広島公式サイトスクレイピングサービス
@@ -27,6 +29,16 @@ export class HiroshimaScrapingService implements ISiteScrapingService {
   }
 
   async collectTickets(): Promise<Ticket[]> {
+    CloudLogger.info('Starting ticket collection', {
+      category: LogCategory.TICKET_COLLECTION,
+      context: {
+        stage: 'service_start',
+      },
+      metadata: {
+        source: 'hiroshima',
+      },
+    });
+
     await this.browserManager.launch(HIROSHIMA_SCRAPING_CONFIG.timeouts.pageLoad);
     try {
       const page = await this.browserManager.createPage(
@@ -48,6 +60,17 @@ export class HiroshimaScrapingService implements ISiteScrapingService {
 
       // 警告をクリア
       this.dataExtractor.getAndClearWarnings();
+
+      CloudLogger.info('Ticket collection completed', {
+        category: LogCategory.TICKET_COLLECTION,
+        context: {
+          stage: 'service_complete',
+        },
+        metadata: {
+          source: 'hiroshima',
+          totalCollected: tickets.length,
+        },
+      });
 
       return tickets;
     } finally {
