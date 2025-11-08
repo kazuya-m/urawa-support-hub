@@ -2,6 +2,8 @@ import { IPage } from '@/application/interfaces/clients/IPlaywrightClient.ts';
 import { IDataExtractor } from '@/infrastructure/services/scraping/shared/interfaces/IDataExtractor.ts';
 import { JLeagueRawTicketData } from '../types/JLeagueTypes.ts';
 import { JLeagueListPageConfig } from '@/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts';
+import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
 
 /**
  * J-League一覧ページ専用データ抽出器
@@ -25,8 +27,19 @@ export class JLeagueDataExtractor implements IDataExtractor<JLeagueRawTicketData
         if (ticketData) {
           tickets.push(ticketData);
         }
-      } catch {
-        // Ignore extraction errors
+      } catch (error) {
+        CloudLogger.warn('Failed to extract ticket data', {
+          category: LogCategory.TICKET_COLLECTION,
+          context: {
+            stage: 'data_extraction',
+          },
+          metadata: {
+            source: 'jleague',
+          },
+          error: {
+            message: error instanceof Error ? error.message : String(error),
+          },
+        });
       }
     }
 

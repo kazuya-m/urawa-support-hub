@@ -32,17 +32,6 @@ export class HiroshimaDataExtractor {
         return tickets;
       }
 
-      CloudLogger.info('Hiroshima ticket rows found', {
-        category: LogCategory.TICKET_COLLECTION,
-        context: {
-          stage: 'data_extraction',
-        },
-        metadata: {
-          source: 'hiroshima',
-          rowCount: rowElements.length,
-        },
-      });
-
       // 各行からチケット情報を抽出（浦和レッズ戦のみ）
       for (const rowElement of rowElements) {
         try {
@@ -57,34 +46,36 @@ export class HiroshimaDataExtractor {
           const rowData = await this.extractRowData(rowElement);
           if (rowData) {
             tickets.push(rowData);
-            CloudLogger.info('Urawa match found in Hiroshima schedule', {
-              category: LogCategory.TICKET_COLLECTION,
-              context: {
-                stage: 'data_extraction',
-              },
-              metadata: {
-                source: 'hiroshima',
-                opponent: rowData.opponent,
-                date: rowData.matchDate,
-                status: rowData.saleStatus,
-              },
-            });
           }
         } catch (error) {
           this.addWarning(`Failed to extract data from row: ${error}`);
+          CloudLogger.warn('Failed to extract ticket data', {
+            category: LogCategory.TICKET_COLLECTION,
+            context: {
+              stage: 'data_extraction',
+            },
+            metadata: {
+              source: 'hiroshima',
+            },
+            error: {
+              message: error instanceof Error ? error.message : String(error),
+            },
+          });
         }
       }
 
       return tickets;
     } catch (error) {
-      CloudLogger.error('Failed to extract Hiroshima tickets', {
+      CloudLogger.error('Failed to extract tickets', {
         category: LogCategory.TICKET_COLLECTION,
         context: {
           stage: 'data_extraction',
         },
         metadata: {
           source: 'hiroshima',
-          error: error instanceof Error ? error.message : String(error),
+        },
+        error: {
+          message: error instanceof Error ? error.message : String(error),
         },
       });
       throw error;
