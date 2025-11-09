@@ -655,9 +655,6 @@ Deno.test('Ticket - markNotificationScheduled creates new instance with updated 
   // 新しいインスタンスは通知スケジュール済み
   assertEquals(updatedTicket.notificationScheduled, true);
 
-  // updatedAtが更新される
-  assert(updatedTicket.updatedAt >= originalTicket.updatedAt);
-
   // その他のプロパティは保持される
   assertEquals(updatedTicket.id, originalTicket.id);
   assertEquals(updatedTicket.matchName, originalTicket.matchName);
@@ -830,7 +827,7 @@ Deno.test('Ticket - mergeWith should preserve specific fields and update others'
 
   // 保持されるフィールド
   assertEquals(updatedTicket.id, 'existing-ticket-id'); // 既存のIDを保持
-  assertEquals(updatedTicket.createdAt.getTime(), originalTime.getTime()); // 既存のcreatedAtを保持
+  assertEquals(updatedTicket.createdAt?.getTime(), originalTime.getTime()); // 既存のcreatedAtを保持
   assertEquals(updatedTicket.notificationScheduled, true); // 既存の通知状態を保持
 
   // 更新されるフィールド
@@ -840,13 +837,8 @@ Deno.test('Ticket - mergeWith should preserve specific fields and update others'
     new Date('2025-03-14T11:00:00+09:00').getTime(),
   ); // 新しいsaleStartDate
   assertEquals(updatedTicket.ticketUrl, 'https://example.com/new'); // 新しいticketUrl
-  assertEquals(updatedTicket.saleStatus, 'on_sale'); // 新しいsaleStatus
-  assertEquals(updatedTicket.scrapedAt.getTime(), newScrapedTime.getTime()); // 新しいscrapedAt
-
-  // updatedAtは自動更新される
-  assert(updatedTicket.updatedAt > originalTime);
-
-  // その他のフィールドも新しい値が使用される
+  assertEquals(updatedTicket.saleStatus, 'on_sale');
+  assertEquals(updatedTicket.scrapedAt.getTime(), newScrapedTime.getTime());
   assertEquals(updatedTicket.matchName, newTicket.matchName);
   assertEquals(updatedTicket.matchDate.getTime(), newTicket.matchDate.getTime());
 });
@@ -895,7 +887,7 @@ Deno.test('Ticket - mergeWith should handle new ticket without existing metadata
 
   // 既存のメタデータを保持
   assertEquals(updatedTicket.id, 'existing-minimal-id');
-  assertEquals(updatedTicket.createdAt.getTime(), originalTime.getTime());
+  assertEquals(updatedTicket.createdAt?.getTime(), originalTime.getTime());
   assertEquals(updatedTicket.notificationScheduled, false); // 既存の状態を保持
 
   // 新しいデータが追加される
@@ -907,8 +899,7 @@ Deno.test('Ticket - mergeWith should handle new ticket without existing metadata
   assertEquals(updatedTicket.ticketTypes.length, 2);
   assertEquals(updatedTicket.ticketUrl, 'https://example.com/tickets');
 
-  // updatedAtは自動更新
-  assert(updatedTicket.updatedAt > originalTime);
+  // updatedAt is managed by database trigger (no application layer update)
 });
 
 Deno.test('Ticket - mergeWith should preserve existing saleStartDate when new data has null', async () => {
@@ -966,8 +957,8 @@ Deno.test('Ticket - mergeWith should preserve existing saleStartDate when new da
   // その他のフィールドは正しく更新される
   assertEquals(updatedTicket.saleStatus, 'on_sale'); // 販売状態は更新される
   assertEquals(updatedTicket.id, 'ticket-before-sale'); // IDは保持
-  assertEquals(updatedTicket.createdAt.getTime(), originalTime.getTime()); // createdAtは保持
-  assert(updatedTicket.updatedAt > originalTime); // updatedAtは更新される
+  assertEquals(updatedTicket.createdAt?.getTime(), originalTime.getTime()); // createdAtは保持
+  // updatedAt is managed by database trigger (no application layer assertion)
 });
 
 Deno.test('Ticket - mergeWith should update saleStartDate when new data has valid value', async () => {
