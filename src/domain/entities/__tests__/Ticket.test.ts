@@ -910,3 +910,113 @@ Deno.test('Ticket - mergeWith should handle new ticket without existing metadata
   // updatedAtは自動更新
   assert(updatedTicket.updatedAt > originalTime);
 });
+
+Deno.test('Ticket - mergeWith should preserve existing saleStartDate when new data has null', async () => {
+  // 販売前→販売中になった際、販売開始日がnullで上書きされないことを検証
+  const originalTime = new Date('2025-03-10T12:00:00+09:00');
+  const saleStartDate = new Date('2025-03-14T10:00:00+09:00');
+
+  // 既存チケット（販売前、saleStartDateあり）
+  const existingTicket = Ticket.fromExisting({
+    id: 'ticket-before-sale',
+    matchName: 'サンフレッチェ広島 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: 'サンフレッチェ広島',
+    awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
+    venue: 'エディオンスタジアム',
+    saleStartDate: saleStartDate, // 販売前の状態で既に設定されている
+    saleEndDate: null,
+    ticketTypes: null,
+    ticketUrl: 'https://example.com/tickets',
+    createdAt: originalTime,
+    updatedAt: originalTime,
+    scrapedAt: originalTime,
+    saleStatus: 'before_sale', // 販売前
+    notificationScheduled: false,
+  });
+
+  // 新しいスクレイピングデータ（販売中、saleStartDateはnull）
+  // パーサーの仕様: 販売中の場合はsaleStartDateをnullに設定
+  const newTicket = await Ticket.createNew({
+    matchName: 'サンフレッチェ広島 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: 'サンフレッチェ広島',
+    awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
+    venue: 'エディオンスタジアム',
+    saleStartDate: null, // 販売中になったため、パーサーがnullを設定
+    saleEndDate: null,
+    ticketTypes: null,
+    ticketUrl: 'https://example.com/tickets',
+    scrapedAt: new Date(),
+    saleStatus: 'on_sale', // 販売中に変更
+    notificationScheduled: false,
+  });
+
+  const updatedTicket = existingTicket.mergeWith(newTicket);
+
+  // 重要: saleStartDateが既存値で保持される（nullで上書きされない）
+  assertEquals(
+    updatedTicket.saleStartDate?.getTime(),
+    saleStartDate.getTime(),
+    'saleStartDate should be preserved when new data has null',
+  );
+
+  // その他のフィールドは正しく更新される
+  assertEquals(updatedTicket.saleStatus, 'on_sale'); // 販売状態は更新される
+  assertEquals(updatedTicket.id, 'ticket-before-sale'); // IDは保持
+  assertEquals(updatedTicket.createdAt.getTime(), originalTime.getTime()); // createdAtは保持
+  assert(updatedTicket.updatedAt > originalTime); // updatedAtは更新される
+});
+
+Deno.test('Ticket - mergeWith should update saleStartDate when new data has valid value', async () => {
+  // 既存のsaleStartDateがあっても、新しい値がnullでなければ更新される
+  const originalTime = new Date('2025-03-10T12:00:00+09:00');
+  const oldSaleStartDate = new Date('2025-03-14T10:00:00+09:00');
+  const newSaleStartDate = new Date('2025-03-14T12:00:00+09:00'); // 変更された販売開始日
+
+  const existingTicket = Ticket.fromExisting({
+    id: 'ticket-update-sale-date',
+    matchName: 'FC東京 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: 'FC東京',
+    awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
+    venue: '味の素スタジアム',
+    saleStartDate: oldSaleStartDate,
+    saleEndDate: null,
+    ticketTypes: null,
+    ticketUrl: 'https://example.com/tickets',
+    createdAt: originalTime,
+    updatedAt: originalTime,
+    scrapedAt: originalTime,
+    saleStatus: 'before_sale',
+    notificationScheduled: false,
+  });
+
+  const newTicket = await Ticket.createNew({
+    matchName: 'FC東京 vs 浦和レッズ',
+    matchDate: new Date('2025-03-15T19:00:00+09:00'),
+    homeTeam: 'FC東京',
+    awayTeam: '浦和レッズ',
+    competition: 'J1リーグ',
+    venue: '味の素スタジアム',
+    saleStartDate: newSaleStartDate, // 新しい販売開始日
+    saleEndDate: null,
+    ticketTypes: null,
+    ticketUrl: 'https://example.com/tickets',
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
+    notificationScheduled: false,
+  });
+
+  const updatedTicket = existingTicket.mergeWith(newTicket);
+
+  // saleStartDateは新しい値で更新される
+  assertEquals(
+    updatedTicket.saleStartDate?.getTime(),
+    newSaleStartDate.getTime(),
+    'saleStartDate should be updated when new data has valid value',
+  );
+});
