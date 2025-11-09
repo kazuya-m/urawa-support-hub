@@ -66,6 +66,11 @@ export class JLeagueDataExtractor implements IDataExtractor<JLeagueRawTicketData
         containerSelector,
         this.config.selectors.venue,
       );
+      const saleStatusText = await this.extractValue(
+        page,
+        containerSelector,
+        this.config.selectors.saleStatusDisplay,
+      );
       let ticketUrl = await this.extractValue(
         page,
         containerSelector,
@@ -98,6 +103,7 @@ export class JLeagueDataExtractor implements IDataExtractor<JLeagueRawTicketData
         ticketUrl,
         ticketTypes: [], // 一覧ページでは空、詳細ページで補強
         scrapedAt,
+        saleStatusText: saleStatusText || undefined, // 一覧ページの完売表示
         // 詳細ページで補強される項目はundefined
         enhancedMatchDateTime: undefined,
         competition: undefined,

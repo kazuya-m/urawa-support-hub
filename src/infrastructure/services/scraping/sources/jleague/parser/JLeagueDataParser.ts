@@ -26,7 +26,12 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
     const teams = this.extractTeams(rawData.matchName);
 
     // 3. 販売日時処理（試合日を基準に年を決定）
-    const saleInfo = this.parseSaleInfo(rawData.saleDate || null, matchDate, referenceDate);
+    const saleInfo = this.parseSaleInfo(
+      rawData.saleDate || null,
+      rawData.saleStatusText,
+      matchDate,
+      referenceDate,
+    );
 
     // 4. 販売データ整合性検証とログ出力
     this.validateSaleDataIntegrity(rawData, saleInfo, referenceDate);
@@ -262,7 +267,21 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
    * Jリーグサイト固有の販売情報解析
    * Jリーグ固有のフォーマット（曜日付き）をパース
    */
-  private parseSaleInfo(saleDate: string | null, matchDate: Date, referenceDate: Date) {
+  private parseSaleInfo(
+    saleDate: string | null,
+    saleStatusText: string | undefined,
+    matchDate: Date,
+    referenceDate: Date,
+  ) {
+    // 完売表示がある場合は最優先で判定
+    if (saleStatusText?.trim()) {
+      const soldOutStatus = this.checkSoldOutStatus(saleStatusText);
+      if (soldOutStatus) {
+        return { saleStatus: soldOutStatus };
+      }
+    }
+
+    // 販売日時情報がない場合
     if (!saleDate?.trim()) {
       return null;
     }
@@ -272,6 +291,28 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
     } catch (_error) {
       return null;
     }
+  }
+
+  /**
+   * 完売ステータス判定
+   * 一覧ページの販売状況表示から完売・販売終了を判定
+   */
+  private checkSoldOutStatus(statusText: string): SaleStatus | null {
+    const cleanedStatus = statusText.trim().replace(/\s+/g, ' ');
+
+    // 完売キーワード
+    const soldOutKeywords = ['完売', '売り切れ', '空席なし', '全席種完売'];
+    if (soldOutKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+      return 'sold_out';
+    }
+
+    // 販売終了キーワード
+    const endedKeywords = ['販売終了', '発売終了', '終了'];
+    if (endedKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+      return 'ended';
+    }
+
+    return null;
   }
 
   /**

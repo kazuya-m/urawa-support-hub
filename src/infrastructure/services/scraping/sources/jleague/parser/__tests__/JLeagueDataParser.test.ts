@@ -217,3 +217,124 @@ Deno.test('JLeagueDataParser - 年跨ぎ対応（試合日基準）', async () =
     );
   }
 });
+
+/**
+ * 完売ステータス判定テスト
+ */
+Deno.test('JLeagueDataParser - 完売ステータス判定: 空席なし', async () => {
+  const parser = new JLeagueDataParser();
+
+  const rawData: JLeagueRawTicketData = {
+    matchName: '浦和レッズ vs ファジアーノ岡山',
+    matchDate: '11/30',
+    enhancedMatchDateTime: '2025/11/30 14:00',
+    venue: 'ＪＦＥ晴れの国スタジアム',
+    competition: 'J1リーグ',
+    saleDate: undefined,
+    saleStatusText: '空席なし', // 一覧ページの完売表示
+    ticketTypes: [],
+    ticketUrl: 'https://example.com/ticket',
+    scrapedAt: new Date('2025-11-01T00:00:00.000Z'),
+  };
+
+  const referenceDate = new Date('2025-11-01T00:00:00.000Z');
+  const ticket = await parser.parseToTicket(rawData, referenceDate);
+
+  assertEquals(ticket.saleStatus, 'sold_out');
+  assertEquals(ticket.saleStartDate, null);
+  assertEquals(ticket.saleEndDate, null);
+});
+
+Deno.test('JLeagueDataParser - 完売ステータス判定: 完売', async () => {
+  const parser = new JLeagueDataParser();
+
+  const rawData: JLeagueRawTicketData = {
+    matchName: '浦和レッズ vs FC東京',
+    matchDate: '10/15',
+    enhancedMatchDateTime: '2025/10/15 14:00',
+    venue: '埼玉スタジアム2002',
+    competition: 'J1リーグ',
+    saleDate: undefined,
+    saleStatusText: '完売', // 完売表示
+    ticketTypes: [],
+    ticketUrl: 'https://example.com/ticket',
+    scrapedAt: new Date('2025-10-01T00:00:00.000Z'),
+  };
+
+  const referenceDate = new Date('2025-10-01T00:00:00.000Z');
+  const ticket = await parser.parseToTicket(rawData, referenceDate);
+
+  assertEquals(ticket.saleStatus, 'sold_out');
+});
+
+Deno.test('JLeagueDataParser - 完売ステータス判定: 販売終了', async () => {
+  const parser = new JLeagueDataParser();
+
+  const rawData: JLeagueRawTicketData = {
+    matchName: '浦和レッズ vs FC東京',
+    matchDate: '10/15',
+    enhancedMatchDateTime: '2025/10/15 14:00',
+    venue: '埼玉スタジアム2002',
+    competition: 'J1リーグ',
+    saleDate: undefined,
+    saleStatusText: '販売終了', // 販売終了表示
+    ticketTypes: [],
+    ticketUrl: 'https://example.com/ticket',
+    scrapedAt: new Date('2025-10-01T00:00:00.000Z'),
+  };
+
+  const referenceDate = new Date('2025-10-01T00:00:00.000Z');
+  const ticket = await parser.parseToTicket(rawData, referenceDate);
+
+  assertEquals(ticket.saleStatus, 'ended');
+});
+
+Deno.test('JLeagueDataParser - 完売ステータスが販売日時情報より優先される', async () => {
+  const parser = new JLeagueDataParser();
+
+  const rawData: JLeagueRawTicketData = {
+    matchName: '浦和レッズ vs FC東京',
+    matchDate: '10/15',
+    enhancedMatchDateTime: '2025/10/15 14:00',
+    venue: '埼玉スタジアム2002',
+    competition: 'J1リーグ',
+    saleDate: '09/01(月)10:00〜10/14(火)23:59', // 販売期間の情報があっても
+    saleStatusText: '完売', // 完売表示が優先
+    ticketTypes: [],
+    ticketUrl: 'https://example.com/ticket',
+    scrapedAt: new Date('2025-10-01T00:00:00.000Z'),
+  };
+
+  const referenceDate = new Date('2025-10-01T00:00:00.000Z');
+  const ticket = await parser.parseToTicket(rawData, referenceDate);
+
+  // 完売ステータスが優先される
+  assertEquals(ticket.saleStatus, 'sold_out');
+  // 販売日時情報は取得されない
+  assertEquals(ticket.saleStartDate, null);
+  assertEquals(ticket.saleEndDate, null);
+});
+
+Deno.test('JLeagueDataParser - 完売表示がない場合は販売日時から判定', async () => {
+  const parser = new JLeagueDataParser();
+
+  const rawData: JLeagueRawTicketData = {
+    matchName: '浦和レッズ vs FC東京',
+    matchDate: '10/15',
+    enhancedMatchDateTime: '2025/10/15 14:00',
+    venue: '埼玉スタジアム2002',
+    competition: 'J1リーグ',
+    saleDate: '09/01(月)10:00〜',
+    saleStatusText: undefined, // 完売表示なし
+    ticketTypes: [],
+    ticketUrl: 'https://example.com/ticket',
+    scrapedAt: new Date('2025-08-01T00:00:00.000Z'),
+  };
+
+  const referenceDate = new Date('2025-08-01T00:00:00.000Z');
+  const ticket = await parser.parseToTicket(rawData, referenceDate);
+
+  // 販売日時から判定される
+  assertEquals(ticket.saleStatus, 'before_sale');
+  assertEquals(ticket.saleStartDate?.getUTCMonth(), 8); // September
+});
