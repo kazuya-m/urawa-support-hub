@@ -13,14 +13,14 @@ interface TicketProps {
   matchDate: Date;
   homeTeam: string | null;
   awayTeam: string | null;
-  competition: string | null; // 大会名フィールド（例: "J1リーグ", "ルヴァンカップ"）
+  competition: string | null;
   saleStartDate: Date | null;
   saleEndDate: Date | null;
   venue: string | null;
   ticketTypes: string[] | null;
   ticketUrl: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | null;
+  updatedAt: Date | null;
   scrapedAt: Date;
   saleStatus: SaleStatus | null;
   notificationScheduled: boolean;
@@ -40,8 +40,8 @@ export class Ticket {
     return new Ticket({
       ...props,
       id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: null,
+      updatedAt: null,
     });
   }
 
@@ -132,11 +132,11 @@ export class Ticket {
     return this.props.notificationScheduled;
   }
 
-  get createdAt(): Date {
+  get createdAt(): Date | null {
     return this.props.createdAt;
   }
 
-  get updatedAt(): Date {
+  get updatedAt(): Date | null {
     return this.props.updatedAt;
   }
 
@@ -234,44 +234,27 @@ export class Ticket {
     return Ticket.fromExisting({
       ...this.props,
       notificationScheduled: true,
-      updatedAt: new Date(),
     });
   }
 
-  /**
-   * 新しいチケットデータとマージし、特定フィールドは既存値を保持
-   * 保持するフィールド: id, createdAt, notificationScheduled, saleStartDate (条件付き)
-   * 新しい値を使用: その他のビジネスデータ、scrapedAt
-   * 自動更新: updatedAt（ビジネスデータが変更された場合のみ）
-   */
   mergeWith(newTicket: Ticket): Ticket {
-    // ビジネスデータが同じ場合は scraped_at のみを更新
     if (this.hasSameBusinessData(newTicket)) {
       return Ticket.fromExisting({
         ...this.props,
         scrapedAt: newTicket.scrapedAt,
-        // ビジネスデータが変わらない場合は updatedAt を更新しない
       });
     }
 
-    // saleStartDateの保持判定
-    // 既存データに販売開始日があり、新データがnullの場合は既存値を保持
     const saleStartDate = this.shouldPreserveSaleStartDate(newTicket)
       ? this.props.saleStartDate
       : newTicket.saleStartDate;
 
-    // ビジネスデータが異なる場合は全体をマージし、updatedAtも更新
     return Ticket.fromExisting({
       ...newTicket.toPlainObject(),
-      // 既存の値を保持するフィールド
       id: this.props.id,
       createdAt: this.props.createdAt,
       notificationScheduled: this.props.notificationScheduled,
-      // 条件付きで保持するフィールド
       saleStartDate,
-      // 自動更新されるフィールド
-      updatedAt: new Date(),
-      // scrapedAtは新しい値を使用（newTicket.toPlainObject()から取得）
     });
   }
 
