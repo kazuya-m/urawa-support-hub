@@ -240,7 +240,7 @@ export class Ticket {
 
   /**
    * 新しいチケットデータとマージし、特定フィールドは既存値を保持
-   * 保持するフィールド: id, createdAt, notificationScheduled
+   * 保持するフィールド: id, createdAt, notificationScheduled, saleStartDate (条件付き)
    * 新しい値を使用: その他のビジネスデータ、scrapedAt
    * 自動更新: updatedAt（ビジネスデータが変更された場合のみ）
    */
@@ -254,6 +254,12 @@ export class Ticket {
       });
     }
 
+    // saleStartDateの保持判定
+    // 既存データに販売開始日があり、新データがnullの場合は既存値を保持
+    const saleStartDate = this.shouldPreserveSaleStartDate(newTicket)
+      ? this.props.saleStartDate
+      : newTicket.saleStartDate;
+
     // ビジネスデータが異なる場合は全体をマージし、updatedAtも更新
     return Ticket.fromExisting({
       ...newTicket.toPlainObject(),
@@ -261,10 +267,20 @@ export class Ticket {
       id: this.props.id,
       createdAt: this.props.createdAt,
       notificationScheduled: this.props.notificationScheduled,
+      // 条件付きで保持するフィールド
+      saleStartDate,
       // 自動更新されるフィールド
       updatedAt: new Date(),
       // scrapedAtは新しい値を使用（newTicket.toPlainObject()から取得）
     });
+  }
+
+  /**
+   * saleStartDateを既存値で保持すべきかを判定
+   * 既存データに販売開始日があり、新データがnullの場合にtrueを返す
+   */
+  private shouldPreserveSaleStartDate(newTicket: Ticket): boolean {
+    return this.props.saleStartDate !== null && newTicket.saleStartDate === null;
   }
 
   toPlainObject(): TicketProps {
