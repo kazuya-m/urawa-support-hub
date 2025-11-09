@@ -116,12 +116,10 @@ export class TicketRepository implements ITicketRepository {
   async upsert(ticket: Ticket): Promise<Ticket> {
     const row = TicketConverter.toDatabaseRow(ticket);
 
+    // updated_at is managed by database trigger
     const { data: upsertedData, error: upsertError } = await this.client
       .from('tickets')
-      .upsert({
-        ...row,
-        updated_at: new Date().toISOString(),
-      })
+      .upsert(row)
       .select()
       .single();
 
@@ -147,10 +145,8 @@ export class TicketRepository implements ITicketRepository {
       return [];
     }
 
-    const rows = tickets.map((ticket) => ({
-      ...TicketConverter.toDatabaseRow(ticket),
-      updated_at: new Date().toISOString(),
-    }));
+    // updated_at is managed by database trigger
+    const rows = tickets.map((ticket) => TicketConverter.toDatabaseRow(ticket));
 
     const { data, error } = await this.client
       .from('tickets')
