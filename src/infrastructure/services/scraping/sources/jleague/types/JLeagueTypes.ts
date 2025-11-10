@@ -10,6 +10,9 @@ export interface JLeagueRawTicketData {
   ticketUrl: string;
   scrapedAt: Date;
 
+  // 一覧ページで取得（オプショナル）
+  saleStatusText?: string; // 一覧ページ: "空席なし"、"完売"など
+
   // 詳細ページで補強される項目（オプショナル）
   enhancedMatchDateTime?: string; // 詳細ページ: "2025/03/15 14:00"
   competition?: string; // 詳細ページ: "明治安田Ｊ１リーグ"

@@ -10,6 +10,7 @@ export interface JLeagueListPageConfig {
     venue: string[];
     ticketLink: string[];
     awayTab: string[];
+    saleStatusDisplay: string[];
   };
 }
 
@@ -88,6 +89,10 @@ export const J_LEAGUE_SCRAPING_CONFIG: JLeagueScrapingConfig = {
         '.ticket-tab li:nth-child(2) span',
         '.js-ticket-tab li:nth-child(2)',
         '.ticket-tab li:nth-child(2)',
+      ],
+      saleStatusDisplay: [
+        '.vs-box-status .comp-status', // 完売表示（例: "空席なし"）
+        '.vs-box-status', // フォールバック
       ],
     },
   },
