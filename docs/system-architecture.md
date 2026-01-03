@@ -9,13 +9,13 @@ ticket sales begin.
 
 ## Technology Stack
 
-| Layer                   | Technology             | Purpose                      | Execution Frequency |
-| ----------------------- | ---------------------- | ---------------------------- | ------------------- |
-| **Application Runtime** | Google Cloud Run       | All business logic execution | On-demand           |
-| **Schedule Trigger**    | Google Cloud Scheduler | Trigger daily scraping       | 05:00 JST daily     |
-| **Task Queue**          | Google Cloud Tasks     | Asynchronous task scheduling | As scheduled        |
-| **Data Storage**        | Supabase PostgreSQL    | Primary data persistence     | Real-time           |
-| **Data API**            | Supabase PostgREST     | Auto-generated REST API      | On-demand           |
+| Layer                   | Technology                                   | Purpose                      | Execution Frequency |
+| ----------------------- | -------------------------------------------- | ---------------------------- | ------------------- |
+| **Application Runtime** | Google Cloud Run                             | All business logic execution | On-demand           |
+| **Schedule Trigger**    | Google Cloud Scheduler                       | Trigger daily scraping       | 05:00 JST daily     |
+| **Task Queue**          | Google Cloud Tasks (Emulator in development) | Asynchronous task scheduling | As scheduled        |
+| **Data Storage**        | Supabase PostgreSQL                          | Primary data persistence     | Real-time           |
+| **Data API**            | Supabase PostgREST                           | Auto-generated REST API      | On-demand           |
 
 ## Simplified Architecture (GCP + Supabase Database)
 
