@@ -19,9 +19,14 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - SUPABASE_URL=http://host.docker.internal:54321
+      - CLOUD_TASKS_EMULATOR_HOST=cloud-tasks-emulator:8123
     # Supabaseローカル環境との連携
     extra_hosts:
       - 'host.docker.internal:host-gateway'
+    # Cloud Tasks Emulatorへの依存
+    depends_on:
+      cloud-tasks-emulator:
+        condition: service_started
     # ヘルスチェック
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8080/health']
@@ -29,3 +34,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  cloud-tasks-emulator:
+    image: ghcr.io/aertje/cloud-tasks-emulator:1.2.0
+    command: -host 0.0.0.0 -port 8123 -queue projects/dev-project/locations/asia-northeast1/queues/notification-queue
+    ports:
+      - '8123:8123'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8123']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
