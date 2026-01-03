@@ -36,13 +36,34 @@ export class CloudTasksClient implements ICloudTasksClient {
       throw new Error('GOOGLE_CLOUD_PROJECT or GCP_PROJECT_ID environment variable is required');
     }
 
-    // 一時的に本番環境でもRESTを使用してgRPC問題を切り分け
-    const clientOptions = { fallback: 'rest' as const };
+    // エミュレーター接続設定（開発環境のみ）
+    const emulatorHost = Deno.env.get('CLOUD_TASKS_EMULATOR_HOST');
+    const isProduction = this.config.nodeEnv === 'production';
+    const shouldUseEmulator = emulatorHost && !isProduction;
+
+    const clientOptions: { fallback?: 'rest'; apiEndpoint?: string } = {
+      fallback: 'rest' as const,
+    };
+
+    if (shouldUseEmulator) {
+      // 開発環境: エミュレーターに接続
+      clientOptions.apiEndpoint = `http://${emulatorHost}`;
+      CloudLogger.info('CloudTasks client using emulator', {
+        category: LogCategory.CLOUD_TASKS,
+        context: {
+          processingStage: 'initialization',
+        },
+        metadata: {
+          emulatorHost,
+          queueName: this.config.queueName,
+        },
+      });
+    }
 
     this.client = new GoogleCloudTasksClient(clientOptions);
 
-    // 認証情報のテスト（本番環境でのみ）
-    if (this.config.nodeEnv === 'production') {
+    // 認証情報のテスト（本番環境のみ）
+    if (isProduction) {
       this.validateAuthentication();
     }
 
@@ -54,6 +75,8 @@ export class CloudTasksClient implements ICloudTasksClient {
         },
         metadata: {
           queueName: this.config.queueName,
+          usingEmulator: shouldUseEmulator,
+          isProduction,
         },
       });
     }
