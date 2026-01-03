@@ -105,10 +105,10 @@ Deno.test('Database Cleanup - manual_cleanup_sent_notifications function', async
     // Create test notifications with different sent_at dates
     const now = new Date();
     const oldSentDate = new Date(now);
-    oldSentDate.setDate(oldSentDate.getDate() - 95); // 95 days ago (should be deleted)
+    oldSentDate.setDate(oldSentDate.getDate() - 35); // 35 days ago (should be deleted)
 
     const recentSentDate = new Date(now);
-    recentSentDate.setDate(recentSentDate.getDate() - 60); // 60 days ago (should be kept)
+    recentSentDate.setDate(recentSentDate.getDate() - 20); // 20 days ago (should be kept)
 
     // Insert test notifications
     const { error: insertError } = await supabase.from('notifications').insert([
@@ -137,10 +137,10 @@ Deno.test('Database Cleanup - manual_cleanup_sent_notifications function', async
 
     if (insertError) throw insertError;
 
-    // Execute manual cleanup with 90-day retention
+    // Execute manual cleanup with 30-day retention
     const { data: cleanupResult, error: cleanupError } = await supabase.rpc(
       'manual_cleanup_sent_notifications',
-      { retention_days: 90 },
+      { retention_days: 30 },
     );
 
     if (cleanupError) throw cleanupError;
