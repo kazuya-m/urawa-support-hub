@@ -130,6 +130,13 @@ deno fmt src/
 - **ロケーション**: asia-northeast1
 - **リトライ**: 指数バックオフで3回試行
 
+**開発環境**:
+
+- **エミュレーター**: Cloud Tasks Emulator（Docker Compose内で起動）
+- **ポート**: 8123
+- **環境変数**: `CLOUD_TASKS_EMULATOR_HOST=cloud-tasks-emulator:8123`
+- **自動検出**: 環境変数設定時、CloudTasksClientが自動的にエミュレーターに接続
+
 ## テストセットアップ
 
 ### ローカルテスト

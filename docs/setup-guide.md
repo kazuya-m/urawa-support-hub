@@ -129,6 +129,14 @@ deno fmt src/
 - **Location**: asia-northeast1
 - **Retry**: 3 attempts with exponential backoff
 
+**Development Environment**:
+
+- **Emulator**: Cloud Tasks Emulator (runs in Docker Compose)
+- **Port**: 8123
+- **Environment Variable**: `CLOUD_TASKS_EMULATOR_HOST=cloud-tasks-emulator:8123`
+- **Auto-detection**: CloudTasksClient automatically connects to emulator when environment variable
+  is set
+
 ## Testing Setup
 
 ### Local Testing

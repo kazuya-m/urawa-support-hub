@@ -80,7 +80,7 @@
 git clone https://github.com/kazuya-m/urawa-support-hub.git
 cd urawa-support-hub
 
-# Docker開発環境を起動
+# Docker開発環境を起動（Cloud Tasks Emulator含む）
 deno task dev
 
 # テスト実行
@@ -89,6 +89,11 @@ deno test --allow-env --allow-net=127.0.0.1
 # 型チェック & Lint
 deno task pre-commit
 ```
+
+**開発環境に含まれるサービス**:
+
+- アプリケーションコンテナ (ポート: 8080)
+- Cloud Tasks Emulator (ポート: 8123) - 通知スケジューリングのローカルテスト用
 
 ### 開発コマンド
 
