@@ -180,83 +180,122 @@
       </ul>
     </div>
 
-    <!-- チケット詳細ページのサンプル -->
+    <!-- チケット詳細ページのサンプル（新DOM構造 2026年1月〜） -->
     <div class="seat-select-list" style="display: none">
       <!-- ビジター席 -->
-      <dl>
-        <dt>
-          <div class="seat-select-list-img bg-pre">
-            <img src="/img/ico_pre2.png" alt="">
+      <div class="list-wrap">
+        <div class="info-box js-info-box">
+          <div class="info-btn">
+            <span class="info-text">
+              <span>発売</span>
+              <span>情報</span>
+            </span>
           </div>
-          <div class="seat-select-list-txt">
-            <h4>ビジター１Ｆ指定席</h4>
-            <p>2000円/枚～5000円/枚</p>
-            <p class="label"><span class="c-select">指定</span></p>
+          <div class="info-detail">
+            <div class="info-schedule-list">
+              <div class="item">
+                <div class="title">【ゴールド会員以上】優先先行／ＱＲチケット（Ｊチケ）</div>
+                <div class="date">〜08/10(金)23:59</div>
+              </div>
+              <div class="item">
+                <div class="title">【レギュラー会員】先行／ＱＲチケット（Ｊチケ）</div>
+                <div class="date">08/12(金)12:00〜</div>
+              </div>
+              <div class="item">
+                <div class="title">一般発売／ＱＲチケット（Ｊチケ）</div>
+                <div class="date">08/15(金)10:00〜</div>
+              </div>
+              <div class="item">
+                <div class="title">一般発売／店頭発券（Ｊチケ）</div>
+                <div class="date">08/15(金)10:00〜</div>
+              </div>
+            </div>
           </div>
-          <div class="opener"></div>
-        </dt>
-        <dd>
+        </div>
+        <div class="list-items-wrap">
           <div class="list-items">
-            <p class="list-items-ttl">東サイドスタンド</p>
             <div class="list-items-cts">
               <ul>
                 <li class="pre">
                   <a href="javascript:void(0);" class="nolink">
                     <img src="/img/ico_pre.png" alt="">
                     <div class="list-items-cts-desc">
-                      <h5>一般発売／ＱＲチケット（パルチケ）</h5>
-                      <p>
-                        2000円/枚～5000円/枚&nbsp;&nbsp;<span class="c-select">指定</span>&nbsp;
-                      </p>
-                      <dl>
-                        <dt>発売期間</dt>
-                        <dd>08/15(金)10:00〜</dd>
-                      </dl>
+                      <h5>ビジター１Ｆ指定席</h5>
                     </div>
+                    <div class="list-items-cts-ticket"></div>
                   </a>
                 </li>
               </ul>
             </div>
           </div>
-        </dd>
-      </dl>
+        </div>
+      </div>
 
       <!-- アウェイ自由席 -->
-      <dl>
-        <dt>
-          <div class="seat-select-list-img bg-vacant">
-            <img src="/img/ico_vacant2.png" alt="">
+      <div class="list-wrap">
+        <div class="info-box js-info-box">
+          <div class="info-btn">
+            <span class="info-text">
+              <span>発売</span>
+              <span>情報</span>
+            </span>
           </div>
-          <div class="seat-select-list-txt">
-            <h4>アウェイ自由席</h4>
-            <p>1500円/枚～3000円/枚</p>
-            <p class="label"><span class="c-free">自由</span></p>
+          <div class="info-detail">
+            <div class="info-schedule-list">
+              <div class="item">
+                <div class="title">一般発売／ＱＲチケット（Ｊチケ）</div>
+                <div class="date">08/20(金)10:00〜</div>
+              </div>
+            </div>
           </div>
-          <div class="opener"></div>
-        </dt>
-        <dd>
+        </div>
+        <div class="list-items-wrap">
           <div class="list-items">
-            <p class="list-items-ttl">ゴール裏</p>
             <div class="list-items-cts">
               <ul>
                 <li class="vacant">
                   <a href="javascript:void(0);">
                     <img src="/img/ico_vacant.png" alt="">
                     <div class="list-items-cts-desc">
-                      <h5>一般発売／ＱＲチケット</h5>
-                      <p>1500円/枚&nbsp;&nbsp;<span class="c-free">自由</span>&nbsp;</p>
-                      <dl>
-                        <dt>発売期間</dt>
-                        <dd>08/20(金)10:00〜09/22(月)23:59</dd>
-                      </dl>
+                      <h5>アウェイ自由席</h5>
+                    </div>
+                    <div class="list-items-cts-ticket"></div>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ホーム席（フィルター対象外） -->
+      <div class="list-wrap">
+        <div class="info-box js-info-box">
+          <div class="info-detail">
+            <div class="info-schedule-list">
+              <div class="item">
+                <div class="title">一般発売／ＱＲチケット（Ｊチケ）</div>
+                <div class="date">08/15(金)10:00〜</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="list-items-wrap">
+          <div class="list-items">
+            <div class="list-items-cts">
+              <ul>
+                <li class="vacant">
+                  <a href="javascript:void(0);">
+                    <div class="list-items-cts-desc">
+                      <h5>ホーム自由席</h5>
                     </div>
                   </a>
                 </li>
               </ul>
             </div>
           </div>
-        </dd>
-      </dl>
+        </div>
+      </div>
     </div>
   </body>
 </html>

@@ -19,15 +19,17 @@ export interface JLeagueListPageConfig {
  */
 export interface JLeagueDetailPageConfig {
   selectors: {
+    // 試合情報用
     matchNameAndCompetition: string; // '.game-info-ttl'
     matchDateTime: string; // '.game-info-day'
     dateElement: string; // '.day:first-child'
     timeElement: string; // '.day:nth-child(2)'
-    visitorSections: string; // 'dt'
-    sectionTitle: string; // '.seat-select-list-txt h4'
-    saleInfoContainer: string; // 'li'
-    saleInfoTitle: string; // 'h5'
-    saleInfoContent: string; // '.list-items-cts-desc dd'
+    // 新DOM構造用（2026年1月〜）
+    listWrap: string; // '.list-wrap'
+    infoScheduleItem: string; // '.info-schedule-list .item'
+    scheduleItemTitle: string; // '.title'
+    scheduleItemDate: string; // '.date'
+    ticketType: string; // '.list-items-cts-desc h5'
   };
 }
 
@@ -98,15 +100,17 @@ export const J_LEAGUE_SCRAPING_CONFIG: JLeagueScrapingConfig = {
   },
   detailPage: {
     selectors: {
+      // 試合情報用
       matchNameAndCompetition: '.game-info-ttl',
       matchDateTime: '.game-info-day',
       dateElement: '.day:first-child',
       timeElement: '.day:nth-child(2)',
-      visitorSections: 'dt',
-      sectionTitle: '.seat-select-list-txt h4',
-      saleInfoContainer: 'li',
-      saleInfoTitle: 'h5',
-      saleInfoContent: '.list-items-cts-desc dd',
+      // 新DOM構造用（2026年1月〜）
+      listWrap: '.list-wrap',
+      infoScheduleItem: '.info-schedule-list .item',
+      scheduleItemTitle: '.title',
+      scheduleItemDate: '.date',
+      ticketType: '.list-items-cts-desc h5',
     },
   },
 

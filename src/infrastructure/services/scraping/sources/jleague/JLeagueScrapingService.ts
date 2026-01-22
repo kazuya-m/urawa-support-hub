@@ -8,7 +8,6 @@ import { JLeagueDataParser } from './parser/JLeagueDataParser.ts';
 import { IBrowserManager } from '@/application/interfaces/clients/IBrowserManager.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
-import type { ElementHandle } from 'playwright';
 
 /**
  * J-League統合スクレイピングサービス
@@ -221,55 +220,57 @@ export class JLeagueScrapingService implements ISiteScrapingService {
       // datetime抽出に失敗した場合のフォールバック処理
     }
 
-    // ビジター席情報と販売期間を取得
-    const visitorSections = await page.$$(
-      J_LEAGUE_SCRAPING_CONFIG.detailPage.selectors.visitorSections,
+    // 新DOM構造: .list-wrap コンテナから座席種別と発売日時を取得
+    const listWraps = await page.$$(
+      J_LEAGUE_SCRAPING_CONFIG.detailPage.selectors.listWrap,
     );
-    for (const section of visitorSections) {
-      try {
-        const sectionTitle = await section.$eval(
-          J_LEAGUE_SCRAPING_CONFIG.detailPage.selectors.sectionTitle,
-          (el: Element) => el.textContent?.trim() || '',
-        ).catch(() => '');
 
+    for (const listWrap of listWraps) {
+      try {
+        // 座席種別を取得（.list-items-cts-desc h5）
+        const ticketTypeElement = await listWrap.$(
+          J_LEAGUE_SCRAPING_CONFIG.detailPage.selectors.ticketType,
+        );
+        const ticketTypeName = ticketTypeElement ? await ticketTypeElement.textContent() : null;
+
+        if (!ticketTypeName?.trim()) {
+          continue;
+        }
+
+        const trimmedTicketType = ticketTypeName.trim();
+
+        // アウェイキーワードでフィルタリング
         const isVisitorSection = J_LEAGUE_SCRAPING_CONFIG.awayKeywords.some((keyword: string) =>
-          sectionTitle.toLowerCase().includes(keyword.toLowerCase())
+          trimmedTicketType.toLowerCase().includes(keyword.toLowerCase())
         );
 
         if (isVisitorSection) {
-          ticketTypes.push(sectionTitle);
+          ticketTypes.push(trimmedTicketType);
 
+          // まだ発売日時を取得していない場合、一般発売の日時を取得
           if (!saleDate) {
-            await section.click();
-            await page.waitForTimeout(500);
+            const scheduleItems = await listWrap.$$(
+              J_LEAGUE_SCRAPING_CONFIG.detailPage.selectors.infoScheduleItem,
+            );
 
-            try {
-              const ddElement = await section.evaluateHandle((el: Element) =>
-                el.nextElementSibling
+            for (const item of scheduleItems) {
+              const titleElement = await item.$(
+                J_LEAGUE_SCRAPING_CONFIG.detailPage.selectors.scheduleItemTitle,
               );
+              const title = titleElement ? await titleElement.textContent() : '';
 
-              if (ddElement) {
-                const salePeriod = await (ddElement as ElementHandle).evaluate((dd: Element) => {
-                  const items = Array.from(dd.querySelectorAll('li'));
-                  for (const item of items) {
-                    const title = item.querySelector('h5')?.textContent || '';
-                    if (
-                      title.includes('一般発売') || title.includes('一般販売') ||
-                      title.includes('発売期間')
-                    ) {
-                      const period = item.querySelector('.list-items-cts-desc dd');
-                      return period?.textContent?.trim() || null;
-                    }
-                  }
-                  return null;
-                });
+              // 一般発売のみを対象（先行販売は除外）
+              if (title?.includes('一般発売') || title?.includes('一般販売')) {
+                const dateElement = await item.$(
+                  J_LEAGUE_SCRAPING_CONFIG.detailPage.selectors.scheduleItemDate,
+                );
+                const dateText = dateElement ? await dateElement.textContent() : null;
 
-                if (salePeriod) {
-                  saleDate = salePeriod;
+                if (dateText?.trim()) {
+                  saleDate = dateText.trim();
+                  break;
                 }
               }
-            } catch {
-              // Ignore extraction errors
             }
           }
         }
