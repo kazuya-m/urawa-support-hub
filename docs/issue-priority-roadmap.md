@@ -2,8 +2,7 @@
 
 **Target**: Personal use MVP with minimal implementation\
 **Created**: 2025-08-22\
-**Updated**: 2026-01-03 (最新状況: #171 Cloud Tasks Emulator実装完了、#193
-自動クリーンアップ実装完了)\
+**Updated**: 2026-01-22 (最新状況: #197 Jリーグ公式サイトDOM構造変化対応 - NEW バグ)\
 **Goal**: ✅ Launch MVP by 2025-09-30 (**完了**: 2025-09-16)
 
 ## Implementation Status Summary
@@ -251,6 +250,7 @@ Each issue is considered complete when:
 
 | Issue | Title                                                                | Category           | Priority    | Status           |
 | ----- | -------------------------------------------------------------------- | ------------------ | ----------- | ---------------- |
+| #197  | Jリーグ公式サイトのDOM構造変化に対応                                 | スクレイピングバグ | 🔴 Critical | 🚨 **OPEN**      |
 | #184  | collect-ticketがエラー                                               | スクレイピングバグ | 🔴 Critical | ✅ **COMPLETED** |
 | #182  | Ticket Entityのupsert改善：既存値保持と差分更新ロジックの実装        | 機能改善           | 🟠 High     | ✅ **COMPLETED** |
 | #179  | [BUG] サンフレッチェ広島のチケット販売状況が「発売中」に更新されない | スクレイピングバグ | 🔴 Critical | ✅ **COMPLETED** |
@@ -295,18 +295,25 @@ Each issue is considered complete when:
 | #67   | ヴィッセル神戸対応                               | 他チーム対応    | 🔄 **DEFERRED** (2026年1-2月実装) |
 | #105  | 2026年シーズン制度変更対応                       | 長期計画        | 🔄 **DEFERRED** (2026年2月まで)   |
 
-## Next Steps Priority (**UPDATED: 2026-01-03**)
+## Next Steps Priority (**UPDATED: 2026-01-22**)
 
 ### 🎯 **推奨実装順序**
 
+#### 📍 **最優先タスク** (バグ修正)
+
+1. **#197** - Jリーグ公式サイトのDOM構造変化に対応 🔴 **CRITICAL**
+   - **内容**: Jリーグ公式サイトのDOM構造変更によるスクレイピング失敗の修正
+   - **影響**: チケット情報取得機能が動作しない可能性
+   - **期待効果**: スクレイピング機能の復旧
+
 #### 📍 **最近完了**
 
-- **#171** - 開発環境でのCloudTasksモック実装 ✅ **COMPLETED** (2025-12-22)
-  - **内容**: ローカル開発環境でのCloud Tasks Emulator機能実装
-  - **効果**: 開発効率改善・テスト環境統一
 - **#193** - データベースレコードの自動クリーンアップ機能実装 ✅ **COMPLETED**
   - **内容**: tickets (試合日+30日後) / notifications (送信+90日後) の自動削除
   - **効果**: データベース肥大化防止・運用コスト削減
+- **#171** - 開発環境でのCloudTasksモック実装 ✅ **COMPLETED** (2025-12-22)
+  - **内容**: ローカル開発環境でのCloud Tasks Emulator機能実装
+  - **効果**: 開発効率改善・テスト環境統一
 
 #### 📍 **中優先タスク** (運用改善・パフォーマンス)
 
