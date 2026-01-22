@@ -207,13 +207,19 @@ export class JLeagueScrapingService implements ISiteScrapingService {
         J_LEAGUE_SCRAPING_CONFIG.detailPage.selectors.matchDateTime,
       );
       if (dateTimeElement) {
-        const dayElements = await dateTimeElement.$$('.day');
-        if (dayElements.length >= 2) {
-          const dateText = await dayElements[0].textContent();
-          const timeText = await dayElements[1].textContent();
-          if (dateText?.trim() && timeText?.trim()) {
-            enhancedMatchDateTime = `${dateText.trim()} ${timeText.trim()}`;
-          }
+        // 日付要素（.day）と時刻要素（.time）を個別に取得
+        const dateElement = await dateTimeElement.$(
+          J_LEAGUE_SCRAPING_CONFIG.detailPage.selectors.dateElement,
+        );
+        const timeElement = await dateTimeElement.$(
+          J_LEAGUE_SCRAPING_CONFIG.detailPage.selectors.timeElement,
+        );
+
+        const dateText = dateElement ? await dateElement.textContent() : null;
+        const timeText = timeElement ? await timeElement.textContent() : null;
+
+        if (dateText?.trim() && timeText?.trim()) {
+          enhancedMatchDateTime = `${dateText.trim()} ${timeText.trim()}`;
         }
       }
     } catch (_error) {
