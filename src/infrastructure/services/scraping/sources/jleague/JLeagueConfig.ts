@@ -22,9 +22,8 @@ export interface JLeagueDetailPageConfig {
     // 試合情報用
     matchNameAndCompetition: string; // '.game-info-ttl'
     matchDateTime: string; // '.game-info-day'
-    dateElement: string; // '.day:first-child'
-    timeElement: string; // '.day:nth-child(2)'
-    // 新DOM構造用（2026年1月〜）
+    dateElement: string; // '.day'
+    timeElement: string; // '.time'
     listWrap: string; // '.list-wrap'
     infoScheduleItem: string; // '.info-schedule-list .item'
     scheduleItemTitle: string; // '.title'
@@ -103,8 +102,8 @@ export const J_LEAGUE_SCRAPING_CONFIG: JLeagueScrapingConfig = {
       // 試合情報用
       matchNameAndCompetition: '.game-info-ttl',
       matchDateTime: '.game-info-day',
-      dateElement: '.day:first-child',
-      timeElement: '.day:nth-child(2)',
+      dateElement: '.day',
+      timeElement: '.time',
       // 新DOM構造用（2026年1月〜）
       listWrap: '.list-wrap',
       infoScheduleItem: '.info-schedule-list .item',
