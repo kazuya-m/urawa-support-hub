@@ -28,3 +28,9 @@ src/cloud-run/webhook-service/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Repository tooling and test assets (not needed at runtime)
+tests/
+scripts/
+.github/
+.claude/
