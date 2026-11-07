@@ -7,7 +7,7 @@ import { SALE_STATUS_KEYWORDS } from '@/infrastructure/services/scraping/shared/
 import { COMPETITION_NORMALIZATION } from '@/infrastructure/services/scraping/shared/competitionNormalization.ts';
 import { JLeagueRawTicketData } from '../types/JLeagueTypes.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
-import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
+import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import { createJSTDateTime } from '@/shared/utils/datetime.ts';

@@ -1,23 +1,25 @@
+import type { ErrorCode } from './ErrorCodes.ts';
+
 /**
- * アプリケーション全体の基底エラークラス
- * すべてのカスタムエラーはこのクラスを継承する
+ * アプリケーション共通のエラークラス
+ *
+ * - `code`: ErrorCodes の値
+ * - `cause`: 元のエラー（stack に `Caused by:` として連結される）
+ * - `context`: レスポンスやログに添える付加情報
  */
-export abstract class BaseError extends Error {
-  public readonly timestamp: Date;
+export class AppError extends Error {
   public readonly context?: Record<string, unknown>;
 
   constructor(
     message: string,
-    public readonly code: string,
+    public readonly code: ErrorCode,
     public override readonly cause?: Error,
     context?: Record<string, unknown>,
   ) {
     super(message);
     this.name = this.constructor.name;
-    this.timestamp = new Date();
     this.context = context;
 
-    // スタックトレースを保持
     if (cause?.stack) {
       this.stack = `${this.stack}\nCaused by: ${cause.stack}`;
     }

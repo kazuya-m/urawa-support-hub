@@ -13,8 +13,7 @@ import { CancellationReason } from '@/domain/entities/Notification.ts';
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
-import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
-import { ErrorCodes as AppErrorCodes } from '@/shared/errors/ErrorCodes.ts';
+import { AppError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 export class TicketCollectionUseCase implements ITicketCollectionUseCase {
@@ -84,12 +83,11 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
     } catch (error) {
       const executionDuration = Date.now() - startTime;
 
-      // ApplicationErrorとして再ラップ
+      // AppErrorとして再ラップ
       if (error instanceof DatabaseError) {
-        const appError = new ApplicationError(
-          'TicketCollectionUseCase',
-          `Database operation failed: ${error.message}`,
-          AppErrorCodes.TICKET_COLLECTION_FAILED,
+        const appError = new AppError(
+          `[TicketCollectionUseCase] Database operation failed: ${error.message}`,
+          ErrorCodes.TICKET_COLLECTION_FAILED,
           error,
           { sessionId, executionDurationMs: executionDuration },
         );
@@ -106,10 +104,9 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
       }
 
       // その他のエラー
-      const appError = new ApplicationError(
-        'TicketCollectionUseCase',
-        `Ticket collection failed: ${getErrorMessage(error)}`,
-        AppErrorCodes.USECASE_EXECUTION_FAILED,
+      const appError = new AppError(
+        `[TicketCollectionUseCase] Ticket collection failed: ${getErrorMessage(error)}`,
+        ErrorCodes.USECASE_EXECUTION_FAILED,
         error instanceof Error ? error : undefined,
         { sessionId, executionDurationMs: executionDuration },
       );
