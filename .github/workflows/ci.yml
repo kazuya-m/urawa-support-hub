@@ -21,7 +21,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.0 # ローカルで動作確認したバージョンに固定
 
       - name: Start Supabase
         run: supabase start
