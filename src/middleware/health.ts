@@ -1,36 +1,29 @@
+import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
 import { HttpStatusCodes } from '@/shared/constants/HttpStatusCodes.ts';
 import { getErrorMessage } from '@/shared/utils/errorUtils.ts';
-
-interface ErrorResponse {
-  error: string;
-  details?: unknown;
-  timestamp: string;
-  traceId?: string;
-}
 
 export function handleHealthCheck(): Response {
   try {
     const envCheck = executeHealthCheck(() => checkEnvironmentVariables());
-    const supabaseCheck = executeHealthCheck(() => checkSupabaseEnvironment());
-
-    const allHealthy = envCheck.success && supabaseCheck.success;
+    const envStatus = envCheck.success ? 'ok' : `error: ${envCheck.error}`;
 
     return new Response(
       JSON.stringify({
-        status: allHealthy ? 'healthy' : 'unhealthy',
+        status: envCheck.success ? 'healthy' : 'unhealthy',
         timestamp: new Date().toISOString(),
         checks: {
-          environment: envCheck.success ? 'ok' : `error: ${envCheck.error}`,
-          supabase: supabaseCheck.success ? 'ok' : `error: ${supabaseCheck.error}`,
+          // 応答形式の互換性のため2キーを維持（どちらも同じ環境変数チェックの結果）
+          environment: envStatus,
+          supabase: envStatus,
         },
       }),
       {
-        status: allHealthy ? HttpStatusCodes.OK : HttpStatusCodes.SERVICE_UNAVAILABLE,
+        status: envCheck.success ? HttpStatusCodes.OK : HttpStatusCodes.SERVICE_UNAVAILABLE,
         headers: { 'Content-Type': 'application/json' },
       },
     );
   } catch (error) {
-    return createErrorResponse(
+    return HttpResponseBuilder.error(
       'Health check failed',
       getErrorMessage(error),
       HttpStatusCodes.SERVICE_UNAVAILABLE,
@@ -51,15 +44,6 @@ function checkEnvironmentVariables(): void {
   }
 }
 
-function checkSupabaseEnvironment(): void {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase environment variables not configured');
-  }
-}
-
 function executeHealthCheck(checkFn: () => void): { success: boolean; error?: string } {
   try {
     checkFn();
@@ -70,17 +54,4 @@ function executeHealthCheck(checkFn: () => void): { success: boolean; error?: st
       error: getErrorMessage(error),
     };
   }
-}
-
-function createErrorResponse(error: string, details: unknown, status: number): Response {
-  const errorResponse: ErrorResponse = {
-    error,
-    details,
-    timestamp: new Date().toISOString(),
-  };
-
-  return new Response(JSON.stringify(errorResponse), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
 }

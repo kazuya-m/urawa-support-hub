@@ -38,6 +38,11 @@ Deno.test('health middleware - missing environment variables', async () => {
 
     const body = JSON.parse(await response.text());
     assertEquals(body.status, 'unhealthy');
+    assertEquals(
+      body.checks.environment,
+      'error: Required environment variable SUPABASE_URL is not set',
+    );
+    assertEquals(body.checks.supabase, body.checks.environment);
   } finally {
     clearTestEnv();
   }
