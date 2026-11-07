@@ -80,11 +80,3 @@ export function isValidNotificationType(value: string): value is NotificationTyp
 export function getDisplayName(type: NotificationType): string {
   return NOTIFICATION_TIMING_CONFIG[type]?.displayName ?? type;
 }
-
-/**
- * 環境変数による設定オーバーライド（将来拡張用）
- * 例: NOTIFICATION_DAY_BEFORE_HOUR=18 で前日18時に変更
- */
-export function getConfigWithEnvironmentOverrides(): typeof NOTIFICATION_TIMING_CONFIG {
-  return NOTIFICATION_TIMING_CONFIG;
-}

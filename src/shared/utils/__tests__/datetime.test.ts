@@ -3,7 +3,6 @@ import {
   createJSTDateTime,
   formatDateOnly,
   formatJST,
-  logDateTime,
   setJSTTimeAndConvertToUTC,
   toJSTDate,
 } from '../datetime.ts';
@@ -121,27 +120,6 @@ Deno.test('setJSTTimeAndConvertToUTC - 翌日設定', () => {
   assertEquals(result.getUTCDate(), 15);
   assertEquals(result.getUTCHours(), 23);
   assertEquals(result.getUTCMinutes(), 0);
-});
-
-Deno.test('logDateTime - デバッグ出力（実行のみ確認）', () => {
-  const date = createJSTDateTime(2025, 3, 15, 14, 30);
-
-  // エラーが発生しないことを確認
-  let errorThrown = false;
-  try {
-    // テスト実行時の出力抑制のため、console.logを一時的にモック化
-    const originalLog = console.log;
-    console.log = () => {}; // テスト出力を抑制
-
-    logDateTime('Test Date', date);
-
-    // console.logを元に戻す（テスト後の確実な復元）
-    console.log = originalLog;
-  } catch {
-    errorThrown = true;
-  }
-
-  assertEquals(errorThrown, false);
 });
 
 Deno.test('日付境界値のテスト - 月末から翌月初', () => {
