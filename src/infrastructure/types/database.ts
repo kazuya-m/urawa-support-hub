@@ -1,5 +1,6 @@
 import { NotificationType } from '@/domain/config/NotificationConfig.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
+import type { NotificationStatus } from '@/domain/entities/Notification.ts';
 
 export interface TicketRow {
   id: string;
@@ -26,7 +27,7 @@ export interface NotificationRow {
   notification_type: NotificationType;
   notification_time: string;
   sent_at: string | null;
-  status: 'scheduled' | 'sent' | 'failed' | 'cancelled';
+  status: NotificationStatus;
   error_message: string | null;
   created_at: string;
   updated_at: string;
@@ -56,7 +57,7 @@ export interface NotificationInsert {
   notification_type: NotificationType;
   notification_time: string;
   sent_at?: string | null;
-  status: 'scheduled' | 'sent' | 'failed' | 'cancelled';
+  status: NotificationStatus;
   error_message?: string | null;
   cloud_task_id?: string | null;
 }
