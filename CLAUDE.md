@@ -45,6 +45,15 @@ supporters
 
 **Important**: Create branches appropriately per feature and commit in small units
 
+**Stacked PRs (dependent work)**:
+
+- Use stacked PRs when splitting one issue into several PRs, or when working on dependent issues in
+  sequence (e.g., sub-issues under #204)
+- Branch the follow-up from the preceding branch instead of `main`, and set the PR base to the
+  preceding branch
+- After the preceding PR is merged, change the follow-up PR's base to `main` and rebase
+- Keep every PR in a state where CI passes on its own
+
 #### Recommended Patterns:
 
 1. **Feature Implementation**: Create new branch for each feature
