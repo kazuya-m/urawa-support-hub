@@ -7,6 +7,7 @@
 import { load } from '@std/dotenv';
 import { createSupabaseAdminClient } from '@/config/supabase.ts';
 import { TicketConverter } from '@/infrastructure/repositories/converters/TicketConverter.ts';
+import { throwDatabaseError } from '@/infrastructure/utils/database-error-handler.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
 
 try {
@@ -27,7 +28,7 @@ async function checkTicketsInDB(): Promise<void> {
       .order('match_date', { ascending: true });
 
     if (error) {
-      throw new Error(`Failed to fetch tickets: ${error.message}`);
+      throwDatabaseError('check-tickets-db', 'findAll', error, { table: 'tickets' });
     }
 
     const allTickets = (data ?? []).map(TicketConverter.toDomainEntity);

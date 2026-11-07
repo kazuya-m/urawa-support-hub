@@ -1,8 +1,8 @@
 /**
- * 販売状況テキストの判定キーワード（全スクレイピングソース共通）
+ * 販売状況テキストの判定キーワード（スクレイピングソース共通）
  *
- * 判定はテキストにキーワードが部分一致するかで行い、
- * soldOut → ended → onSale → beforeSale の順に評価する。
+ * 判定はテキストへのキーワード部分一致で行う。どのグループをどの順で評価するかは利用側が決める
+ * （広島: soldOut → ended → onSale → beforeSale、Jリーグ: soldOut → ended のみ）。
  */
 export const SALE_STATUS_KEYWORDS = {
   soldOut: ['完売', '売り切れ', '全席種完売'],
