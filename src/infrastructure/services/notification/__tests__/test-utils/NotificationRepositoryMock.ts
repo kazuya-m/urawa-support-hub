@@ -14,14 +14,9 @@ export function createMockNotificationRepository(
     errorMessage = 'Mock notification repository error',
   } = options;
 
-  let notifications: Notification[] = [];
+  const notifications: Notification[] = [];
 
   const mockRepository = {
-    findAll(): Promise<Notification[]> {
-      if (shouldError) return Promise.reject(new Error(errorMessage));
-      return Promise.resolve(notifications);
-    },
-
     findById(id: string): Promise<Notification | null> {
       if (shouldError) return Promise.reject(new Error(errorMessage));
       return Promise.resolve(notifications.find((n) => n.id === id) || null);
@@ -30,22 +25,6 @@ export function createMockNotificationRepository(
     findByTicketId(ticketId: string): Promise<Notification[]> {
       if (shouldError) return Promise.reject(new Error(errorMessage));
       return Promise.resolve(notifications.filter((n) => n.ticketId === ticketId));
-    },
-
-    findByColumn(_column: string, value: unknown): Promise<Notification[]> {
-      if (shouldError) return Promise.reject(new Error(errorMessage));
-      return Promise.resolve(
-        notifications.filter((n) => (n as unknown as Record<string, unknown>)[_column] === value),
-      );
-    },
-
-    findByDateRange(
-      _column: string,
-      _startDate?: Date,
-      _endDate?: Date,
-    ): Promise<Notification[]> {
-      if (shouldError) return Promise.reject(new Error(errorMessage));
-      return Promise.resolve(notifications);
     },
 
     save(notification: Notification): Promise<void> {
@@ -60,12 +39,6 @@ export function createMockNotificationRepository(
       if (index >= 0) {
         notifications[index] = notification;
       }
-      return Promise.resolve();
-    },
-
-    delete(id: string): Promise<void> {
-      if (shouldError) return Promise.reject(new Error(errorMessage));
-      notifications = notifications.filter((n) => n.id !== id);
       return Promise.resolve();
     },
 

@@ -186,9 +186,11 @@ Deno.test('Ticket UPSERT - UNIQUE constraint test', {}, async () => {
     assertEquals(result2.id, 'unique-test-002');
 
     // データベースに2件存在することを確認（IDが異なるため）
-    const allTickets = await repository.findAll();
-    const matchingTickets = allTickets.filter((ticket) => ticket.matchName === baseData.matchName);
-    assertEquals(matchingTickets.length, 2);
+    const savedTickets = await repository.findByIds(['unique-test-001', 'unique-test-002']);
+    assertEquals(savedTickets.size, 2);
+    for (const ticket of savedTickets.values()) {
+      assertEquals(ticket.matchName, baseData.matchName);
+    }
   } finally {
     await cleanupTestData(client, 'tickets', `match_name = 'セレッソ大阪 vs 浦和レッズ'`);
   }

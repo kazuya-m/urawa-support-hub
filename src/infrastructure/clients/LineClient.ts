@@ -9,7 +9,6 @@ export interface LineMessage {
 
 export interface ILineClient {
   broadcast(message: LineMessage): Promise<void>;
-  push(to: string, message: LineMessage): Promise<void>;
 }
 
 /**
@@ -39,27 +38,6 @@ export class LineClient implements ILineClient {
       const errorText = await response.text().catch(() => 'Unknown error');
       throw new Error(
         `LINE broadcast failed: ${response.status} ${response.statusText} - ${errorText}`,
-      );
-    }
-  }
-
-  async push(to: string, message: LineMessage): Promise<void> {
-    const response = await fetch('https://api.line.me/v2/bot/message/push', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.config.channelAccessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        to,
-        messages: [message],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      throw new Error(
-        `LINE push message failed: ${response.status} ${response.statusText} - ${errorText}`,
       );
     }
   }

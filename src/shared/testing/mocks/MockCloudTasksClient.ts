@@ -39,24 +39,6 @@ export class MockCloudTasksClient implements ICloudTasksClient {
     await Promise.resolve();
   }
 
-  async listTasks(): Promise<Task[]> {
-    if (this.shouldThrowError) {
-      throw new Error(this.errorMessage);
-    }
-
-    await Promise.resolve();
-    return Array.from(this.tasks.values());
-  }
-
-  async getTask(taskId: string): Promise<Task | null> {
-    if (this.shouldThrowError) {
-      throw new Error(this.errorMessage);
-    }
-
-    await Promise.resolve();
-    return this.tasks.get(taskId) || null;
-  }
-
   // テスト用確認メソッド
   getAllTasks(): Map<string, Task> {
     return new Map(this.tasks);

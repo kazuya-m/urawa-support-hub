@@ -6,7 +6,7 @@
 
 import { load } from '@std/dotenv';
 import { createSupabaseAdminClient } from '@/config/supabase.ts';
-import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import { TicketConverter } from '@/infrastructure/repositories/converters/TicketConverter.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
 
 try {
@@ -19,9 +19,18 @@ async function checkTicketsInDB(): Promise<void> {
 
   try {
     const supabaseClient = createSupabaseAdminClient();
-    const ticketRepository = new TicketRepository(supabaseClient);
 
-    const allTickets = await ticketRepository.findAll();
+    // sale_status が NULL の行も含めて全件を表示する
+    const { data, error } = await supabaseClient
+      .from('tickets')
+      .select('*')
+      .order('match_date', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch tickets: ${error.message}`);
+    }
+
+    const allTickets = (data ?? []).map(TicketConverter.toDomainEntity);
 
     console.log(`📊 Total tickets in database: ${allTickets.length}\n`);
 

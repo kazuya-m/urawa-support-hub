@@ -10,20 +10,6 @@ export class TicketRepository implements ITicketRepository {
     private readonly client: SupabaseClient,
   ) {}
 
-  async findAll(): Promise<Ticket[]> {
-    const { data, error } = await this.client
-      .from('tickets')
-      .select('*')
-      .order('match_date', { ascending: true });
-
-    if (error) {
-      throwDatabaseError('TicketRepository', 'findAll', error, {
-        table: 'tickets',
-      });
-    }
-    return data.map(TicketConverter.toDomainEntity);
-  }
-
   async findById(id: string): Promise<Ticket | null> {
     const { data, error } = await this.client
       .from('tickets')
@@ -69,32 +55,6 @@ export class TicketRepository implements ITicketRepository {
     }
 
     return resultMap;
-  }
-
-  async findByDateRange(column: string, startDate?: Date, endDate?: Date): Promise<Ticket[]> {
-    let query = this.client
-      .from('tickets')
-      .select('*');
-
-    if (startDate) {
-      query = query.gte(column, startDate.toISOString());
-    }
-
-    if (endDate) {
-      query = query.lte(column, endDate.toISOString());
-    }
-
-    const { data, error } = await query.order('created_at', { ascending: true });
-
-    if (error) {
-      throwDatabaseError('TicketRepository', 'findByDateRange', error, {
-        table: 'tickets',
-        column,
-        startDate: startDate?.toISOString(),
-        endDate: endDate?.toISOString(),
-      });
-    }
-    return data.map(TicketConverter.toDomainEntity);
   }
 
   async findByStatusIn(statuses: string[]): Promise<Ticket[]> {
