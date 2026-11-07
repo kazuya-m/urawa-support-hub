@@ -1,5 +1,6 @@
 import { assertEquals, assertRejects } from 'std/assert/mod.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
+import { AppError, ErrorCodes } from '@/shared/errors/index.ts';
 import {
   clearAllMocks,
   createMockDependencies,
@@ -137,12 +138,13 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
 
     const useCase = createMockTicketCollectionUseCase(dependencies);
 
-    // エラー時は例外が投げられることを検証
-    await assertRejects(
+    // エラー時は AppError に包んで投げられることを検証
+    const error = await assertRejects(
       () => useCase.execute(),
-      Error,
-      'Mock collection error',
+      AppError,
+      '[TicketCollectionUseCase] Ticket collection failed: Mock collection error',
     );
+    assertEquals(error.code, ErrorCodes.USECASE_EXECUTION_FAILED);
   });
 
   await t.step('should clean up mocks after each test', () => {
