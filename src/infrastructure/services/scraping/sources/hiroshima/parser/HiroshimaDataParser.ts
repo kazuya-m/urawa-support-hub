@@ -1,5 +1,7 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { HiroshimaRawTicketData } from '../types/HiroshimaTypes.ts';
+import { SALE_STATUS_KEYWORDS } from '@/infrastructure/services/scraping/shared/saleStatusKeywords.ts';
+import { COMPETITION_NORMALIZATION } from '@/infrastructure/services/scraping/shared/competitionNormalization.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
@@ -186,26 +188,23 @@ export class HiroshimaDataParser {
     // 文字列の前処理: 空白や改行を除去
     const cleanedStatus = statusStr.trim().replace(/\s+/g, ' ');
 
-    // キーワードによる判定
-    const soldOutKeywords = ['完売', '売り切れ', '全席種完売'];
-    const endedKeywords = ['販売終了', '発売終了', '終了'];
-    const onSaleKeywords = ['販売中', '発売中', 'WEBで購入', '購入可能'];
-    const beforeSaleKeywords = ['販売開始前', '発売前', '販売予定'];
-
     // 各キーワードグループでマッチング確認
-    if (soldOutKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    const matches = (keywords: readonly string[]) =>
+      keywords.some((keyword) => cleanedStatus.includes(keyword));
+
+    if (matches(SALE_STATUS_KEYWORDS.soldOut)) {
       return 'sold_out';
     }
 
-    if (endedKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (matches(SALE_STATUS_KEYWORDS.ended)) {
       return 'ended';
     }
 
-    if (onSaleKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (matches(SALE_STATUS_KEYWORDS.onSale)) {
       return 'on_sale';
     }
 
-    if (beforeSaleKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (matches(SALE_STATUS_KEYWORDS.beforeSale)) {
       return 'before_sale';
     }
 
@@ -221,24 +220,6 @@ export class HiroshimaDataParser {
       return 'J1リーグ';
     }
 
-    // サンフレッチェ広島サイトの表記を統一
-    const competitionMap: Record<string, string> = {
-      'J1': 'J1リーグ',
-      'J1リーグ': 'J1リーグ',
-      '明治安田J1': 'J1リーグ',
-      'ルヴァン': 'ルヴァンカップ',
-      'ルヴァンカップ': 'ルヴァンカップ',
-      '天皇杯': '天皇杯',
-      'ACL': 'ACLE',
-      'ACLE': 'ACLE',
-    };
-
-    for (const [key, value] of Object.entries(competitionMap)) {
-      if (competition.includes(key)) {
-        return value;
-      }
-    }
-
-    return competition;
+    return COMPETITION_NORMALIZATION[competition] || competition;
   }
 }

@@ -23,12 +23,6 @@ export interface HiroshimaScrapingConfig {
   schedulePageConfig: HiroshimaSchedulePageConfig;
   awayKeywords: string[];
   urawaKeywords: string[];
-  saleStatusKeywords: {
-    available: string[];
-    soldOut: string[];
-    notStarted: string[];
-    ended: string[];
-  };
   timeouts: {
     pageLoad: number;
     elementWait: number;
@@ -37,7 +31,6 @@ export interface HiroshimaScrapingConfig {
     maxRetries: number;
     baseDelay: number;
   };
-  competitionNormalization: Record<string, string>;
 }
 
 export const HIROSHIMA_SCRAPING_CONFIG: HiroshimaScrapingConfig = {
@@ -101,14 +94,6 @@ export const HIROSHIMA_SCRAPING_CONFIG: HiroshimaScrapingConfig = {
     'urawa red diamonds',
   ],
 
-  // 販売状況キーワード
-  saleStatusKeywords: {
-    available: ['販売中', '発売中', '購入可能'],
-    soldOut: ['完売', '売り切れ', '全席種完売'],
-    notStarted: ['販売開始前', '発売前', '販売予定'],
-    ended: ['販売終了', '発売終了', '終了'],
-  },
-
   timeouts: {
     pageLoad: 30000,
     elementWait: 10000,
@@ -118,21 +103,4 @@ export const HIROSHIMA_SCRAPING_CONFIG: HiroshimaScrapingConfig = {
     maxRetries: 2,
     baseDelay: 2000,
   },
-
-  competitionNormalization: {
-    'J1リーグ': 'J1リーグ',
-    'J1': 'J1リーグ',
-    '明治安田Ｊ１リーグ': 'J1リーグ',
-    '明治安田J1リーグ': 'J1リーグ',
-    'ルヴァンカップ': 'ルヴァンカップ',
-    'ＹＢＣルヴァンカップ': 'ルヴァンカップ',
-    'JリーグYBCルヴァンカップ': 'ルヴァンカップ',
-    '天皇杯': '天皇杯',
-    'ＡＦＣチャンピオンズリーグエリート': 'ACLE',
-    'AFCチャンピオンズリーグエリート': 'ACLE',
-    'ＡＦＣチャンピオンズリーグ２': 'ACL2',
-    'AFCチャンピオンズリーグ2': 'ACL2',
-    'ACLE': 'ACLE',
-    'ACL2': 'ACL2',
-  } as const,
 };
