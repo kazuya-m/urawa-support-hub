@@ -1,6 +1,6 @@
-import { assertEquals } from 'std/assert/mod.ts';
+import { assertEquals, assertRejects } from 'std/assert/mod.ts';
 import { TicketCollectionController } from '../TicketCollectionController.ts';
-import { AppError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
+import { AppError, ErrorCodes } from '@/shared/errors/index.ts';
 import type { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 
 // 認証ロジックのみテスト（Controller import回避）
@@ -69,40 +69,36 @@ const createThrowingUseCase = (error: unknown): ITicketCollectionUseCase => ({
 const collectRequest = () =>
   new Request('http://localhost:8080/api/collect-tickets', { method: 'POST' });
 
-Deno.test('TicketCollectionController - DatabaseError は DB エラー応答になる（AppError 分岐に入らない）', async () => {
-  const controller = new TicketCollectionController(
-    createThrowingUseCase(
-      new DatabaseError('TicketRepository', 'upsert', 'failed', ErrorCodes.DB_SAVE_ERROR),
-    ),
-  );
+Deno.test('TicketCollectionController - 成功時は収集結果を 200 で返す', async () => {
+  const controller = new TicketCollectionController({
+    execute: () =>
+      Promise.resolve({
+        status: 'success',
+        ticketsFound: 3,
+        newTickets: 1,
+        updatedTickets: 1,
+        unchangedTickets: 1,
+        failedTickets: 0,
+        executionDurationMs: 42,
+      }),
+  });
 
   const response = await controller.handleCollectTickets(collectRequest());
   const body = await response.json();
 
-  assertEquals(response.status, 500);
-  assertEquals(body.error, 'Database operation failed');
-  assertEquals(body.details, { operation: 'ticket collection' });
+  assertEquals(response.status, 200);
+  assertEquals(body.status, 'success');
+  assertEquals(body.message, 'Ticket collection completed successfully');
+  assertEquals(body.ticketsFound, 3);
+  assertEquals(body.newTickets, 1);
+  assertEquals(body.updatedTickets, 1);
+  assertEquals(body.executionTimeMs, 42);
 });
 
-Deno.test('TicketCollectionController - AppError は formatMessage と context を返す', async () => {
-  const controller = new TicketCollectionController(
-    createThrowingUseCase(
-      new AppError(
-        '[TicketCollectionUseCase] Ticket collection failed: boom',
-        ErrorCodes.USECASE_EXECUTION_FAILED,
-        undefined,
-        { sessionId: 's-1' },
-      ),
-    ),
-  );
+Deno.test('TicketCollectionController - UseCase の例外はそのまま投げる（応答への変換は withErrorHandling）', async () => {
+  const error = new AppError('failed', ErrorCodes.USECASE_EXECUTION_FAILED);
+  const controller = new TicketCollectionController(createThrowingUseCase(error));
 
-  const response = await controller.handleCollectTickets(collectRequest());
-  const body = await response.json();
-
-  assertEquals(response.status, 500);
-  assertEquals(
-    body.error,
-    '[USECASE_EXECUTION_FAILED] [TicketCollectionUseCase] Ticket collection failed: boom',
-  );
-  assertEquals(body.details, { sessionId: 's-1' });
+  const thrown = await assertRejects(() => controller.handleCollectTickets(collectRequest()));
+  assertEquals(thrown, error);
 });

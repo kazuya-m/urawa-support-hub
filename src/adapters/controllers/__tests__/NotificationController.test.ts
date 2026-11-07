@@ -1,4 +1,4 @@
-import { assertEquals } from 'std/assert/mod.ts';
+import { assertEquals, assertRejects } from 'std/assert/mod.ts';
 import { NotificationController } from '../NotificationController.ts';
 import { NOTIFICATION_TYPES } from '@/domain/config/NotificationConfig.ts';
 import { MockNotificationUseCase } from '@/shared/testing/mocks/MockNotificationUseCase.ts';
@@ -106,6 +106,27 @@ Deno.test('NotificationController', async (t) => {
       'Invalid notificationType: invalid_notification_type',
     );
   });
+
+  await t.step(
+    'should throw when the validator throws (converted by withErrorHandling)',
+    async () => {
+      const mockUseCase = new MockNotificationUseCase();
+      const controller = new NotificationController(mockUseCase);
+
+      // notificationType がプリミティブに変換できないオブジェクトだと validator 内で TypeError になる
+      const request = new Request('http://localhost/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{"ticketId":"test-ticket-123","notificationType":{"toString":1}}',
+      });
+
+      await assertRejects(
+        () => controller.handleSendNotification(request),
+        TypeError,
+        'Cannot convert object to primitive value',
+      );
+    },
+  );
 
   Object.entries(originalEnv).forEach(([key, value]) => {
     if (value === undefined) {
