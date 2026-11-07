@@ -1,6 +1,5 @@
 import { assert, assertEquals, assertExists } from 'std/assert/mod.ts';
 import { Ticket } from '../Ticket.ts';
-import { DataQuality } from '../DataQuality.ts';
 
 Deno.test('Ticket - 新規チケット作成と決定論的ID生成', async () => {
   const futureMatchDate = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -70,8 +69,6 @@ Deno.test('Ticket - 同じ対戦カード+日付から同じID生成', async () 
 
   // 同じ対戦カード+日付から同じIDが生成される
   assertEquals(ticket1.id, ticket2.id);
-  // equals メソッドのテスト
-  assertEquals(ticket1.equals(ticket2), true);
 });
 
 Deno.test('Ticket - 既存チケットの復元', () => {
@@ -310,78 +307,6 @@ Deno.test('Ticket - homeTeam/awayTeamがundefinedでも作成可能', async () =
   assertEquals(ticket.awayTeam, null);
 });
 
-Deno.test('Ticket - データ品質レベル判定: COMPLETE', async () => {
-  const futureMatchDate = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000);
-  const futureSaleDate = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
-
-  const ticket = await Ticket.createNew({
-    matchName: 'FC東京 vs 浦和レッズ',
-    matchDate: futureMatchDate,
-    homeTeam: 'FC東京',
-    awayTeam: '浦和レッズ',
-    competition: 'J1リーグ',
-    saleStartDate: futureSaleDate,
-    saleEndDate: null,
-    venue: '味の素スタジアム',
-    ticketTypes: ['ビジター席'],
-    ticketUrl: 'https://example.com/tickets',
-    scrapedAt: new Date(),
-    saleStatus: 'before_sale',
-    notificationScheduled: false,
-  });
-
-  assertEquals(ticket.getDataQuality(), DataQuality.COMPLETE);
-});
-
-Deno.test('Ticket - データ品質レベル判定: PARTIAL', async () => {
-  const futureMatchDate = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000);
-  const futureSaleDate = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
-
-  const ticket = await Ticket.createNew({
-    matchName: 'FC東京 vs 浦和レッズ',
-    matchDate: futureMatchDate,
-    homeTeam: null,
-    awayTeam: null,
-    competition: null,
-    saleStartDate: futureSaleDate,
-    saleEndDate: null,
-    venue: '味の素スタジアム', // venueのみ存在
-    // ticketTypes, ticketUrl は省略
-    ticketTypes: null,
-    ticketUrl: null,
-    scrapedAt: new Date(),
-    saleStatus: 'before_sale',
-    notificationScheduled: false,
-  });
-
-  assertEquals(ticket.getDataQuality(), DataQuality.PARTIAL);
-});
-
-Deno.test('Ticket - データ品質レベル判定: MINIMAL', async () => {
-  const futureMatchDate = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000);
-  const futureSaleDate = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
-
-  const ticket = await Ticket.createNew({
-    matchName: 'FC東京 vs 浦和レッズ',
-    matchDate: futureMatchDate,
-    homeTeam: null,
-    awayTeam: null,
-    competition: null,
-    saleStartDate: futureSaleDate,
-    saleEndDate: null,
-    // venue, ticketTypes, ticketUrl を省略（undefined）
-    venue: null,
-    ticketTypes: null,
-    ticketUrl: null,
-    scrapedAt: new Date(),
-    saleStatus: 'before_sale',
-    notificationScheduled: false,
-  });
-
-  assertEquals(ticket.getDataQuality(), DataQuality.MINIMAL);
-});
-
-// 新規の販売状態管理テスト
 Deno.test('Ticket - 販売状態管理メソッド: before_sale', async () => {
   const ticket = await Ticket.createNew({
     matchName: 'テストマッチ vs チーム2',
@@ -400,7 +325,6 @@ Deno.test('Ticket - 販売状態管理メソッド: before_sale', async () => {
   });
 
   assertEquals(ticket.saleStatus, 'before_sale', 'Should be before sale');
-  assertEquals(ticket.requiresNotification(), true, 'Should require notification');
 });
 
 Deno.test('Ticket - 販売状態管理メソッド: on_sale', async () => {
@@ -421,11 +345,6 @@ Deno.test('Ticket - 販売状態管理メソッド: on_sale', async () => {
   });
 
   assertEquals(ticket.saleStatus, 'on_sale', 'Should be on sale');
-  assertEquals(
-    ticket.requiresNotification(),
-    false,
-    'Should not require notification when on sale',
-  );
 });
 
 Deno.test('Ticket - 販売状態管理メソッド: ended', async () => {
@@ -446,7 +365,6 @@ Deno.test('Ticket - 販売状態管理メソッド: ended', async () => {
   });
 
   assertEquals(ticket.saleStatus, 'ended', 'Should be ended');
-  assertEquals(ticket.requiresNotification(), false, 'Should not require notification when ended');
 });
 
 Deno.test('Ticket - 通知済みの場合の制御', async () => {
@@ -467,11 +385,6 @@ Deno.test('Ticket - 通知済みの場合の制御', async () => {
   });
 
   assertEquals(ticket.saleStatus, 'before_sale', 'Should be before sale');
-  assertEquals(
-    ticket.requiresNotification(),
-    false,
-    'Should not require notification when already scheduled',
-  );
 });
 
 Deno.test('Ticket - 新しいプロパティのgetter', async () => {
@@ -523,16 +436,6 @@ Deno.test('Ticket - 販売日時がnullの場合の通知制御', async () => {
   });
 
   assertEquals(ticket.saleStartDate, null, 'Should have null sale start date');
-  assertEquals(
-    ticket.requiresNotification(),
-    false,
-    'Should not require notification when sale start date is null',
-  );
-  assertEquals(
-    ticket.shouldSendNotification('day_before'),
-    false,
-    'Should not send notification when sale start date is null',
-  );
   assertEquals(
     ticket.isValidForNotification(),
     false,
@@ -591,7 +494,6 @@ Deno.test('Ticket - optionalフィールドが省略可能', async () => {
   assertEquals(ticket.venue, null);
   assertEquals(ticket.ticketTypes, []); // 空配列が返される
   assertEquals(ticket.ticketUrl, null);
-  assertEquals(ticket.getDataQuality(), DataQuality.MINIMAL);
 });
 
 Deno.test('Ticket - optionalフィールドでundefinedとnullの区別', () => {

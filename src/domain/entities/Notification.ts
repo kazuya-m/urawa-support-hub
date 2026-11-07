@@ -76,13 +76,6 @@ export class Notification {
     return this.props.cloudTaskId;
   }
 
-  canBeSent(currentTime: Date = new Date()): boolean {
-    if (this.props.status !== 'scheduled') return false;
-
-    const timeDiff = this.props.scheduledAt.getTime() - currentTime.getTime();
-    return timeDiff <= 5 * 60 * 1000;
-  }
-
   markAsSent(sentTime: Date = new Date()): Notification {
     return new Notification({
       ...this.props,
@@ -101,35 +94,12 @@ export class Notification {
     });
   }
 
-  markAsCancelled(
-    reason: CancellationReason,
-    _cancelledTime: Date = new Date(),
-  ): Notification {
+  markAsCancelled(reason: CancellationReason): Notification {
     return new Notification({
       ...this.props,
       status: 'cancelled',
       errorMessage: reason,
     });
-  }
-
-  isExpired(currentTime: Date = new Date()): boolean {
-    if (this.props.status === 'sent') return false;
-
-    const timeSinceScheduled = currentTime.getTime() - this.props.scheduledAt.getTime();
-    return timeSinceScheduled >= 2 * 60 * 60 * 1000;
-  }
-
-  canRetry(currentTime: Date = new Date()): boolean {
-    if (this.props.status !== 'failed') return false;
-
-    if (this.isExpired(currentTime)) return false;
-
-    if (this.props.sentAt) {
-      const timeSinceFailure = currentTime.getTime() - this.props.sentAt.getTime();
-      return timeSinceFailure >= 5 * 60 * 1000;
-    }
-
-    return true;
   }
 
   getNotificationTypeDisplayName(): string {

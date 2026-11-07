@@ -4,6 +4,13 @@ import { Ticket } from '@/domain/entities/Ticket.ts';
 import { cleanupTestData } from '../utils/test-supabase.ts';
 import { createTestSupabaseClient } from '../utils/test-supabase.ts';
 
+/**
+ * 発売前・通知未スケジュール・販売開始日ありのチケットか（DB往復後の状態検証用）
+ */
+const requiresNotification = (ticket: Ticket): boolean =>
+  ticket.saleStatus === 'before_sale' && !ticket.notificationScheduled &&
+  ticket.saleStartDate !== null;
+
 Deno.test('Sale Status Management Integration - Complete State Transition Flow', async () => {
   const client = createTestSupabaseClient();
   const ticketRepository = new TicketRepository(client);
@@ -31,7 +38,7 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
     const saveResult1 = await ticketRepository.upsert(beforeSaleTicket);
     // saveResult1 is now a Ticket, not TicketUpsertResult
     assertEquals(
-      saveResult1.requiresNotification(),
+      requiresNotification(saveResult1),
       true,
       'Should require notification when before sale',
     );
@@ -61,7 +68,7 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
     // saveResult2 is now a Ticket, not TicketUpsertResult
     assertEquals(saveResult2.saleStatus, 'on_sale', 'Status should be on_sale');
     assertEquals(
-      saveResult2.requiresNotification(),
+      requiresNotification(saveResult2),
       false,
       'Should not require notification when on sale',
     );
@@ -91,7 +98,7 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
     // saveResult3 is now a Ticket, not TicketUpsertResult
     assertEquals(saveResult3.saleStatus, 'ended', 'Status should be ended');
     assertEquals(
-      saveResult3.requiresNotification(),
+      requiresNotification(saveResult3),
       false,
       'Should not require notification when ended',
     );
@@ -136,7 +143,7 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
     const result1 = await ticketRepository.upsert(beforeSaleTicket);
     // result1 is now a Ticket, not TicketUpsertResult
     assertEquals(
-      result1.requiresNotification(),
+      requiresNotification(result1),
       true,
       'New before_sale ticket should require notification',
     );
@@ -165,7 +172,7 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
     const result2 = await ticketRepository.upsert(scheduledTicket);
     // result2 is now a Ticket, not TicketUpsertResult
     assertEquals(
-      result2.requiresNotification(),
+      requiresNotification(result2),
       false,
       'Scheduled ticket should not require notification',
     );
@@ -194,7 +201,7 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
     const result3 = await ticketRepository.upsert(onSaleTicket);
     // result3 is now a Ticket, not TicketUpsertResult
     assertEquals(
-      result3.requiresNotification(),
+      requiresNotification(result3),
       false,
       'On-sale ticket should not require notification',
     );
