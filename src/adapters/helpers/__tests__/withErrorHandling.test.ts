@@ -11,6 +11,8 @@ import { AppError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { toErrorInfo } from '@/shared/utils/errorUtils.ts';
+import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
+import { MockNotificationUseCase } from '@/shared/testing/mocks/MockNotificationUseCase.ts';
 
 /**
  * CloudLogger の error / critical 呼び出しを記録しながら handler を実行する
@@ -145,13 +147,14 @@ Deno.test('withErrorHandling - ticket-summary の想定外エラーは従来ど�
 Deno.test('withErrorHandling - collect-tickets の想定外エラーは従来どおり critical / SYSTEM', async () => {
   const error = new Error('unexpected');
 
-  const { response, body, criticalCalls } = await runWithLoggerStub(() =>
+  const { response, body, errorCalls, criticalCalls } = await runWithLoggerStub(() =>
     withErrorHandling(throwing(error), TICKET_COLLECTION_ERROR_CONTEXT)
   );
 
   assertEquals(response.status, 500);
   assertEquals(body.error, 'Ticket collection failed');
   assertEquals(body.details, 'unexpected');
+  assertEquals(errorCalls.length, 0);
   assertEquals(criticalCalls, [[
     'Unexpected error in TicketCollectionController',
     {
@@ -168,4 +171,23 @@ Deno.test('withErrorHandling - Error 以外の throw もメッセージに変換
 
   assertEquals(response.status, 500);
   assertEquals(body.details, { errorType: 'UnknownError', errorMessage: 'plain string' });
+});
+
+Deno.test('withErrorHandling - send-notification に細工した body を送ると 500 Internal Server Error（Controller から通した経路）', async () => {
+  const controller = new NotificationController(new MockNotificationUseCase());
+  const request = new Request('http://localhost/api/send-notification', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{"ticketId":"test-ticket-123","notificationType":{"toString":1}}',
+  });
+
+  const { response, body, criticalCalls } = await runWithLoggerStub(() =>
+    withErrorHandling(() => controller.handleSendNotification(request), NOTIFICATION_ERROR_CONTEXT)
+  );
+
+  assertEquals(response.status, 500);
+  assertEquals(body.error, 'Internal Server Error');
+  assertEquals(body.details, 'Cannot convert object to primitive value');
+  assertEquals(criticalCalls.length, 1);
+  assertEquals(criticalCalls[0][0], 'Unexpected error in NotificationController');
 });
