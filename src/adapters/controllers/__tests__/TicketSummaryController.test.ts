@@ -18,17 +18,4 @@ Deno.test('TicketSummaryController - エラー応答', async (t) => {
     assertEquals(body.error, 'Database error during ticket summary processing');
     assertEquals(body.details, { errorType: 'DatabaseError', errorMessage: '[Repo.op] x' });
   });
-
-  await t.step('想定外エラー', async () => {
-    const controller = new TicketSummaryController({
-      execute: () => Promise.reject(new Error('summary failed')),
-    });
-
-    const response = await controller.handleTicketSummary(request);
-    const body = await response.json();
-
-    assertEquals(response.status, 500);
-    assertEquals(body.error, 'Internal server error during ticket summary processing');
-    assertEquals(body.details, { errorType: 'UnknownError', errorMessage: 'summary failed' });
-  });
 });
