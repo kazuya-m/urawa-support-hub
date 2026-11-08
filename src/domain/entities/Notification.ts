@@ -1,4 +1,8 @@
-import { getDisplayName, NotificationType } from '@/domain/config/NotificationConfig.ts';
+import {
+  getDisplayName,
+  NOTIFICATION_TYPE_VALUES,
+  NotificationType,
+} from '@/domain/config/NotificationConfig.ts';
 
 export type NotificationStatus = 'scheduled' | 'sent' | 'failed' | 'cancelled';
 
@@ -30,7 +34,7 @@ export class Notification {
       throw new Error('Notification ID is required');
     }
 
-    if (!['day_before', 'hour_before', 'minutes_before'].includes(props.notificationType)) {
+    if (!NOTIFICATION_TYPE_VALUES.includes(props.notificationType)) {
       throw new Error(`Invalid notification type: ${props.notificationType}`);
     }
 

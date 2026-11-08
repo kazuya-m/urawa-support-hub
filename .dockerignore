@@ -28,3 +28,17 @@ src/cloud-run/webhook-service/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Not needed at runtime (src/ imports none of these)
+tests/
+scripts/
+hooks/
+/infrastructure/
+.github/
+.claude/
+
+# Container build definitions
+Dockerfile
+Dockerfile.dev
+docker-compose.yml
+.dockerignore
