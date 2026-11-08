@@ -1,4 +1,6 @@
 import { assertEquals } from 'std/assert/mod.ts';
+import { TicketCollectionController } from '../TicketCollectionController.ts';
+import { ApplicationError, ErrorCodes } from '@/shared/errors/index.ts';
 
 // 認証ロジックのみテスト（Controller import回避）
 function validateCloudSchedulerRequest(req: Request): boolean {
@@ -57,4 +59,32 @@ Deno.test('TicketCollectionController Authentication Tests', async (t) => {
       Deno.env.delete('NODE_ENV');
     }
   });
+});
+
+Deno.test('TicketCollectionController - UseCase のエラー応答', async () => {
+  const useCase = {
+    execute: () =>
+      Promise.reject(
+        new ApplicationError(
+          'TicketCollectionUseCase',
+          'Ticket collection failed: boom',
+          ErrorCodes.USECASE_EXECUTION_FAILED,
+          undefined,
+          { sessionId: 's-1', executionDurationMs: 5 },
+        ),
+      ),
+  };
+  const controller = new TicketCollectionController(useCase);
+
+  const response = await controller.handleCollectTickets(
+    new Request('http://localhost:8080/api/collect-tickets', { method: 'POST' }),
+  );
+  const body = await response.json();
+
+  assertEquals(response.status, 500);
+  assertEquals(
+    body.error,
+    '[USECASE_EXECUTION_FAILED] [TicketCollectionUseCase] Ticket collection failed: boom',
+  );
+  assertEquals(body.details, { sessionId: 's-1', executionDurationMs: 5 });
 });

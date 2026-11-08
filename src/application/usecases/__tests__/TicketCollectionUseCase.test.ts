@@ -1,11 +1,13 @@
-import { assertEquals, assertRejects } from 'std/assert/mod.ts';
+import { assert, assertEquals, assertRejects } from 'std/assert/mod.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import {
   clearAllMocks,
   createMockDependencies,
   createMockTicketCollectionUseCase,
   MockTicketCollectionService,
+  MockTicketRepository,
 } from '@/shared/testing/mocks/index.ts';
+import { ApplicationError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 
 // TicketCollectionUseCaseの完全分離テスト（外部依存なし）
 Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
@@ -151,5 +153,71 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
 
     // モックがクリアされていることを確認
     assertEquals(dependencies.ticketRepository instanceof Object, true);
+  });
+});
+
+Deno.test('TicketCollectionUseCase - エラーの包み直し', async (t) => {
+  const ticket = Ticket.fromExisting({
+    id: 'test-ticket-error',
+    matchName: 'Test Match',
+    matchDate: new Date('2024-12-01'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
+    venue: null,
+    ticketTypes: [],
+    ticketUrl: null,
+    saleStartDate: null,
+    saleEndDate: null,
+    saleStatus: 'before_sale',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    scrapedAt: new Date(),
+    notificationScheduled: false,
+  });
+
+  await t.step('DatabaseError は TICKET_COLLECTION_FAILED で包み直す', async () => {
+    const dbError = new DatabaseError(
+      'TicketRepository',
+      'findByIds',
+      'connection refused',
+      ErrorCodes.DB_FETCH_ERROR,
+    );
+    const ticketRepository = new MockTicketRepository();
+    ticketRepository.findByIds = () => Promise.reject(dbError);
+    const dependencies = createMockDependencies({ ticketRepository });
+    (dependencies.ticketCollectionService as MockTicketCollectionService).setMockTickets([ticket]);
+
+    const error = await assertRejects(
+      () => createMockTicketCollectionUseCase(dependencies).execute(),
+      ApplicationError,
+    );
+
+    assertEquals(error.code, 'TICKET_COLLECTION_FAILED');
+    assertEquals(
+      error.message,
+      '[TicketCollectionUseCase] Database operation failed: [TicketRepository.findByIds] connection refused',
+    );
+    assertEquals(error.cause, dbError);
+    assertEquals(Object.keys(error.context ?? {}).sort(), ['executionDurationMs', 'sessionId']);
+  });
+
+  await t.step('その他のエラーは USECASE_EXECUTION_FAILED で包み直す', async () => {
+    const dependencies = createMockDependencies();
+    (dependencies.ticketCollectionService as MockTicketCollectionService)
+      .setShouldThrowError(true, 'Mock collection error');
+
+    const error = await assertRejects(
+      () => createMockTicketCollectionUseCase(dependencies).execute(),
+      ApplicationError,
+    );
+
+    assertEquals(error.code, 'USECASE_EXECUTION_FAILED');
+    assertEquals(
+      error.message,
+      '[TicketCollectionUseCase] Ticket collection failed: Mock collection error',
+    );
+    assert(error.cause instanceof Error);
+    assertEquals(Object.keys(error.context ?? {}).sort(), ['executionDurationMs', 'sessionId']);
   });
 });
