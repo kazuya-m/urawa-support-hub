@@ -1,308 +1,137 @@
-# Environment Variable Management Rules
+# 環境変数管理ルール
 
-This document defines the secure management of environment variables and sensitive configuration for
-the Urawa Support Hub project.
+urawa-support-hub
+の環境変数と機密情報の管理方法です。変数の一覧と用途は[セットアップガイド](../setup-guide.md#2-環境変数ファイル)を参照してください。
 
-## Security Classification
+## 分類
 
-### 1. Public Configuration (Safe to commit)
+### 1. 機密情報（コミット禁止）
 
-**Examples**: Feature flags, API endpoints, non-sensitive defaults
+| 変数                        | 内容                                        |
+| --------------------------- | ------------------------------------------- |
+| `SUPABASE_SERVICE_ROLE_KEY` | RLS をバイパスする Supabase の管理者キー    |
+| `LINE_CHANNEL_ACCESS_TOKEN` | LINE Bot からブロードキャストできるトークン |
 
-```bash
-# ✅ Safe - can be in .env.example
-PUBLIC_API_BASE_URL="https://api.example.com"
-SCRAPING_INTERVAL_HOURS=24
-LOG_LEVEL="info"
-DEFAULT_TIMEZONE="Asia/Tokyo"
+`SUPABASE_ANON_KEY` は公開を前提としたキーですが、リポジトリにはコミットせず環境変数で渡します。
 
-# Testing configuration
-ENABLE_TEST_SCRAPING="false"
-ENABLE_TEST_RESCHEDULE="false"
-```
+### 2. 非機密の設定
 
-### 2. Sensitive Configuration (Never commit)
+`SUPABASE_URL`、`GC_PROJECT_ID`、`CLOUD_TASKS_LOCATION`、`CLOUD_TASKS_SERVICE_ACCOUNT`、`CLOUD_RUN_NOTIFICATION_URL`、`CLOUD_TASKS_EMULATOR_HOST`、`CLOUD_TASKS_DEBUG`、`NODE_ENV`、`PORT`。
 
-**Examples**: API keys, tokens, credentials, secrets
+## 保存場所
 
-```bash
-# ❌ Never commit - keep in .env only
-SUPABASE_SERVICE_ROLE_KEY="eyJ..."
-LINE_CHANNEL_ACCESS_TOKEN="abcd1234..."
-DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."
-GOOGLE_CLOUD_CREDENTIALS="base64-encoded-json"
-```
+| 環境                       | 保存場所                                                 | 機密情報の渡し方                                                                |
+| -------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| ローカル（直接起動）       | `.env`（`src/config/di.ts` が `@std/dotenv` で読み込む） | ファイルに記載                                                                  |
+| ローカル（Docker Compose） | `.env.local`（`docker-compose.yml` の `env_file`）       | ファイルに記載                                                                  |
+| CI（GitHub Actions）       | GitHub Secrets                                           | ワークフローの `env` で渡す（[GitHub Secrets設定](../github-secrets-setup.md)） |
+| 本番（Cloud Run）          | Google Secret Manager + Cloud Run の環境変数             | `deploy.yml` の `--update-secrets` で Secret Manager から注入                   |
 
-### 3. Environment-Specific Configuration
+`.gitignore` は `.env` と `.env.*` を除外し、`.env.example` だけをコミット対象にしています。
 
-**Examples**: Database URLs, service endpoints that vary by environment
+### Cloud Run
+
+機密情報は Secret Manager に保存し、デプロイ時に環境変数として注入します。
 
 ```bash
-# Development
-SUPABASE_URL="https://dev-project.supabase.co"
-GOOGLE_CLOUD_PROJECT_ID="urawa-support-dev"
+# シークレットの登録（名前は deploy.yml の --update-secrets と一致させる）
+printf '%s' 'VALUE' | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-file=-
 
-# Production
-SUPABASE_URL="https://prod-project.supabase.co"
-GOOGLE_CLOUD_PROJECT_ID="urawa-support-prod"
+# 値の更新（新しいバージョンを追加。deploy.yml は :latest を参照する）
+printf '%s' 'NEW_VALUE' | gcloud secrets versions add LINE_CHANNEL_ACCESS_TOKEN --data-file=-
 ```
 
-## File Organization
+Cloud Run のサービスアカウント（`GC_SA_CLOUD_RUN`）には、この 2 つのシークレットに対する
+`roles/secretmanager.secretAccessor`
+が必要です（[GCP サービスアカウント権限](gcp-service-account-permissions.md)）。
 
-### 1. File Structure
-
-```
-├── .env.example          # Public template with dummy values
-├── .env                  # Local development (never commit)
-├── .env.local           # Personal overrides (never commit)
-├── .env.development     # Development environment (never commit)
-├── .env.staging         # Staging environment (never commit)
-├── .env.production      # Production environment (never commit)
-└── .gitignore           # Excludes all sensitive .env files
-```
-
-### 2. .env.example Template
+非機密の設定は Cloud Run サービスに直接設定します。
 
 ```bash
-# Supabase Configuration
-SUPABASE_URL="https://your-project.supabase.co"
-SUPABASE_ANON_KEY="eyJ_your_anon_key_here"
-SUPABASE_SERVICE_ROLE_KEY="eyJ_your_service_role_key_here"
-
-# Google Cloud Configuration  
-GOOGLE_CLOUD_PROJECT_ID="your-project-id"
-GOOGLE_CLOUD_REGION="asia-northeast1"
-GOOGLE_CLOUD_CREDENTIALS="base64-encoded-service-account-json"
-
-# LINE Messaging API
-LINE_CHANNEL_ACCESS_TOKEN="your_line_channel_access_token"
-LINE_CHANNEL_SECRET="your_line_channel_secret"
-
-# Discord Webhook
-DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/your/webhook/url"
-
-# Application Configuration
-LOG_LEVEL="info"
-SCRAPING_INTERVAL_HOURS="24"
-DEFAULT_TIMEZONE="Asia/Tokyo"
-NODE_ENV="development"
-
-# Optional: Development overrides
-# DATABASE_LOG_LEVEL="debug"
-# SCRAPING_TEST_MODE="true"
-```
-
-### 3. Environment Loading Priority
-
-1. `.env.local` (highest priority - personal overrides)
-2. `.env.${NODE_ENV}` (environment-specific)
-3. `.env` (development defaults)
-4. `.env.example` (not loaded - template only)
-
-## Secure Storage Methods
-
-### 1. Local Development
-
-**Method**: `.env` files with proper .gitignore
-
-```bash
-# Store in .env file
-echo "SUPABASE_SERVICE_ROLE_KEY=eyJ..." >> .env
-
-# Verify .gitignore excludes it
-grep -n "\.env" .gitignore
-```
-
-### 2. Cloud Run Environment Variables
-
-**Method**: Set via gcloud command or Cloud Console
-
-```bash
-# Set environment variables for Cloud Run
 gcloud run services update urawa-support-hub \
-  --set-env-vars="SUPABASE_URL=https://...,SUPABASE_SERVICE_ROLE_KEY=eyJ..." \
-  --region=asia-northeast1
+  --region=asia-northeast1 \
+  --update-env-vars="SUPABASE_URL=https://xxxxx.supabase.co"
 ```
 
-### 3. Supabase Edge Functions
+機密情報を `--set-env-vars` / `--update-env-vars` で渡さないでください。値が Cloud Run
+のサービス設定にそのまま残ります。
 
-**Method**: Supabase secrets management
+## 検証
+
+アプリ起動後、`GET /health`（`src/middleware/health.ts`）が `SUPABASE_URL` と
+`SUPABASE_SERVICE_ROLE_KEY`
+の有無を確認します。エラーメッセージには不足している変数名が含まれますが、値は出力しません。
+
+その他の必須変数は、使用時に未設定であればエラーになります。
+
+| 変数                                | 未設定時                              |
+| ----------------------------------- | ------------------------------------- |
+| `GC_PROJECT_ID`                     | `CloudTasksClient` の生成時にエラー   |
+| `CLOUD_RUN_NOTIFICATION_URL`        | 通知タスクの登録時にエラー            |
+| `SUPABASE_URL` などの Supabase 変数 | Supabase クライアントの生成時にエラー |
+
+## ベストプラクティス
+
+### 1. ローテーション
+
+- **LINE チャンネルアクセストークン**: 90 日ごとに再発行
+- **Supabase キー**: 90 日ごとにローテーション（ダッシュボードで JWT secret を再生成すると anon
+  キーも変わる）
+- **Supabase DB パスワード**: 漏洩の疑いがあれば即時変更（`SUPABASE_DB_PASSWORD` も更新）
+
+GCP へのアクセスは Workload Identity Federation（GitHub Actions）と Cloud Run
+にアタッチしたサービスアカウントで行うため、サービスアカウントキーは発行しません。
+
+### 2. 開発時のルール
+
+- 実値を含む `.env` / `.env.local` をコミットしない
+- チャットやメールで機密情報を共有しない
+- 新しい環境変数を追加したら `.env.example` と[セットアップガイド](../setup-guide.md)に追記する
+- ログに機密情報の値を出力しない
+
+## トラブルシューティング
+
+**環境変数が読み込まれない**
+
+- `deno task dev:local` は `.env`、`deno task dev` は `.env.local`
+  を読む。編集したファイルが正しいか確認する
+- Docker Compose では `SUPABASE_URL` と `CLOUD_TASKS_EMULATOR_HOST` が `docker-compose.yml`
+  で上書きされる
+
+**ファイル権限**
 
 ```bash
-# Set secrets for Edge Functions
-supabase secrets set LINE_CHANNEL_ACCESS_TOKEN="your_token"
-supabase secrets set DISCORD_WEBHOOK_URL="your_webhook"
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY="your_key"
+chmod 600 .env .env.local
 ```
 
-### 4. Google Secret Manager (Recommended for Production)
+## 緊急時の対応
 
-**Method**: Store sensitive values in Google Secret Manager
+**キーの漏洩**
 
-```bash
-# Store secret in Secret Manager
-gcloud secrets create line-channel-token --data-file=token.txt
+1. 漏洩したキーを発行元（Supabase ダッシュボード、LINE Developers コンソール）で再発行する
+2. Secret Manager に新しいバージョンを追加し、Cloud Run を再デプロイする（`deploy.yml` を手動実行）
+3. CI 用の GitHub Secrets とローカルの `.env` / `.env.local` を更新する
+4. Cloud Logging で不審なアクセスがないか確認する
 
-# Grant access ONLY to services that actually need secrets
-# ❌ DON'T grant to scraper - it gets vars via Cloud Run environment
-# ✅ ONLY grant to services that dynamically fetch secrets
+**環境変数が原因のサービス障害**
 
-# Example: If scheduler needs to fetch secrets dynamically
-# gcloud secrets add-iam-policy-binding line-channel-token \
-#   --member="serviceAccount:urawa-scheduler@project.iam.gserviceaccount.com" \
-#   --role="roles/secretmanager.secretAccessor"
+1. `GET /health` の結果を確認する
+2. Cloud Run
+   のリビジョンに設定されている環境変数とシークレットを確認する（`gcloud run services describe urawa-support-hub --region=asia-northeast1`）
+3. Cloud Logging でエラーログを確認する
 
-# ⚠️ PRINCIPLE: Grant Secret Manager access only when environment variables are insufficient
+## チェックリスト
 
-# Access from Cloud Run
-export LINE_CHANNEL_ACCESS_TOKEN=$(gcloud secrets versions access latest --secret="line-channel-token")
-```
+### 新しい環境のセットアップ
 
-## Validation and Testing
+- [ ] `.env.example` を `.env` / `.env.local` にコピーし、値を入力
+- [ ] `.env` / `.env.local` が Git の管理外であることを確認（`git status`）
+- [ ] `GET /health` が `healthy` を返すことを確認
 
-### 1. Environment Validation Function
+### 認証情報のローテーション
 
-```typescript
-// src/shared/utils/validateEnvironment.ts
-export function validateEnvironment(): void {
-  const required = [
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'LINE_CHANNEL_ACCESS_TOKEN',
-    'DISCORD_WEBHOOK_URL',
-    'GOOGLE_CLOUD_PROJECT_ID',
-  ];
-
-  const missing = required.filter((key) => !Deno.env.get(key));
-
-  if (missing.length > 0) {
-    // ❌ SECURITY: Never log actual variable names that might reveal system structure
-    throw new Error(
-      `Missing ${missing.length} required environment variables. Check .env.example.`,
-    );
-  }
-
-  // ✅ SECURITY: Log only success without revealing variable names
-  console.log('✅ All required environment variables are present.');
-}
-
-// Validate on application startup
-validateEnvironment();
-```
-
-### 2. Development Setup Verification
-
-```bash
-# Check environment setup
-deno run --allow-env scripts/check-environment.ts
-
-# Test Supabase connection
-deno run --allow-env --allow-net scripts/test-supabase.ts
-
-# Test external services
-deno run --allow-env --allow-net scripts/test-external-services.ts
-```
-
-## Security Best Practices
-
-### 1. Rotation Schedule
-
-- **LINE tokens**: Rotate every 90 days
-- **Discord webhooks**: Regenerate every 90 days
-- **Supabase keys**: Rotate every 90 days
-- **GCP service accounts**: Rotate every 90 days
-- **Database passwords**: Rotate every 30 days (if applicable)
-
-### 2. Access Logging
-
-```bash
-# Monitor environment variable access
-export AUDIT_ENV_ACCESS=true
-
-# Log when sensitive variables are accessed
-function auditEnvAccess() {
-  echo "$(date): Environment variable accessed: $1" >> .env-access.log
-}
-```
-
-### 3. Development Team Guidelines
-
-- **Never commit** `.env` files with real values
-- **Never share** environment variables via chat/email
-- **Always use** `.env.example` for onboarding
-- **Regularly rotate** development keys
-- **Report compromised** keys immediately
-
-### 4. CI/CD Security
-
-```yaml
-# GitHub Actions example
-env:
-  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-  LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
-```
-
-## Troubleshooting
-
-### 1. Common Issues
-
-**Missing environment variables**:
-
-```bash
-# Check if variable is set
-echo $SUPABASE_URL
-
-# List all environment variables
-env | grep SUPABASE
-
-# Reload environment file
-source .env
-```
-
-**Permission denied errors**:
-
-```bash
-# Check file permissions
-ls -la .env
-
-# Fix permissions (readable by owner only)
-chmod 600 .env
-```
-
-### 2. Emergency Procedures
-
-**Compromised keys**:
-
-1. Immediately rotate affected keys
-2. Update all environments with new keys
-3. Review access logs for unauthorized usage
-4. Update .env.example if dummy values were compromised
-
-**Service outages due to env vars**:
-
-1. Check Cloud Run environment variables
-2. Verify Supabase secrets are set
-3. Test connectivity with new keys
-4. Monitor error logs for auth failures
-
-## Implementation Checklist
-
-### Setup New Environment
-
-- [ ] Copy `.env.example` to `.env`
-- [ ] Fill in real values for all variables
-- [ ] Verify `.env` is in `.gitignore`
-- [ ] Run environment validation script
-- [ ] Test all external service connections
-- [ ] Document any new variables in `.env.example`
-
-### Rotate Credentials
-
-- [ ] Generate new credentials from service providers
-- [ ] Update local `.env` file
-- [ ] Update Cloud Run environment variables
-- [ ] Update Supabase secrets
-- [ ] Test all services with new credentials
-- [ ] Revoke old credentials
-- [ ] Update team documentation
+- [ ] 発行元で新しい認証情報を生成
+- [ ] Secret Manager に新しいバージョンを追加し、Cloud Run を再デプロイ
+- [ ] GitHub Secrets とローカルの環境変数ファイルを更新
+- [ ] 通知送信などの動作を確認
+- [ ] 古い認証情報を無効化
