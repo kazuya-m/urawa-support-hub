@@ -1,130 +1,138 @@
-# Database Automatic Cleanup
+# データベース自動クリーンアップ
 
-Automatic cleanup mechanism to prevent database bloat by removing old records.
+`tickets` と `notifications` の古いレコードを pg_cron
+で定期的に削除し、データベースの肥大化を防ぎます。
 
-## Overview
+## 保持ポリシー
 
-This system automatically deletes old records from `tickets` and `notifications` tables using
-PostgreSQL Cron jobs, preventing database size growth and reducing operational costs.
+pg_cron のスケジュールは UTC で解釈されます。
 
-## Retention Policy
+| ジョブ                       | 対象テーブル    | 削除条件                                                         | スケジュール（UTC） | JST            | 定義                                 |
+| ---------------------------- | --------------- | ---------------------------------------------------------------- | ------------------- | -------------- | ------------------------------------ |
+| `cleanup-old-tickets`        | `tickets`       | `match_date < NOW() - INTERVAL '30 days'`                        | `0 17 * * *`        | 毎日 02:00     | migration 024                        |
+| `cleanup-sent-notifications` | `notifications` | `status = 'sent' AND sent_at < NOW() - INTERVAL '30 days'`       | `30 17 * * *`       | 毎日 02:30     | migration 025                        |
+| `weekly-cleanup`             | `tickets`       | `match_date < NOW() - INTERVAL '7 days'`（`cleanup_old_data()`） | `0 2 * * 0`         | 毎週日曜 11:00 | migration 002（関数は 013 で再定義） |
 
-| Table           | Condition                | Retention Period | Cron Schedule (JST) |
-| --------------- | ------------------------ | ---------------- | ------------------- |
-| `tickets`       | `match_date` is past     | 30 days          | Daily at 02:00      |
-| `notifications` | `status = 'sent'`        | 90 days          | Daily at 02:30      |
-| `system_health` | `executed_at` (existing) | 30 days          | Daily at 03:00      |
+`weekly-cleanup` が呼ぶ `cleanup_old_data()` は `SET search_path = ''`
+で定義されていますが、`tickets`
+をスキーマなしで参照しています。このため実行時にテーブルを解決できずエラーになると考えられます。成功していればチケットは試合日から
+7〜14 日で削除され、失敗していれば `cleanup-old-tickets` により 30
+日で削除されます。実際の結果は下記「実行履歴」のクエリで確認してください。
 
-## Architecture
+`notifications.ticket_id` は `tickets(id)` への外部キーで `ON DELETE CASCADE`（migration
+017）です。チケットが削除されると、そのチケットの通知も状態にかかわらず削除されます。
+
+## 構成
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    PostgreSQL (Supabase)                        │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────┐     ┌──────────────────────────────────────┐  │
-│  │  pg_cron    │────▶│  Scheduled Jobs                      │  │
-│  │  Extension  │     │  - cleanup-old-tickets (02:00 JST)   │  │
-│  └─────────────┘     │  - cleanup-sent-notifications        │  │
-│                      │    (02:30 JST)                        │  │
-│                      └──────────────────────────────────────┘  │
+│  ┌─────────────┐     ┌──────────────────────────────────────┐   │
+│  │  pg_cron    │────▶│  スケジュール済みジョブ              │   │
+│  │  拡張       │     │  - cleanup-old-tickets               │   │
+│  └─────────────┘     │  - cleanup-sent-notifications        │   │
+│                      │  - weekly-cleanup                    │   │
+│                      └──────────────────────────────────────┘   │
 │                                    │                            │
 │                                    ▼                            │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  DELETE Operations                                        │  │
-│  │  - tickets: match_date < NOW() - 30 days                 │  │
-│  │  - notifications: status='sent' AND sent_at < NOW()-90d  │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  DELETE                                                  │   │
+│  │  - tickets（→ notifications も CASCADE で削除）          │   │
+│  │  - notifications: status='sent' かつ送信から 30 日超     │   │
+│  └──────────────────────────────────────────────────────────┘   │
 │                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Manual Cleanup Functions (for on-demand execution)       │  │
-│  │  - manual_cleanup_old_tickets(retention_days)             │  │
-│  │  - manual_cleanup_sent_notifications(retention_days)      │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  手動クリーンアップ関数                                  │   │
+│  │  - manual_cleanup_old_tickets(retention_days)            │   │
+│  │  - manual_cleanup_sent_notifications(retention_days)     │   │
+│  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Cleanup Logic
+## 削除ロジック
 
-### Tickets Table
+### tickets
 
 ```sql
+-- cleanup-old-tickets
 DELETE FROM public.tickets
 WHERE match_date < NOW() - INTERVAL '30 days';
+
+-- weekly-cleanup（cleanup_old_data()）
+DELETE FROM tickets
+WHERE match_date < NOW() - INTERVAL '7 days';
 ```
 
-**Rationale**: Past match tickets no longer require notifications. 30-day retention allows for
-post-match reference if needed.
+試合が終わったチケットは通知の対象外になるため、削除します。
 
-### Notifications Table
+### notifications
 
 ```sql
 DELETE FROM public.notifications
-WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '90 days';
+WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '30 days';
 ```
 
-**Rationale**: Only `sent` notifications are deleted. `scheduled` and `failed` notifications are
-preserved for debugging and retry purposes. 90-day retention provides sufficient audit trail.
+このジョブが削除するのは `sent` の通知だけです。`scheduled`・`failed`・`cancelled`
+の通知は、紐づくチケットが削除されるまで残ります。
 
-## Manual Cleanup Functions
+## 手動クリーンアップ関数
 
-For on-demand cleanup or custom retention periods:
+任意の保持期間で削除するときに使います。どちらも `service_role` にだけ実行権限があります。
 
-### Cleanup Old Tickets
+### 古いチケットの削除
 
 ```sql
-SELECT * FROM manual_cleanup_old_tickets(30);  -- Default: 30 days
-SELECT * FROM manual_cleanup_old_tickets(7);   -- Custom: 7 days
+SELECT * FROM manual_cleanup_old_tickets(30);  -- 既定: 30 日
+SELECT * FROM manual_cleanup_old_tickets(7);   -- 任意: 7 日
 ```
 
-**Returns**:
+**戻り値**:
 
-| Column          | Type    | Description                    |
-| --------------- | ------- | ------------------------------ |
-| `deleted_count` | INTEGER | Number of deleted records      |
-| `cleanup_info`  | TEXT    | Human-readable cleanup summary |
+| カラム          | 型      | 説明               |
+| --------------- | ------- | ------------------ |
+| `deleted_count` | INTEGER | 削除したレコード数 |
+| `cleanup_info`  | TEXT    | 削除内容の説明     |
 
-### Cleanup Sent Notifications
+### 送信済み通知の削除
 
 ```sql
-SELECT * FROM manual_cleanup_sent_notifications(90);  -- Default: 90 days
-SELECT * FROM manual_cleanup_sent_notifications(30);  -- Custom: 30 days
+SELECT * FROM manual_cleanup_sent_notifications(30);  -- 既定: 30 日
+SELECT * FROM manual_cleanup_sent_notifications(7);   -- 任意: 7 日
 ```
 
-**Returns**: Same structure as `manual_cleanup_old_tickets`.
+**戻り値**: `manual_cleanup_old_tickets` と同じ。
 
-## Security
+## セキュリティ
 
-### Schema Qualification
+### スキーマの明示
 
-All cleanup operations use explicit `public.` schema prefix:
+手動クリーンアップ関数は `public.` を明示してテーブルを指定します。
 
 ```sql
 DELETE FROM public.tickets ...
 DELETE FROM public.notifications ...
 ```
 
-**Reason**: Functions use `SET search_path = ''` for security (prevents search_path injection
-attacks). Without explicit schema, tables cannot be found.
+**理由**: 関数は search_path インジェクション対策として `SET search_path = ''`
+を設定しているため、スキーマを省略するとテーブルが見つかりません。
 
-### Permission Control
+### 権限
 
-- Cron jobs execute with database owner privileges
-- Manual functions are granted to `service_role` only
-- RLS policies apply to all operations
+- cron ジョブはデータベース所有者の権限で実行される
+- 手動関数の実行権限は `service_role` にのみ付与している
 
-## Verification
+## 確認方法
 
-### Check Scheduled Jobs
+### スケジュール済みジョブ
 
 ```sql
 SELECT jobname, schedule, command
 FROM cron.job
-WHERE jobname IN ('cleanup-old-tickets', 'cleanup-sent-notifications');
+WHERE jobname IN ('cleanup-old-tickets', 'cleanup-sent-notifications', 'weekly-cleanup');
 ```
 
-### Check Job Execution History
+### 実行履歴
 
 ```sql
 SELECT jobid, runid, job_pid, status, return_message, start_time, end_time
@@ -133,57 +141,56 @@ ORDER BY start_time DESC
 LIMIT 10;
 ```
 
-### Test Manual Functions
+### 削除対象の件数（削除はしない）
 
 ```sql
--- Dry run: Check what would be deleted (don't actually delete)
-SELECT COUNT(*) FROM tickets WHERE match_date < NOW() - INTERVAL '30 days';
-SELECT COUNT(*) FROM notifications WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '90 days';
-
--- Execute cleanup
-SELECT * FROM manual_cleanup_old_tickets(30);
-SELECT * FROM manual_cleanup_sent_notifications(90);
+SELECT COUNT(*) FROM tickets WHERE match_date < NOW() - INTERVAL '7 days';
+SELECT COUNT(*) FROM notifications WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '30 days';
 ```
 
-## Migration File
+## マイグレーションファイル
 
-Location: `supabase/migrations/024_auto_cleanup_tickets_notifications.sql`
+- `supabase/migrations/002_cron_jobs.sql`: `weekly-cleanup` の登録
+- `supabase/migrations/013_remove_unused_log_tables.sql`: `cleanup_old_data()` の現在の定義
+- `supabase/migrations/024_auto_cleanup_tickets_notifications.sql`:
+  `cleanup-old-tickets`、`manual_cleanup_old_tickets`
+- `supabase/migrations/025_update_notification_cleanup_retention.sql`:
+  `cleanup-sent-notifications`、`manual_cleanup_sent_notifications`
 
-## Testing
+## テスト
 
-Integration tests: `tests/integration/database-cleanup.test.ts`
+統合テスト: `tests/integration/database-cleanup.test.ts`
 
-| Test Case                           | Description                                                |
-| ----------------------------------- | ---------------------------------------------------------- |
-| `manual_cleanup_old_tickets`        | Verifies tickets older than 30 days are deleted            |
-| `manual_cleanup_sent_notifications` | Verifies sent notifications older than 90 days are deleted |
-| `retention period edge cases`       | Verifies boundary conditions (29 vs 31 days)               |
+| テストケース                        | 内容                                                 |
+| ----------------------------------- | ---------------------------------------------------- |
+| `manual_cleanup_old_tickets`        | 試合日から 30 日を過ぎたチケットが削除されること     |
+| `manual_cleanup_sent_notifications` | 送信から 30 日を過ぎた `sent` の通知が削除されること |
+| `retention period edge cases`       | 境界値（29 日と 31 日）の扱い                        |
 
-## Troubleshooting
+## トラブルシューティング
 
-### Cron Job Not Running
+### cron ジョブが実行されない
 
-1. Check if `pg_cron` extension is enabled:
+1. `pg_cron` 拡張が有効か確認する
    ```sql
    SELECT * FROM pg_extension WHERE extname = 'pg_cron';
    ```
 
-2. Verify job is scheduled:
+2. ジョブが登録されているか確認する
    ```sql
    SELECT * FROM cron.job;
    ```
 
-3. Check job execution logs:
+3. 実行ログを確認する
    ```sql
    SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 5;
    ```
 
-### Manual Function Returns Error
+### 手動関数がエラーになる
 
-- Ensure calling with `service_role` key (not `anon` key)
-- Check table permissions and RLS policies
+- `service_role` キーで実行しているか確認する（`anon` キーでは実行できない）
 
-## Related Documentation
+## 関連ドキュメント
 
-- [System Architecture](./system-architecture.md)
-- [Database Schema](../supabase/migrations/)
+- [Supabase RLS 設定](security/supabase-rls-settings.md)
+- [データベーススキーマ（マイグレーション）](../supabase/migrations/)
