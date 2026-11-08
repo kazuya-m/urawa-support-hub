@@ -7,7 +7,6 @@
 
 import { load } from 'std/dotenv/mod.ts';
 import { LINE_MESSAGE_TEMPLATES, NOTIFICATION_TYPE_STYLES } from '@/config/notification.ts';
-import { URAWA_URL_CONFIG } from '@/config/url.ts';
 import { NOTIFICATION_TYPES, NotificationType } from '@/domain/config/NotificationConfig.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
 import { getErrorMessage } from '@/shared/utils/errorUtils.ts';
@@ -45,7 +44,7 @@ const testTicket = {
 };
 
 // API エンドポイント
-const BROADCAST_API = URAWA_URL_CONFIG.staticUrls.lineApiBroadcast;
+const BROADCAST_API = 'https://api.line.me/v2/bot/message/broadcast';
 
 /**
  * 指定した通知タイプでLINE通知を送信
