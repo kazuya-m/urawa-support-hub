@@ -10,11 +10,6 @@ export class MockTicketRepository implements ITicketRepository {
   private mockFindByStatusInResult: Ticket[] = [];
   private mockFindByStatusInError: Error | null = null;
 
-  async findAll(): Promise<Ticket[]> {
-    await Promise.resolve();
-    return Array.from(this.tickets.values());
-  }
-
   async findById(id: string): Promise<Ticket | null> {
     await Promise.resolve();
     return this.tickets.get(id) || null;
@@ -30,11 +25,6 @@ export class MockTicketRepository implements ITicketRepository {
       }
     }
     return resultMap;
-  }
-
-  async findByDateRange(): Promise<Ticket[]> {
-    await Promise.resolve();
-    return Array.from(this.tickets.values());
   }
 
   async findByStatusIn(statuses: string[]): Promise<Ticket[]> {

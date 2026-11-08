@@ -72,38 +72,6 @@ Deno.test('TicketRepository - update', async () => {
   }
 });
 
-Deno.test('TicketRepository - findAll', async () => {
-  const testTicket = await createTestTicketForIntegration('findAll');
-
-  try {
-    await ticketRepo.upsert(testTicket);
-
-    const results = await ticketRepo.findAll();
-    const found = results.find((ticket) => ticket.id === testTicket.id);
-
-    assertNotEquals(found, undefined);
-    assertEquals(found?.matchName, testTicket.matchName);
-  } finally {
-    await cleanupTicket(testTicket.id);
-  }
-});
-
-Deno.test('TicketRepository - findByDateRange', async () => {
-  const testTicket = await createTestTicketForIntegration('findByDateRange');
-
-  try {
-    await ticketRepo.upsert(testTicket);
-
-    const currentTime = new Date();
-    const results = await ticketRepo.findByDateRange('match_date', currentTime);
-    const found = results.find((ticket) => ticket.id === testTicket.id);
-
-    assertNotEquals(found, undefined);
-  } finally {
-    await cleanupTicket(testTicket.id);
-  }
-});
-
 Deno.test('TicketRepository - delete', async () => {
   const testTicket = await createTestTicketForIntegration('delete');
 
@@ -168,36 +136,6 @@ Deno.test('NotificationRepository - findByTicketId', async () => {
 
     assertNotEquals(found, undefined);
     assertEquals(found?.ticketId, testTicket.id);
-  } finally {
-    await cleanupNotification(testNotification.id);
-    await cleanupTicket(testTicket.id);
-  }
-});
-
-Deno.test('NotificationRepository - findByColumn', async () => {
-  const testTicket = await createTestTicketForIntegration('notification-findByColumn');
-  const testNotification = new Notification({
-    id: crypto.randomUUID(),
-    ticketId: testTicket.id,
-    notificationType: 'day_before' as const,
-    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    sentAt: null,
-    status: 'scheduled' as const,
-    errorMessage: null,
-    cloudTaskId: null,
-    createdAt: new Date(),
-    updatedAt: null,
-  });
-
-  try {
-    await ticketRepo.upsert(testTicket);
-    await notificationRepo.save(testNotification);
-
-    const results = await notificationRepo.findByColumn('status', 'scheduled');
-    const found = results.find((notification) => notification.id === testNotification.id);
-
-    assertNotEquals(found, undefined);
-    assertEquals(found?.status, 'scheduled');
   } finally {
     await cleanupNotification(testNotification.id);
     await cleanupTicket(testTicket.id);
