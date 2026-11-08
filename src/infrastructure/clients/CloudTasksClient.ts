@@ -235,51 +235,6 @@ export class CloudTasksClient implements ICloudTasksClient {
     }
   }
 
-  async listTasks(queueName?: string): Promise<Task[]> {
-    const queue = queueName || this.config.queueName;
-    const queuePath = this.client.queuePath(this.config.projectId, this.config.location, queue);
-
-    if (this.config.enableDebugLogs) {
-      CloudLogger.debug('Listing tasks in queue', {
-        category: LogCategory.CLOUD_TASKS,
-        context: {
-          queueName: queue,
-          processingStage: 'list_start',
-        },
-      });
-    }
-
-    try {
-      const [tasks] = await this.client.listTasks({ parent: queuePath });
-
-      return tasks.map((task) => {
-        return {
-          name: task.name || '',
-          scheduleTime: task.scheduleTime
-            ? new Date(Number(task.scheduleTime.seconds) * 1000)
-            : new Date(),
-          payload: task.httpRequest?.body
-            ? JSON.parse(atob(task.httpRequest.body as string))
-            : null,
-          httpRequest: {
-            url: task.httpRequest?.url || '',
-            httpMethod: String(task.httpRequest?.httpMethod || 'POST'),
-          },
-        };
-      });
-    } catch (error) {
-      CloudLogger.error('Failed to list tasks', {
-        category: LogCategory.CLOUD_TASKS,
-        context: {
-          queueName: queue,
-          processingStage: 'list_error',
-        },
-        error: toErrorInfo(error, ErrorCodes.CLOUD_TASKS_ERROR, true),
-      });
-      return [];
-    }
-  }
-
   /**
    * 認証情報の検証
    * 本番環境でのトークン取得とプロジェクトアクセスをテスト
@@ -344,65 +299,6 @@ export class CloudTasksClient implements ICloudTasksClient {
         },
         error: toErrorInfo(error),
       });
-    }
-  }
-
-  /**
-   * タスクIDからタスクの詳細情報を取得
-   * デバッグや監視用途で使用
-   */
-  async getTask(taskId: string): Promise<Task | null> {
-    const taskName = this.client.taskPath(
-      this.config.projectId,
-      this.config.location,
-      this.config.queueName,
-      taskId,
-    );
-
-    if (this.config.enableDebugLogs) {
-      CloudLogger.debug('Getting task details', {
-        category: LogCategory.CLOUD_TASKS,
-        context: {
-          taskId,
-          queueName: this.config.queueName,
-          processingStage: 'get_start',
-        },
-      });
-    }
-
-    try {
-      const [task] = await this.client.getTask({ name: taskName });
-
-      return {
-        name: task.name || '',
-        scheduleTime: task.scheduleTime
-          ? new Date(Number(task.scheduleTime.seconds) * 1000)
-          : new Date(),
-        payload: task.httpRequest?.body
-          ? (() => {
-            try {
-              return JSON.parse(atob(task.httpRequest.body as string));
-            } catch {
-              return null;
-            }
-          })()
-          : null,
-        httpRequest: {
-          url: task.httpRequest?.url || '',
-          httpMethod: String(task.httpRequest?.httpMethod || 'POST'),
-        },
-      };
-    } catch (error) {
-      CloudLogger.error('Failed to get task', {
-        category: LogCategory.CLOUD_TASKS,
-        context: {
-          taskId,
-          queueName: this.config.queueName,
-          processingStage: 'get_error',
-        },
-        error: toErrorInfo(error, ErrorCodes.CLOUD_TASKS_ERROR, true),
-      });
-      return null;
     }
   }
 }

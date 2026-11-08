@@ -20,6 +20,4 @@ export interface EnqueueTaskParams {
 export interface ICloudTasksClient {
   enqueueTask(params: EnqueueTaskParams): Promise<string>;
   dequeueTask(taskId: string): Promise<void>;
-  listTasks(queueName?: string): Promise<Task[]>;
-  getTask(taskId: string): Promise<Task | null>;
 }

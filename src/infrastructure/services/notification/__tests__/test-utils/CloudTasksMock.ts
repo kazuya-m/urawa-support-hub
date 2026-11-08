@@ -10,7 +10,14 @@ export interface MockCloudTasksOptions {
   taskId?: string;
 }
 
-export function createMockCloudTasksClient(options: MockCloudTasksOptions = {}): CloudTasksClient {
+/**
+ * listTasks は本番の CloudTasksClient には無い、登録済みタスクを確認するためのテスト専用ヘルパー
+ */
+export type MockCloudTasksClient = CloudTasksClient & { listTasks(): Promise<Task[]> };
+
+export function createMockCloudTasksClient(
+  options: MockCloudTasksOptions = {},
+): MockCloudTasksClient {
   const {
     shouldError = false,
     errorMessage = 'Mock Cloud Tasks error',
@@ -53,25 +60,6 @@ export function createMockCloudTasksClient(options: MockCloudTasksOptions = {}):
       return Promise.resolve(tasks);
     },
 
-    getTask(taskId: string): Promise<Task | null> {
-      if (shouldError) {
-        return Promise.reject(new Error(errorMessage));
-      }
-      const params = scheduledTasks.get(taskId);
-      if (!params) return Promise.resolve(null);
-
-      const task = {
-        name: taskId,
-        scheduleTime: params.scheduledTime,
-        payload: params.payload,
-        httpRequest: {
-          url: params.targetUrl,
-          httpMethod: params.httpMethod || 'POST',
-        },
-      };
-      return Promise.resolve(task);
-    },
-
     // 内部プロパティ（実際のCloudTasksClientには存在しないが、型の互換性のため）
     get client() {
       return null;
@@ -90,5 +78,5 @@ export function createMockCloudTasksClient(options: MockCloudTasksOptions = {}):
     },
   };
 
-  return mockClient as unknown as CloudTasksClient;
+  return mockClient as unknown as MockCloudTasksClient;
 }

@@ -6,16 +6,12 @@ import type { ElementHandle } from 'playwright';
  */
 export interface IPage {
   $eval<R>(selector: string, pageFunction: (element: Element) => R): Promise<R>;
-  $$eval<R>(selector: string, pageFunction: (elements: Element[]) => R): Promise<R>;
   $(selector: string): Promise<ElementHandle | null>;
   $$(selector: string): Promise<ElementHandle[]>;
-  click(selector: string): Promise<void>;
   setExtraHTTPHeaders(headers: Record<string, string>): Promise<void>;
   setViewportSize(size: { width: number; height: number }): Promise<void>;
   waitForTimeout(ms: number): Promise<void>;
   waitForSelector(selector: string, options?: { timeout?: number }): Promise<ElementHandle | null>;
-  evaluate<R>(pageFunction: () => R): Promise<R>;
-  textContent(): Promise<string | null>;
 }
 
 /**
