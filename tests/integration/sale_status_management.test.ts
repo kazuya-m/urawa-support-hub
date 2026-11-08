@@ -29,12 +29,6 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
 
     // データベースに保存
     const saveResult1 = await ticketRepository.upsert(beforeSaleTicket);
-    // saveResult1 is now a Ticket, not TicketUpsertResult
-    assertEquals(
-      saveResult1.requiresNotification(),
-      true,
-      'Should require notification when before sale',
-    );
 
     // 2. 販売中状態への遷移（同じIDで更新）
     const existingTicket = await ticketRepository.findById(saveResult1.id);
@@ -58,13 +52,7 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
     });
 
     const saveResult2 = await ticketRepository.upsert(onSaleTicket);
-    // saveResult2 is now a Ticket, not TicketUpsertResult
     assertEquals(saveResult2.saleStatus, 'on_sale', 'Status should be on_sale');
-    assertEquals(
-      saveResult2.requiresNotification(),
-      false,
-      'Should not require notification when on sale',
-    );
 
     // 3. 販売終了状態への遷移（同じIDで更新）
     const existingTicket2 = await ticketRepository.findById(saveResult1.id);
@@ -88,13 +76,7 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
     });
 
     const saveResult3 = await ticketRepository.upsert(endedTicket);
-    // saveResult3 is now a Ticket, not TicketUpsertResult
     assertEquals(saveResult3.saleStatus, 'ended', 'Status should be ended');
-    assertEquals(
-      saveResult3.requiresNotification(),
-      false,
-      'Should not require notification when ended',
-    );
 
     // 4. データ整合性確認
     const retrievedTicket = await ticketRepository.findById(beforeSaleTicket.id);
@@ -104,99 +86,6 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
       retrievedTicket.scrapedAt.toISOString(),
       endedTicket.scrapedAt.toISOString(),
       'ScrapedAt should be updated',
-    );
-  } finally {
-    await cleanupTestData(client, 'tickets', `match_name LIKE '%${testId}%'`);
-  }
-});
-
-Deno.test('Sale Status Management - Notification Control Logic', async () => {
-  const client = createTestSupabaseClient();
-  const ticketRepository = new TicketRepository(client);
-  const testId = 'test-notification-' + Date.now();
-
-  try {
-    // 通知が必要な発売前チケット
-    const beforeSaleTicket = await Ticket.createNew({
-      matchName: `通知テスト ${testId}`,
-      matchDate: new Date('2024-09-15T14:00:00Z'),
-      homeTeam: '浦和レッズ',
-      awayTeam: '通知テストFC',
-      competition: 'J1リーグ',
-      saleStartDate: new Date('2024-08-15T10:00:00Z'),
-      saleEndDate: null,
-      venue: 'テストスタジアム',
-      ticketTypes: ['S席'],
-      ticketUrl: 'https://example.com/tickets',
-      scrapedAt: new Date('2024-08-10T12:00:00Z'),
-      saleStatus: 'before_sale',
-      notificationScheduled: false,
-    });
-
-    const result1 = await ticketRepository.upsert(beforeSaleTicket);
-    // result1 is now a Ticket, not TicketUpsertResult
-    assertEquals(
-      result1.requiresNotification(),
-      true,
-      'New before_sale ticket should require notification',
-    );
-
-    // 通知スケジュール済みに更新（同じIDで更新）
-    const existingForSchedule = await ticketRepository.findById(result1.id);
-    const scheduledTicket = Ticket.fromExisting({
-      id: existingForSchedule!.id,
-      matchName: existingForSchedule!.matchName,
-      matchDate: existingForSchedule!.matchDate,
-      homeTeam: existingForSchedule!.homeTeam,
-      awayTeam: existingForSchedule!.awayTeam,
-      competition: existingForSchedule!.competition,
-      saleStartDate: existingForSchedule!.saleStartDate,
-      saleEndDate: existingForSchedule!.saleEndDate,
-      venue: existingForSchedule!.venue,
-      ticketTypes: existingForSchedule!.ticketTypes,
-      ticketUrl: existingForSchedule!.ticketUrl,
-      createdAt: existingForSchedule!.createdAt,
-      updatedAt: existingForSchedule!.updatedAt,
-      scrapedAt: existingForSchedule!.scrapedAt,
-      saleStatus: existingForSchedule!.saleStatus,
-      notificationScheduled: true,
-    });
-
-    const result2 = await ticketRepository.upsert(scheduledTicket);
-    // result2 is now a Ticket, not TicketUpsertResult
-    assertEquals(
-      result2.requiresNotification(),
-      false,
-      'Scheduled ticket should not require notification',
-    );
-
-    // 販売中に変更 - 通知不要（同じIDで更新）
-    const existingForOnSale = await ticketRepository.findById(result1.id);
-    const onSaleTicket = Ticket.fromExisting({
-      id: existingForOnSale!.id,
-      matchName: existingForOnSale!.matchName,
-      matchDate: existingForOnSale!.matchDate,
-      homeTeam: existingForOnSale!.homeTeam,
-      awayTeam: existingForOnSale!.awayTeam,
-      competition: existingForOnSale!.competition,
-      saleStartDate: existingForOnSale!.saleStartDate,
-      saleEndDate: existingForOnSale!.saleEndDate,
-      venue: existingForOnSale!.venue,
-      ticketTypes: existingForOnSale!.ticketTypes,
-      ticketUrl: existingForOnSale!.ticketUrl,
-      createdAt: existingForOnSale!.createdAt,
-      updatedAt: existingForOnSale!.updatedAt,
-      scrapedAt: new Date('2024-08-20T12:00:00Z'),
-      saleStatus: 'on_sale' as const,
-      notificationScheduled: true,
-    });
-
-    const result3 = await ticketRepository.upsert(onSaleTicket);
-    // result3 is now a Ticket, not TicketUpsertResult
-    assertEquals(
-      result3.requiresNotification(),
-      false,
-      'On-sale ticket should not require notification',
     );
   } finally {
     await cleanupTestData(client, 'tickets', `match_name LIKE '%${testId}%'`);

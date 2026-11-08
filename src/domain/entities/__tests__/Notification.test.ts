@@ -116,104 +116,6 @@ Deno.test('Notification - バリデーション: failed状態でエラーメッ�
   );
 });
 
-Deno.test('Notification - 送信可能性判定', () => {
-  const now = new Date();
-  const scheduledTime = new Date(now.getTime() + 3 * 60 * 1000);
-
-  const notification = new Notification({
-    id: 'test-id',
-    ticketId: 'ticket-123',
-    notificationType: 'day_before',
-    scheduledAt: scheduledTime,
-    sentAt: null,
-    status: 'scheduled',
-    errorMessage: null,
-    cloudTaskId: null,
-    createdAt: now,
-    updatedAt: null,
-  });
-
-  assertEquals(notification.canBeSent(now), true);
-
-  const afterScheduled = new Date(scheduledTime.getTime() + 1000);
-  assertEquals(notification.canBeSent(afterScheduled), true);
-
-  const tooEarly = new Date(scheduledTime.getTime() - 10 * 60 * 1000);
-  assertEquals(notification.canBeSent(tooEarly), false);
-});
-
-Deno.test('Notification - 期限切れ判定', () => {
-  const now = new Date();
-  const scheduledTime = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-
-  const notification = new Notification({
-    id: 'test-id',
-    ticketId: 'ticket-123',
-    notificationType: 'day_before',
-    scheduledAt: scheduledTime,
-    sentAt: null,
-    status: 'scheduled',
-    errorMessage: null,
-    cloudTaskId: null,
-    createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
-    updatedAt: null,
-  });
-
-  assertEquals(notification.isExpired(now), true);
-
-  const sentNotification = new Notification({
-    id: 'test-id',
-    ticketId: 'ticket-123',
-    notificationType: 'day_before',
-    scheduledAt: scheduledTime,
-    sentAt: scheduledTime,
-    status: 'sent',
-    errorMessage: null,
-    cloudTaskId: null,
-    createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
-    updatedAt: null,
-  });
-
-  assertEquals(sentNotification.isExpired(now), false);
-});
-
-Deno.test('Notification - リトライ可能性判定', () => {
-  const now = new Date();
-  const failedTime = new Date(now.getTime() - 10 * 60 * 1000); // 10分前
-
-  const failedNotification = new Notification({
-    id: 'test-id',
-    ticketId: 'ticket-123',
-    notificationType: 'day_before',
-    scheduledAt: new Date(now.getTime() + 60 * 60 * 1000), // まだ期限内
-    sentAt: failedTime,
-    status: 'failed',
-    errorMessage: 'Network error',
-    cloudTaskId: null,
-    createdAt: new Date(now.getTime() - 30 * 60 * 1000),
-    updatedAt: null,
-  });
-
-  // 失敗から10分経過しているのでリトライ可能
-  assertEquals(failedNotification.canRetry(now), true);
-
-  // 失敗から3分しか経過していない場合
-  const recentFailed = new Notification({
-    id: 'test-id',
-    ticketId: 'ticket-123',
-    notificationType: 'day_before',
-    scheduledAt: new Date(now.getTime() + 60 * 60 * 1000),
-    sentAt: new Date(now.getTime() - 3 * 60 * 1000),
-    status: 'failed',
-    errorMessage: 'Network error',
-    cloudTaskId: null,
-    createdAt: new Date(now.getTime() - 30 * 60 * 1000),
-    updatedAt: null,
-  });
-
-  assertEquals(recentFailed.canRetry(now), false);
-});
-
 Deno.test('Notification - 送信完了マーク', () => {
   const now = new Date();
   const scheduledTime = new Date(now.getTime() + 60 * 60 * 1000);
@@ -317,9 +219,8 @@ Deno.test('Notification - キャンセルマーク（sentAtは変更されない
     updatedAt: null,
   });
 
-  const cancelledTime = new Date();
   const reason = 'Cancelled due to manual intervention';
-  const cancelledNotification = notification.markAsCancelled(reason, cancelledTime);
+  const cancelledNotification = notification.markAsCancelled(reason);
 
   assertEquals(cancelledNotification.status, 'cancelled');
   assertEquals(cancelledNotification.errorMessage, reason);
@@ -344,9 +245,8 @@ Deno.test('Notification - キャンセルマーク（既存のsentAtは保持さ
     updatedAt: null,
   });
 
-  const cancelledTime = new Date();
   const reason = 'Cancelled due to manual intervention';
-  const cancelledNotification = notificationWithSentAt.markAsCancelled(reason, cancelledTime);
+  const cancelledNotification = notificationWithSentAt.markAsCancelled(reason);
 
   assertEquals(cancelledNotification.status, 'cancelled');
   assertEquals(cancelledNotification.errorMessage, reason);

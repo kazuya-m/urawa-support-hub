@@ -265,7 +265,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
                 ticket,
                 previousTicket!,
               );
-              const cancelledNotification = notification.markAsCancelled(reason, new Date());
+              const cancelledNotification = notification.markAsCancelled(reason);
               await this.notificationRepository.update(cancelledNotification);
             }
           }
