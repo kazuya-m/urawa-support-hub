@@ -14,7 +14,7 @@ import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITic
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { AppError, DatabaseError } from '@/shared/errors/index.ts';
-import { ErrorCodes as AppErrorCodes } from '@/shared/errors/ErrorCodes.ts';
+import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 export class TicketCollectionUseCase implements ITicketCollectionUseCase {
@@ -88,7 +88,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
       if (error instanceof DatabaseError) {
         const appError = new AppError(
           `[TicketCollectionUseCase] Database operation failed: ${error.message}`,
-          AppErrorCodes.TICKET_COLLECTION_FAILED,
+          ErrorCodes.TICKET_COLLECTION_FAILED,
           error,
           { sessionId, executionDurationMs: executionDuration },
         );
@@ -107,7 +107,7 @@ export class TicketCollectionUseCase implements ITicketCollectionUseCase {
       // その他のエラー
       const appError = new AppError(
         `[TicketCollectionUseCase] Ticket collection failed: ${getErrorMessage(error)}`,
-        AppErrorCodes.USECASE_EXECUTION_FAILED,
+        ErrorCodes.USECASE_EXECUTION_FAILED,
         error instanceof Error ? error : undefined,
         { sessionId, executionDurationMs: executionDuration },
       );

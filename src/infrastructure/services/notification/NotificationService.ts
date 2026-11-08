@@ -11,7 +11,7 @@ import { formatJST } from '@/shared/utils/datetime.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
-import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
+import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 
 export class NotificationService implements INotificationService {
   constructor(

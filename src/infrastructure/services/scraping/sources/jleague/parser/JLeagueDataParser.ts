@@ -5,7 +5,7 @@ import { J_LEAGUE_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/sou
 import { IDataParser } from '@/infrastructure/services/scraping/shared/interfaces/index.ts';
 import { JLeagueRawTicketData } from '../types/JLeagueTypes.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
-import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
+import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import { createJSTDateTime } from '@/shared/utils/datetime.ts';
