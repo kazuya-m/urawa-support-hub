@@ -6,8 +6,6 @@
 import { format, set, subDays } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { TZDate } from '@date-fns/tz';
-import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
-import { LogCategory } from '@/shared/logging/types.ts';
 
 const JST_TIMEZONE = 'Asia/Tokyo';
 
@@ -97,49 +95,10 @@ export function setJSTTimeAndConvertToUTC(
 }
 
 /**
- * 現在時刻をUTC Dateとして取得
- * @returns 現在のUTC Date
- */
-export function getCurrentTime(): Date {
-  return new Date();
-}
-
-/**
  * 日付をyyyy-MM-dd形式の文字列として取得
  * @param date Dateオブジェクト
  * @returns yyyy-MM-dd形式の文字列
  */
 export function formatDateOnly(date: Date): string {
   return formatJST(date, 'yyyy-MM-dd');
-}
-
-/**
- * デバッグ用: 日時を見やすくログ出力
- * @param label ラベル
- * @param date Dateオブジェクト
- */
-export function logDateTime(label: string, date: Date): void {
-  // 本番環境ではログ出力しない
-  if (Deno.env.get('NODE_ENV') === 'production') {
-    return;
-  }
-
-  CloudLogger.debug(
-    `${label}: UTC: ${date.toISOString()}, JST: ${
-      formatJST(date, 'yyyy-MM-dd HH:mm:ss zzz')
-    }, Timestamp: ${date.getTime()}`,
-    {
-      category: LogCategory.SYSTEM,
-      context: {
-        stage: 'datetime_debug',
-      },
-      data: {
-        result: {
-          utc: date.toISOString(),
-          jst: formatJST(date, 'yyyy-MM-dd HH:mm:ss zzz'),
-          timestamp: date.getTime(),
-        },
-      },
-    },
-  );
 }

@@ -30,18 +30,4 @@ export abstract class BaseError extends Error {
   public formatMessage(): string {
     return `[${this.code}] ${this.message}`;
   }
-
-  /**
-   * 構造化ログ用のオブジェクトを生成
-   */
-  public toLogObject(): Record<string, unknown> {
-    return {
-      name: this.name,
-      code: this.code,
-      message: this.message,
-      timestamp: this.timestamp.toISOString(),
-      context: this.context,
-      stack: this.stack,
-    };
-  }
 }

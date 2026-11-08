@@ -34,13 +34,6 @@ export class DatabaseError extends InfrastructureError {
       type: 'DATABASE',
     });
   }
-
-  /**
-   * データが見つからないエラーかどうか判定
-   */
-  public isNotFound(): boolean {
-    return this.code === 'DB_NOT_FOUND';
-  }
 }
 
 /**
