@@ -252,3 +252,78 @@ Deno.test('HiroshimaDataParser', async (t) => {
     assertEquals(typeof saleStatus === 'string' || saleStatus === undefined, true);
   });
 });
+
+Deno.test('HiroshimaDataParser - 販売状況キーワード判定', async (t) => {
+  const parser = new HiroshimaDataParser();
+  const cases: Array<[string, string]> = [
+    ['完売', 'sold_out'],
+    ['売り切れ', 'sold_out'],
+    ['全席種完売', 'sold_out'],
+    ['販売終了', 'ended'],
+    ['発売終了', 'ended'],
+    ['終了', 'ended'],
+    ['販売中', 'on_sale'],
+    ['発売中', 'on_sale'],
+    ['WEBで購入', 'on_sale'],
+    ['購入可能', 'on_sale'],
+    ['販売開始前', 'before_sale'],
+    ['発売前', 'before_sale'],
+    ['販売予定', 'before_sale'],
+    // 判定順: 完売 → 終了 → 販売中 → 販売前
+    ['完売 販売中', 'sold_out'],
+    ['販売中（終了間近）', 'ended'],
+    // どれにも当たらなければ販売前（広島は「空席なし」を完売として扱わない）
+    ['空席なし', 'before_sale'],
+    ['未定', 'before_sale'],
+  ];
+
+  for (const [saleStatus, expected] of cases) {
+    await t.step(`'${saleStatus}' → ${expected}`, async () => {
+      const tickets = await parser.parseMultipleToTickets([{
+        matchDate: '11.9',
+        matchTime: '13:00',
+        opponent: '浦和レッズ',
+        venue: 'エディオンピースウイング広島',
+        saleStatus,
+        ticketUrl: 'https://ticket.sanfrecce.co.jp/',
+        ticketTypes: ['ビジター席'],
+      }]);
+      assertEquals(tickets[0].saleStatus, expected);
+    });
+  }
+});
+
+Deno.test('HiroshimaDataParser - 大会名の正規化（部分一致）', async (t) => {
+  const parser = new HiroshimaDataParser();
+  const cases: Array<[string | undefined, string]> = [
+    [undefined, 'J1リーグ'],
+    ['', 'J1リーグ'],
+    ['J1', 'J1リーグ'],
+    ['明治安田J1', 'J1リーグ'],
+    ['明治安田J1リーグ', 'J1リーグ'],
+    ['ルヴァン', 'ルヴァンカップ'],
+    ['JリーグYBCルヴァンカップ 準決勝', 'ルヴァンカップ'],
+    ['天皇杯 3回戦', '天皇杯'],
+    ['ACL', 'ACLE'],
+    ['ACLE', 'ACLE'],
+    // 部分一致で 'ACL' が先に当たるため ACLE になる（現行の挙動）
+    ['ACL2', 'ACLE'],
+    ['プレシーズンマッチ', 'プレシーズンマッチ'],
+  ];
+
+  for (const [competition, expected] of cases) {
+    await t.step(`'${competition}' → ${expected}`, async () => {
+      const tickets = await parser.parseMultipleToTickets([{
+        matchDate: '11.9',
+        matchTime: '13:00',
+        opponent: '浦和レッズ',
+        venue: 'エディオンピースウイング広島',
+        saleStatus: '販売中',
+        ticketUrl: 'https://ticket.sanfrecce.co.jp/',
+        ticketTypes: ['ビジター席'],
+        competition,
+      }]);
+      assertEquals(tickets[0].competition, expected);
+    });
+  }
+});
