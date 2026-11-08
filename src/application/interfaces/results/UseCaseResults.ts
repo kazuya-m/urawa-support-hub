@@ -29,13 +29,3 @@ export interface NotificationResult {
   executionDurationMs: number;
   errorMessage?: string;
 }
-
-export interface BatchProcessingResult {
-  status: 'success' | 'error';
-  operation: 'process_pending' | 'cleanup_expired';
-  processed?: number;
-  failed?: number;
-  cleaned?: number;
-  executionDurationMs: number;
-  errorMessage?: string;
-}

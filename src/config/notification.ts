@@ -8,41 +8,6 @@ import { Ticket } from '@/domain/entities/Ticket.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
 import { formatMatchName } from '@/shared/utils/match.ts';
 
-export interface LineConfig {
-  channelAccessToken: string;
-}
-
-export interface NotificationServiceConfig {
-  line: LineConfig;
-}
-
-/**
- * 環境変数から通知サービス設定を取得
- */
-export function getNotificationConfig(): NotificationServiceConfig {
-  const requiredEnvVars = [
-    'LINE_CHANNEL_ACCESS_TOKEN',
-  ];
-
-  for (const envVar of requiredEnvVars) {
-    if (!Deno.env.get(envVar)) {
-      throw new Error(`Environment variable ${envVar} is required`);
-    }
-  }
-
-  const lineToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
-
-  if (!lineToken) {
-    throw new Error('Required environment variables are not set');
-  }
-
-  return {
-    line: {
-      channelAccessToken: lineToken,
-    },
-  };
-}
-
 /**
  * 通知タイプ別の色とメッセージ設定
  */
