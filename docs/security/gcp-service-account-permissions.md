@@ -57,15 +57,15 @@ Cloud Run は `--no-allow-unauthenticated` でデプロイされるため、`rol
 
 ## 設定コマンド
 
-`PROJECT_ID`・`REGION` は環境に合わせて置き換えます。
+`PROJECT_ID`・`REGION`・`RUN_SA_NAME`・`SCHEDULER_SA_NAME` は環境に合わせて置き換えます。
 
 ```bash
 # サービスアカウントの作成
-gcloud iam service-accounts create cloud-run-service --display-name="Cloud Run service"
-gcloud iam service-accounts create cloud-scheduler-sa --display-name="Cloud Scheduler"
+gcloud iam service-accounts create RUN_SA_NAME --display-name="Cloud Run service"
+gcloud iam service-accounts create SCHEDULER_SA_NAME --display-name="Cloud Scheduler"
 
-CLOUD_RUN_SA=cloud-run-service@PROJECT_ID.iam.gserviceaccount.com
-SCHEDULER_SA=cloud-scheduler-sa@PROJECT_ID.iam.gserviceaccount.com
+CLOUD_RUN_SA=RUN_SA_NAME@PROJECT_ID.iam.gserviceaccount.com
+SCHEDULER_SA=SCHEDULER_SA_NAME@PROJECT_ID.iam.gserviceaccount.com
 
 # Cloud Run サービス: Cloud Tasks への登録
 gcloud tasks queues add-iam-policy-binding notifications \

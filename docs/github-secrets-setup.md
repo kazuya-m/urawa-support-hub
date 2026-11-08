@@ -25,15 +25,17 @@ GitHub Secrets は、CI/CD で必要な機密情報を暗号化して保存し�
 
 ### 2. Google Cloud Platform（Workload Identity Federation）
 
-| シークレット名    | 説明                                    | 使用するワークフロー                 | 値の例                                                                                                        |
-| ----------------- | --------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `GC_PROJECT_ID`   | GCP プロジェクト ID                     | `deploy.yml`、`deploy-scheduler.yml` | `urawa-support-hub`                                                                                           |
-| `GC_REGION`       | GCP リージョン                          | `deploy.yml`、`deploy-scheduler.yml` | `asia-northeast1`                                                                                             |
-| `WIF_PROVIDER`    | Workload Identity Federation プロバイダ | `deploy.yml`、`deploy-scheduler.yml` | `projects/1081589382080/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider` |
-| `GC_SA_CICD`      | CI/CD 用サービスアカウントのメール      | `deploy.yml`、`deploy-scheduler.yml` | `github-actions-cicd@urawa-support-hub.iam.gserviceaccount.com`                                               |
-| `GC_SA_CLOUD_RUN` | Cloud Run サービスのサービスアカウント  | `deploy.yml`                         | `cloud-run-service@urawa-support-hub.iam.gserviceaccount.com`                                                 |
-| `GC_SA_SCHEDULER` | Cloud Scheduler のサービスアカウント    | `deploy-scheduler.yml`               | `cloud-scheduler-sa@urawa-support-hub.iam.gserviceaccount.com`                                                |
-| `CLOUD_RUN_URL`   | Cloud Run サービスの URL                | `deploy-scheduler.yml`               | `https://urawa-support-hub-xxxxx-an.a.run.app`                                                                |
+値の例のうち大文字の部分（`PROJECT_ID`・`PROJECT_NUMBER`・`POOL_ID`・`PROVIDER_ID`・`*_SA_NAME` など）は、環境ごとの値に置き換えて読んでください。
+
+| シークレット名    | 説明                                    | 使用するワークフロー                 | 値の例                                                                                         |
+| ----------------- | --------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `GC_PROJECT_ID`   | GCP プロジェクト ID                     | `deploy.yml`、`deploy-scheduler.yml` | `PROJECT_ID`                                                                                   |
+| `GC_REGION`       | GCP リージョン                          | `deploy.yml`、`deploy-scheduler.yml` | `asia-northeast1`                                                                              |
+| `WIF_PROVIDER`    | Workload Identity Federation プロバイダ | `deploy.yml`、`deploy-scheduler.yml` | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID` |
+| `GC_SA_CICD`      | CI/CD 用サービスアカウントのメール      | `deploy.yml`、`deploy-scheduler.yml` | `CICD_SA_NAME@PROJECT_ID.iam.gserviceaccount.com`                                              |
+| `GC_SA_CLOUD_RUN` | Cloud Run サービスのサービスアカウント  | `deploy.yml`                         | `RUN_SA_NAME@PROJECT_ID.iam.gserviceaccount.com`                                               |
+| `GC_SA_SCHEDULER` | Cloud Scheduler のサービスアカウント    | `deploy-scheduler.yml`               | `SCHEDULER_SA_NAME@PROJECT_ID.iam.gserviceaccount.com`                                         |
+| `CLOUD_RUN_URL`   | Cloud Run サービスの URL                | `deploy-scheduler.yml`               | `https://urawa-support-hub-HASH-REGION_CODE.a.run.app`                                         |
 
 ## セットアップ手順
 
@@ -73,11 +75,23 @@ CI のテストは `--allow-net=127.0.0.1` で実行され、ワークフロー�
    ```bash
    gcloud iam workload-identity-pools list --location=global
 
+   # POOL_ID は上のコマンドで表示されたプールの ID
    gcloud iam workload-identity-pools providers list \
      --location=global \
-     --workload-identity-pool=github-actions-pool
+     --workload-identity-pool=POOL_ID
 
    # プロバイダーの完全なリソース名をコピー → WIF_PROVIDER
+   ```
+
+   プロバイダーの属性条件（attribute condition）で、このリポジトリからのトークンだけを受け付けるよう絞っていることを確認します。条件が空だと、他のリポジトリの GitHub Actions からも `GC_SA_CICD` を借用できる可能性があります。
+
+   ```bash
+   gcloud iam workload-identity-pools providers describe PROVIDER_ID \
+     --location=global \
+     --workload-identity-pool=POOL_ID \
+     --format='value(attributeCondition)'
+
+   # 例: assertion.repository == 'kazuya-m/urawa-support-hub'
    ```
 
 3. **サービスアカウントのメール**:
