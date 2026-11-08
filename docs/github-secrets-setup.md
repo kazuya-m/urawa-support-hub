@@ -1,244 +1,216 @@
-# GitHub Secrets Setup Guide
+# GitHub Secrets 設定ガイド
 
-This guide explains how to configure GitHub Secrets for the Urawa Support Hub project.
+GitHub Actions のワークフローが参照するシークレットと、その設定方法です。
 
-## Overview
+## 概要
 
-GitHub Secrets are used to securely store sensitive information required for CI/CD pipelines and
-GitHub Actions workflows. These secrets are encrypted and only accessible during workflow execution.
+GitHub Secrets は、CI/CD
+で必要な機密情報を暗号化して保存します。ワークフロー実行時にのみ参照でき、ログでは `***`
+にマスクされます。
 
-## Required Secrets
+アプリケーション（Cloud Run）が実行時に使う `SUPABASE_SERVICE_ROLE_KEY` と
+`LINE_CHANNEL_ACCESS_TOKEN` は、GitHub Secrets ではなく Google Secret Manager から Cloud Run
+に渡します（[セットアップガイド](setup-guide.md#1-gcp-リソースの初期作成初回のみ)）。
 
-The following secrets must be configured in your GitHub repository:
+## 必要なシークレット
 
-### 1. Supabase Configuration
+`.github/workflows/*.yml` が参照するシークレットの一覧です。`deploy.yml` と `migrate-database.yml`
+は `environment: production` で実行されるため、これらが使うシークレットはリポジトリシークレットか
+`production` 環境のシークレットとして登録します。
 
-| Secret Name                 | Description                         | Required | Example Value               |
-| --------------------------- | ----------------------------------- | -------- | --------------------------- |
-| `SUPABASE_URL`              | Supabase project URL                | ✅       | `https://xxxxx.supabase.co` |
-| `SUPABASE_ANON_KEY`         | Supabase anonymous key (public)     | ✅       | `eyJhbGci...`               |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (private) | ✅       | `eyJhbGci...`               |
+### 1. Supabase
 
-### 2. LINE Messaging API
+| シークレット名              | 説明                                                        | 使用するワークフロー   | 値の例                   |
+| --------------------------- | ----------------------------------------------------------- | ---------------------- | ------------------------ |
+| `SUPABASE_URL`              | テストが接続する Supabase の URL                            | `ci.yml`               | `http://127.0.0.1:54321` |
+| `SUPABASE_ANON_KEY`         | テストが使う Supabase 匿名キー                              | `ci.yml`               | `eyJhbGci...`            |
+| `SUPABASE_SERVICE_ROLE_KEY` | テストが使う Supabase サービスロールキー                    | `ci.yml`               | `eyJhbGci...`            |
+| `SUPABASE_ACCESS_TOKEN`     | Supabase のパーソナルアクセストークン                       | `migrate-database.yml` | `sbp_...`                |
+| `SUPABASE_DB_PASSWORD`      | Supabase プロジェクトのデータベースパスワード               | `migrate-database.yml` | -                        |
+| `SUPABASE_PROJECT_ID`       | プロジェクト参照 ID（`supabase link --project-ref` に渡す） | `migrate-database.yml` | `abcdefghijklmnop`       |
 
-| Secret Name                 | Description                     | Required | Example Value   |
-| --------------------------- | ------------------------------- | -------- | --------------- |
-| `LINE_CHANNEL_ACCESS_TOKEN` | LINE Bot channel access token   | ✅       | `Bearer xxx...` |
-| `LINE_GROUP_ID`             | Target LINE group ID (optional) | ⚪       | `Cxxxxx...`     |
+### 2. Google Cloud Platform（Workload Identity Federation）
 
-### 3. Google Cloud Platform (Workload Identity)
+| シークレット名    | 説明                                    | 使用するワークフロー                 | 値の例                                                                                                        |
+| ----------------- | --------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `GC_PROJECT_ID`   | GCP プロジェクト ID                     | `deploy.yml`、`deploy-scheduler.yml` | `urawa-support-hub`                                                                                           |
+| `GC_REGION`       | GCP リージョン                          | `deploy.yml`、`deploy-scheduler.yml` | `asia-northeast1`                                                                                             |
+| `WIF_PROVIDER`    | Workload Identity Federation プロバイダ | `deploy.yml`、`deploy-scheduler.yml` | `projects/1081589382080/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider` |
+| `GC_SA_CICD`      | CI/CD 用サービスアカウントのメール      | `deploy.yml`、`deploy-scheduler.yml` | `github-actions-cicd@urawa-support-hub.iam.gserviceaccount.com`                                               |
+| `GC_SA_CLOUD_RUN` | Cloud Run サービスのサービスアカウント  | `deploy.yml`                         | `cloud-run-service@urawa-support-hub.iam.gserviceaccount.com`                                                 |
+| `GC_SA_SCHEDULER` | Cloud Scheduler のサービスアカウント    | `deploy-scheduler.yml`               | `cloud-scheduler-sa@urawa-support-hub.iam.gserviceaccount.com`                                                |
+| `CLOUD_RUN_URL`   | Cloud Run サービスの URL                | `deploy-scheduler.yml`               | `https://urawa-support-hub-xxxxx-an.a.run.app`                                                                |
 
-| Secret Name       | Description                                    | Required | Example Value                                                                                                 |
-| ----------------- | ---------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
-| `GC_PROJECT_ID`   | GCP project identifier                         | ✅       | `urawa-support-hub`                                                                                           |
-| `GC_REGION`       | Default GCP region                             | ✅       | `asia-northeast1`                                                                                             |
-| `WIF_PROVIDER`    | Workload Identity Federation provider resource | ✅       | `projects/1081589382080/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider` |
-| `GC_SA_CICD`      | CI/CD service account email                    | ✅       | `github-actions-cicd@urawa-support-hub.iam.gserviceaccount.com`                                               |
-| `GC_SA_SCHEDULER` | Cloud Scheduler service account email          | ✅       | `cloud-scheduler-sa@urawa-support-hub.iam.gserviceaccount.com`                                                |
-| `GC_SA_CLOUD_RUN` | Cloud Run service account email                | ✅       | `cloud-run-service@urawa-support-hub.iam.gserviceaccount.com`                                                 |
-| `CLOUD_RUN_URL`   | Cloud Run service URL                          | ✅       | `https://urawa-support-hub-xxxxx-an.a.run.app`                                                                |
+## セットアップ手順
 
-## Setup Instructions
+### ステップ1: リポジトリ設定へ移動
 
-### Step 1: Navigate to Repository Settings
+1. GitHub リポジトリにアクセス
+2. **Settings** タブをクリック
+3. 左サイドバーで **Secrets and variables** → **Actions** をクリック
 
-1. Go to your GitHub repository
-2. Click on **Settings** tab
-3. In the left sidebar, click **Secrets and variables** → **Actions**
+### ステップ2: シークレットを追加
 
-### Step 2: Add Repository Secrets
+各シークレットについて：
 
-For each required secret:
+1. **New repository secret** をクリック
+2. **Name** を入力（上記の表と完全に一致させる）
+3. **Value** を入力
+4. **Add secret** をクリック
 
-1. Click **New repository secret**
-2. Enter the **Name** (exactly as shown in the tables above)
-3. Enter the **Value**
-4. Click **Add secret**
+### ステップ3: シークレット値の取得方法
 
-### Step 3: Obtain Secret Values
+#### Supabase
 
-#### Supabase Credentials
+CI のテストは `--allow-net=127.0.0.1` で実行され、ワークフロー内で `supabase start` したローカル
+Supabase に接続します。`SUPABASE_URL`・`SUPABASE_ANON_KEY`・`SUPABASE_SERVICE_ROLE_KEY`
+には、`supabase status` で表示されるローカルの値を登録します。
 
-1. Log in to [Supabase Dashboard](https://supabase.com/dashboard)
-2. Select your project
-3. Go to **Settings** → **API**
-4. Copy:
-   - Project URL → `SUPABASE_URL`
-   - anon public key → `SUPABASE_ANON_KEY`
-   - service_role secret key → `SUPABASE_SERVICE_ROLE_KEY`
+マイグレーション用の値は本番プロジェクトから取得します。
 
-#### LINE Messaging API
+1. [Supabase ダッシュボード](https://supabase.com/dashboard)にログインし、プロジェクトを選択
+2. **Settings** → **General** の Reference ID → `SUPABASE_PROJECT_ID`
+3. **Settings** → **Database** のデータベースパスワード → `SUPABASE_DB_PASSWORD`
+4. アカウントの **Access Tokens** で発行したトークン → `SUPABASE_ACCESS_TOKEN`
 
-1. Log in to [LINE Developers Console](https://developers.line.biz/)
-2. Select your channel
-3. Go to **Messaging API** tab
-4. Copy **Channel access token** → `LINE_CHANNEL_ACCESS_TOKEN`
+#### Google Cloud Platform
 
-#### Google Cloud Platform (Workload Identity)
+1. **プロジェクト情報**: プロジェクト ID → `GC_PROJECT_ID`、リージョン → `GC_REGION`（例:
+   `asia-northeast1`）
 
-1. **Get Project Information**:
-   - Go to [GCP Console](https://console.cloud.google.com/)
-   - Select your project
-   - Copy project ID → `GC_PROJECT_ID`
-   - Set region → `GC_REGION` (e.g., `asia-northeast1`)
-
-2. **Get Workload Identity Provider**:
+2. **Workload Identity プロバイダー**:
    ```bash
-   # List workload identity pools
    gcloud iam workload-identity-pools list --location=global
 
-   # List providers in the pool
    gcloud iam workload-identity-pools providers list \
      --location=global \
      --workload-identity-pool=github-actions-pool
 
-   # Copy the full provider resource name → WIF_PROVIDER
+   # プロバイダーの完全なリソース名をコピー → WIF_PROVIDER
    ```
 
-3. **Get Service Account Emails**:
+3. **サービスアカウントのメール**:
    ```bash
-   # List service accounts
    gcloud iam service-accounts list
 
-   # Copy the emails for:
-   # - CI/CD operations → GC_SA_CICD
-   # - Cloud Scheduler → GC_SA_SCHEDULER
-   # - Cloud Run service → GC_SA_CLOUD_RUN
+   # - CI/CD 用 → GC_SA_CICD
+   # - Cloud Run サービス用 → GC_SA_CLOUD_RUN
+   # - Cloud Scheduler 用 → GC_SA_SCHEDULER
    ```
+   各サービスアカウントに必要な権限は
+   [GCP サービスアカウント権限](security/gcp-service-account-permissions.md) を参照してください。
 
-4. **Get Cloud Run URL**:
+4. **Cloud Run の URL**:
    ```bash
-   # List Cloud Run services
-   gcloud run services list --region=asia-northeast1
+   gcloud run services describe urawa-support-hub --region=asia-northeast1 --format='value(status.url)'
 
-   # Copy the service URL → CLOUD_RUN_URL
+   # → CLOUD_RUN_URL
    ```
 
-## Security Best Practices
+## CI/CD ワークフロー概要
 
-1. **Never commit secrets** to your repository
-2. **Rotate secrets regularly** (every 90 days recommended)
-3. **Use least privilege principle** - only grant necessary permissions
-4. **Monitor secret usage** through GitHub audit logs
-5. **Document secret owners** and rotation schedule
+### 1. CI（`.github/workflows/ci.yml`）
 
-## Verification
+**トリガー**: `main` への push、Pull Request
 
-To verify your secrets are properly configured:
+Supabase CLI でローカル Supabase を起動し、フォーマット確認 → Lint → 型チェック →
+テストを実行します。テストには `SUPABASE_URL`・`SUPABASE_ANON_KEY`・`SUPABASE_SERVICE_ROLE_KEY`
+を環境変数として渡します。
 
-1. Check GitHub Actions workflows run successfully
-2. Look for secret masking in workflow logs (secrets appear as `***`)
-3. Test deployments in a staging environment first
+### 2. Cloud Run デプロイ（`.github/workflows/deploy.yml`）
 
-## Troubleshooting
+**トリガー**: `main` への push、手動実行
 
-### Common Issues
+1. **認証**: Workload Identity Federation で `GC_SA_CICD` として認証
+2. **Docker ビルド**: Playwright 依存関係を含むイメージをビルド
+3. **レジストリ push**: `GC_REGION-docker.pkg.dev/GC_PROJECT_ID/urawa-support-hub/app` に push
+4. **Cloud Run デプロイ**: サービス `urawa-support-hub` をデプロイ（メモリ 2Gi、タイムアウト 300
+   秒、同時実行数 1、インスタンス 0〜1、Secret Manager の
+   `SUPABASE_SERVICE_ROLE_KEY`・`LINE_CHANNEL_ACCESS_TOKEN` を環境変数として注入）
+5. **クリーンアップ**: 最新 2 つを残して古いイメージを削除
 
-1. **Workflow fails with "secret not found"**
-   - Verify secret name matches exactly (case-sensitive)
-   - Check secret is added to correct repository
-   - Ensure workflow has permission to access secrets
+### 3. Cloud Scheduler デプロイ（`.github/workflows/deploy-scheduler.yml`）
 
-2. **Workload Identity authentication errors**
-   - Verify `WIF_PROVIDER` resource path is correct
-   - Check service account email in `GC_SA_CICD`
-   - Ensure GitHub repository is allowed in Workload Identity pool
-   - Verify attribute mapping for repository and subject
+**トリガー**: `main` への push で `infrastructure/scheduler/**` か
+`.github/workflows/deploy-scheduler.yml` に変更があったとき、手動実行
 
-3. **Artifact Registry permission denied**
-   - Check service account has `artifactregistry.writer` role
-   - Verify repository exists in Artifact Registry
-   - Ensure project ID is correct in secrets
-   - Check Docker authentication setup
+`infrastructure/scheduler/config.yaml` を読み、次のジョブを作成または更新します。どちらも
+`GC_SA_SCHEDULER` の OIDC トークンで `CLOUD_RUN_URL` を呼び出し、リトライは 3 回です。
 
-4. **Cloud Run deployment failures**
-   - Verify service account permissions for Cloud Run
-   - Check memory and timeout configurations
-   - Ensure container image is properly built and pushed
-   - Review Cloud Run service account settings
+| ジョブ                    | スケジュール（Asia/Tokyo）      | エンドポイント         |
+| ------------------------- | ------------------------------- | ---------------------- |
+| `daily-ticket-collection` | `0 5 * * *`（毎日 05:00）       | `/api/collect-tickets` |
+| `monthly-ticket-summary`  | `0 20 1 * *`（毎月 1 日 20:00） | `/api/ticket-summary`  |
 
-5. **Cloud Scheduler issues**
-   - Verify target Cloud Run service URL
-   - Check OIDC service account configuration
-   - Ensure scheduler service account has invoke permissions
-   - Review cron expression and timezone settings
+### 4. データベースマイグレーション（`.github/workflows/migrate-database.yml`）
 
-## Local Development
+**トリガー**: `main` への push で `supabase/migrations/**`
+に変更があったとき、手動実行（`dry_run`・`include_seed` を指定可能）
 
-For local development, use `.env` file instead:
+`SUPABASE_PROJECT_ID` で `supabase link` し、`supabase db push` でマイグレーションを適用します。
 
-```bash
-# Copy template
-cp .env.example .env
-
-# Edit with your values
-nano .env
-```
-
-⚠️ **Important**: Never commit `.env` file to version control
-
-## CI/CD Workflow Overview
-
-The project uses two main GitHub Actions workflows:
-
-### 1. Cloud Run Deployment (`.github/workflows/deploy.yml`)
-
-**Trigger**: Push to `main` branch or `feature/#33_github-actions-cicd-pipeline`
-
-**Process Flow**:
-
-1. **Authentication**: Authenticate using Workload Identity Federation
-2. **Docker Build**: Build application image with Playwright dependencies
-3. **Registry Push**: Push image to Google Artifact Registry
-4. **Cloud Run Deploy**: Deploy container to Cloud Run with specified configuration
-5. **Cleanup**: Remove old images (keep latest 2)
-
-**Key Configurations**:
-
-- Memory: 2GB
-- Timeout: 300 seconds
-- Concurrency: 1
-- Auto-scaling: 0-1 instances
-
-### 2. Cloud Scheduler Deployment (`.github/workflows/deploy-scheduler.yml`)
-
-**Trigger**: Changes to scheduler configuration files
-
-**Process Flow**:
-
-1. **Authentication**: Authenticate using Workload Identity Federation
-2. **Scheduler Update**: Create or update Cloud Scheduler job
-3. **Configuration**: Set up daily execution at 5:00 AM JST
-
-**Scheduler Configuration**:
-
-- Schedule: `0 5 * * *` (5:00 AM JST daily)
-- Target: Cloud Run service `/api/collect-tickets` endpoint
-- Authentication: OIDC with service account
-- Retry: 3 attempts with exponential backoff
-
-## GitHub Actions Usage
-
-Secrets are automatically available in GitHub Actions:
+## GitHub Actions での使用例
 
 ```yaml
-# Workload Identity authentication
+# Workload Identity 認証
 - name: Authenticate to Google Cloud
   uses: google-github-actions/auth@v2
   with:
     workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
     service_account: ${{ secrets.GC_SA_CICD }}
 
-# Environment variables
+# 環境変数として渡す
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 ```
 
-## Support
+## セキュリティベストプラクティス
 
-For issues related to:
+1. **シークレットをコミットしない** - リポジトリに直接記載しない
+2. **定期的にローテーション** - 90 日ごとの更新を推奨
+3. **最小権限の原則** - サービスアカウントには必要な権限のみ付与
+4. **使用状況を監視** - GitHub 監査ログで確認
 
-- **Supabase**: Check [Supabase Docs](https://supabase.com/docs)
-- **LINE API**: Refer to [LINE Developers Docs](https://developers.line.biz/en/docs/)
-- **GCP**: Visit [Google Cloud Docs](https://cloud.google.com/docs)
+## 検証方法
+
+1. GitHub Actions のワークフローが正常に実行される
+2. ワークフローログでシークレットがマスク（`***`）されている
+3. `migrate-database.yml` は `dry_run` で手動実行して接続を確認できる
+
+## トラブルシューティング
+
+1. **シークレットが見つからない**
+   - シークレット名が完全一致しているか（大文字小文字を区別）
+   - `production` 環境のシークレットとして登録した場合、`environment: production`
+     を持つワークフロー（`deploy.yml`・`migrate-database.yml`）からしか参照できない
+
+2. **Workload Identity 認証エラー**
+   - `WIF_PROVIDER` のリソースパスが正しいか
+   - `GC_SA_CICD` のメールが正しいか
+   - Workload Identity プールでこのリポジトリが許可されているか（属性マッピング・条件）
+
+3. **Artifact Registry の権限エラー**
+   - `GC_SA_CICD` に Artifact Registry への書き込み・削除権限があるか
+   - Artifact Registry にリポジトリ `urawa-support-hub` が存在するか
+
+4. **Cloud Run デプロイ失敗**
+   - `GC_SA_CICD` が `GC_SA_CLOUD_RUN` として振る舞える（`roles/iam.serviceAccountUser`）か
+   - Secret Manager に `SUPABASE_SERVICE_ROLE_KEY`・`LINE_CHANNEL_ACCESS_TOKEN`
+     が存在し、`GC_SA_CLOUD_RUN` が読み取れるか
+
+5. **Cloud Scheduler の問題**
+   - `CLOUD_RUN_URL` が `https://` で始まっているか（ワークフローで検証している）
+   - `GC_SA_SCHEDULER` に Cloud Run サービスの `roles/run.invoker` があるか
+   - cron 式とタイムゾーン（`infrastructure/scheduler/config.yaml`）
+
+## ローカル開発
+
+ローカル開発では GitHub Secrets ではなく `.env` / `.env.local`
+を使います。詳細は[セットアップガイド](setup-guide.md#2-環境変数ファイル)を参照してください。
+
+## 参考
+
+- **Supabase**: [Supabase ドキュメント](https://supabase.com/docs)
+- **LINE API**: [LINE Developers ドキュメント](https://developers.line.biz/ja/docs/)
+- **GCP**: [Google Cloud ドキュメント](https://cloud.google.com/docs?hl=ja)
