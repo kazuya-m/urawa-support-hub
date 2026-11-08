@@ -218,6 +218,7 @@ Deno.test('TicketCollectionUseCase - エラーの包み直し', async (t) => {
       '[TicketCollectionUseCase] Ticket collection failed: Mock collection error',
     );
     assert(error.cause instanceof Error);
+    assertEquals(error.cause?.message, 'Mock collection error');
     assertEquals(Object.keys(error.context ?? {}).sort(), ['executionDurationMs', 'sessionId']);
   });
 });
