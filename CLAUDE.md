@@ -3,8 +3,8 @@
 ## Claude の役割
 
 - ソフトウェアエンジニアリングの専門家として、肯定を目的とせず批判的かつ建設的に分析する
-- 理解が十分でない場合は、実装に進む前に質問する
-- 質問できないときは、現時点の理解を明記したうえで実装内容を説明する
+- 理解が 100% でない場合は、実装に進む前に質問する
+- 質問するときも実装内容を説明するときも、現時点の理解を明記する
 
 ## プロジェクト
 
@@ -15,11 +15,14 @@ Messaging API。
 
 ### 移行中であることの注記
 
-- コードは #204 の最終形（`jobs/`・`domain/`・`infra/`）へ移行中で、旧構成の
-  `adapters/`・`application/`・`infrastructure/` などが残っている
+- コードは #204 の最終形（`src/jobs/`・`src/domain/`・`src/infra/`）へ移行中で、旧構成の
+  `src/adapters/`・`src/application/`・`src/infrastructure/`・`src/middleware/` などが残っている
+  （リポジトリ直下の `infrastructure/` は Cloud Scheduler の設定で、移行の対象ではない）
 - **新しく書くコードは下記の 3 ルールに従う**。既存コードのルール違反や `src/shared/testing/mocks`
   の Mock クラスに合わせない
 - ディレクトリの移動は、各サブ Issue が担当範囲でのみ行う
+- それ以外の作業では既存ファイルを現在の場所で変更し、新しいディレクトリ（`src/jobs/`
+  など）は作らない
 - 構成図・移行計画と、削除・移動の前に確認する「残すもの」「方針決定事項」は #204 を参照
 
 ## アーキテクチャの 3 ルール
@@ -39,11 +42,11 @@ deno task pre-commit                              # deno check src/ + deno lint 
 deno test src/ --allow-env --allow-net=127.0.0.1  # 単体テスト
 ```
 
-- 統合テスト（`tests/integration/`）は Supabase が必要なので CI
-  で実行される。クラウドセッションでは実行せず、PR の CI 結果で確認する
-- `deno task pre-commit` の型チェックは `src/` のみ。シンボルを削除・改名したときは
-  `deno check tests/ scripts/` も実行し、`main`
-  で同じコマンドを実行した結果からエラーが増えていないことを確認する
+- DB を読み書きする変更では `tests/integration/` に統合テストを書く。統合テストは Supabase
+  が必要なので CI で実行される。クラウドセッションでは実行せず、PR の CI 結果で確認する
+- `deno task pre-commit` の型チェックは `src/` のみ
+- export しているものを削除・改名・型変更したときは `deno check tests/ scripts/` も実行し、`main`
+  で実行した結果からエラーが増えていないことを確認する
 
 ## テストの最小ルール
 
@@ -77,6 +80,11 @@ deno test src/ --allow-env --allow-net=127.0.0.1  # 単体テスト
 | DB クリーンアップ              | `docs/database-cleanup.md`               |
 | 構成図・移行計画               | #204                                     |
 
-- 設計ドキュメント（`docs/system-architecture.md`、`docs/implementation-guide.md`、`docs/clean-architecture-guide.md`、`docs/testing-guidelines.md`、`docs/logging-specification.md`
-  と `docs/ja/` の同名ファイル）は実装と乖離しているため、#215 で書き直すまで参照しない
+- 次の設計ドキュメントは実装と乖離しているため、#215 で書き直すまで参照しない（`docs/ja/`
+  の同名ファイルも同じ）
+  - `docs/system-architecture.md`
+  - `docs/implementation-guide.md`
+  - `docs/clean-architecture-guide.md`
+  - `docs/testing-guidelines.md`
+  - `docs/logging-specification.md`
 - ドキュメントとコード・設定ファイルが食い違う場合は、コードと設定ファイルを正とする
