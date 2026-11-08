@@ -4,23 +4,36 @@ import {
   createTicketSummaryController,
 } from '@/config/di.ts';
 import { handleHealthCheck } from '@/middleware/health.ts';
+import { withErrorHandling } from '@/adapters/helpers/withErrorHandling.ts';
+import { TICKET_COLLECTION_ERROR_OPTIONS } from '@/adapters/controllers/TicketCollectionController.ts';
+import { NOTIFICATION_ERROR_OPTIONS } from '@/adapters/controllers/NotificationController.ts';
+import { TICKET_SUMMARY_ERROR_OPTIONS } from '@/adapters/controllers/TicketSummaryController.ts';
 
 async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
   if (url.pathname === '/api/collect-tickets' && req.method === 'POST') {
     const ticketController = createTicketCollectionController();
-    return await ticketController.handleCollectTickets(req);
+    return await withErrorHandling(
+      () => ticketController.handleCollectTickets(req),
+      TICKET_COLLECTION_ERROR_OPTIONS,
+    );
   }
 
   if (url.pathname === '/api/send-notification' && req.method === 'POST') {
     const notificationController = createNotificationController();
-    return await notificationController.handleSendNotification(req);
+    return await withErrorHandling(
+      () => notificationController.handleSendNotification(req),
+      NOTIFICATION_ERROR_OPTIONS,
+    );
   }
 
   if (url.pathname === '/api/ticket-summary' && req.method === 'POST') {
     const ticketSummaryController = createTicketSummaryController();
-    return await ticketSummaryController.handleTicketSummary(req);
+    return await withErrorHandling(
+      () => ticketSummaryController.handleTicketSummary(req),
+      TICKET_SUMMARY_ERROR_OPTIONS,
+    );
   }
 
   if (url.pathname === '/health' && req.method === 'GET') {

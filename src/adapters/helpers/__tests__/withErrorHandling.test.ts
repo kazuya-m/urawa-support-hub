@@ -1,7 +1,17 @@
 import { assertEquals } from 'std/assert/mod.ts';
-import { TicketCollectionController } from '../TicketCollectionController.ts';
-import { NotificationController } from '../NotificationController.ts';
-import { TicketSummaryController } from '../TicketSummaryController.ts';
+import { withErrorHandling } from '../withErrorHandling.ts';
+import {
+  TICKET_COLLECTION_ERROR_OPTIONS,
+  TicketCollectionController,
+} from '@/adapters/controllers/TicketCollectionController.ts';
+import {
+  NOTIFICATION_ERROR_OPTIONS,
+  NotificationController,
+} from '@/adapters/controllers/NotificationController.ts';
+import {
+  TICKET_SUMMARY_ERROR_OPTIONS,
+  TicketSummaryController,
+} from '@/adapters/controllers/TicketSummaryController.ts';
 import { AppError, ErrorCodes } from '@/shared/errors/index.ts';
 import type { INotificationUseCase } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 
@@ -35,13 +45,26 @@ const post = (path: string, body?: string) =>
   new Request(`http://localhost:8080${path}`, { method: 'POST', body });
 
 const respondCollect = (useCase: ConstructorParameters<typeof TicketCollectionController>[0]) =>
-  new TicketCollectionController(useCase).handleCollectTickets(post('/api/collect-tickets'));
+  withErrorHandling(
+    () =>
+      new TicketCollectionController(useCase).handleCollectTickets(post('/api/collect-tickets')),
+    TICKET_COLLECTION_ERROR_OPTIONS,
+  );
 
 const respondNotification = (useCase: INotificationUseCase, body: string) =>
-  new NotificationController(useCase).handleSendNotification(post('/api/send-notification', body));
+  withErrorHandling(
+    () =>
+      new NotificationController(useCase).handleSendNotification(
+        post('/api/send-notification', body),
+      ),
+    NOTIFICATION_ERROR_OPTIONS,
+  );
 
 const respondSummary = (useCase: ConstructorParameters<typeof TicketSummaryController>[0]) =>
-  new TicketSummaryController(useCase).handleTicketSummary(post('/api/ticket-summary'));
+  withErrorHandling(
+    () => new TicketSummaryController(useCase).handleTicketSummary(post('/api/ticket-summary')),
+    TICKET_SUMMARY_ERROR_OPTIONS,
+  );
 
 Deno.test('collect-tickets: UseCase の AppError', async () => {
   const { result: response, logs } = await captureLogs(() =>

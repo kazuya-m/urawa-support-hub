@@ -1,6 +1,4 @@
 import { assertEquals } from 'std/assert/mod.ts';
-import { TicketCollectionController } from '../TicketCollectionController.ts';
-import { DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 
 // 認証ロジックはローカル関数でテストする
 function validateCloudSchedulerRequest(req: Request): boolean {
@@ -59,19 +57,4 @@ Deno.test('TicketCollectionController Authentication Tests', async (t) => {
       Deno.env.delete('NODE_ENV');
     }
   });
-});
-
-Deno.test('TicketCollectionController - DatabaseError の応答', async () => {
-  const controller = new TicketCollectionController({
-    execute: () => Promise.reject(new DatabaseError('Repo', 'op', 'x', ErrorCodes.DB_FETCH_ERROR)),
-  });
-
-  const response = await controller.handleCollectTickets(
-    new Request('http://localhost:8080/api/collect-tickets', { method: 'POST' }),
-  );
-  const body = await response.json();
-
-  assertEquals(response.status, 500);
-  assertEquals(body.error, 'Database operation failed');
-  assertEquals(body.details, { operation: 'ticket collection' });
 });
