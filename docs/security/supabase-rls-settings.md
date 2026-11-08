@@ -1,340 +1,101 @@
-# Supabase Row Level Security (RLS) Settings
+# Supabase Row Level Security (RLS) 設定
 
-This document defines the basic RLS policies for the Urawa Support Hub database tables.
+urawa-support-hub のデータベーステーブルに設定している RLS ポリシーです。
 
-## Overview
+## 概要
 
-Row Level Security (RLS) ensures that users can only access data they are authorized to see. For
-this personal notification system, we implement basic security policies to protect ticket and
-notification data.
+アプリケーションは Cloud Run 上のバックエンドだけで、エンドユーザーが Supabase
+に直接アクセスする経路はありません。そのため RLS は「`service_role`
+以外のアクセスをすべて拒否する」ために使います。
 
-## Database Schema Security
+## テーブルとポリシー
 
-### 1. Tickets Table RLS Policies
-
-**Table**: `tickets` **Purpose**: Store scraped ticket sale information
-
-```sql
--- Enable RLS on tickets table
-ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
-
--- Policy: Service role can perform all operations
-CREATE POLICY "Service role full access on tickets"
-ON tickets
-FOR ALL
-TO service_role
-USING (true)
-WITH CHECK (true);
-
--- Policy: Authenticated users can only read tickets
-CREATE POLICY "Authenticated users can read tickets"
-ON tickets
-FOR SELECT
-TO authenticated
-USING (true);
-
--- Policy: Anonymous users cannot access tickets
--- (No policy needed - RLS denies by default)
-```
-
-### 2. Notifications Table RLS Policies
-
-**Table**: `notifications` **Purpose**: Track sent notifications to prevent duplicates
+対象は `tickets` と `notifications` の 2 テーブルです。どちらも RLS を有効にし、`service_role`
+だけを許可するポリシーを 1
+つ設定しています（`supabase/migrations/020_remove_unused_postgresql_functions_cron_jobs.sql`）。
 
 ```sql
--- Enable RLS on notifications table
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access tickets" ON tickets
+  FOR ALL USING ((select auth.jwt()) ->> 'role' = 'service_role');
 
--- Policy: Service role can perform all operations
-CREATE POLICY "Service role full access on notifications"
-ON notifications
-FOR ALL
-TO service_role
-USING (true)
-WITH CHECK (true);
-
--- Policy: Authenticated users can only read their own notification history
-CREATE POLICY "Authenticated users can read own notifications"
-ON notifications
-FOR SELECT
-TO authenticated
-USING (auth.uid()::text = user_id OR user_id IS NULL);
-
--- Note: user_id IS NULL condition allows reading system-wide notifications
--- for single-user deployment, but restricts access in multi-user scenarios
-
--- Policy: Anonymous users cannot access notifications
--- (No policy needed - RLS denies by default)
+CREATE POLICY "Service role full access notifications" ON notifications
+  FOR ALL USING ((select auth.jwt()) ->> 'role' = 'service_role');
 ```
 
-### 3. User Subscriptions Table RLS Policies (Future)
+`auth.jwt()` を `(select ...)` で囲み、行ごとではなくクエリごとに 1 回だけ評価させています。
 
-**Table**: `user_subscriptions` (for future multi-user support) **Purpose**: Manage user
-notification preferences
+| テーブル        | 用途                                     | `service_role` | `authenticated` | `anon` |
+| --------------- | ---------------------------------------- | -------------- | --------------- | ------ |
+| `tickets`       | スクレイピングしたチケット販売情報       | 全操作         | 不可            | 不可   |
+| `notifications` | 通知のスケジュールと送信結果（重複防止） | 全操作         | 不可            | 不可   |
 
-```sql
--- Enable RLS on user_subscriptions table
-ALTER TABLE user_subscriptions ENABLE ROW LEVEL SECURITY;
+`authenticated` と `anon` にはポリシーがないため、RLS により全行が拒否されます。
 
--- Policy: Users can only manage their own subscriptions
-CREATE POLICY "Users can manage own subscriptions"
-ON user_subscriptions
-FOR ALL
-TO authenticated
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
+## ロールと利用箇所
 
--- Policy: Service role can perform all operations
-CREATE POLICY "Service role full access on user_subscriptions"
-ON user_subscriptions
-FOR ALL
-TO service_role
-USING (true)
-WITH CHECK (true);
-```
-
-## Role-Based Access Control
-
-### 1. Service Role
-
-**Purpose**: Backend services (Cloud Run, Edge Functions) **Permissions**: Full access to all tables
-**Usage**: Scraping service, notification service
-
-```sql
--- Service role already has bypass RLS capability
--- No additional policies needed beyond the above
-```
-
-### 2. Authenticated Role
-
-**Purpose**: Future web dashboard users **Permissions**: Read-only access to tickets, read ONLY own
-notification history **Usage**: Web interface for monitoring ticket sales
-
-**❌ EXCESSIVE PERMISSION REMOVED**: No longer can read all users' notification history
-
-### 3. Anonymous Role
-
-**Purpose**: Unauthenticated access **Permissions**: No access to any tables **Usage**: Not used in
-this application
-
-## Security Implementation
-
-### 1. Environment-Specific Keys
-
-```bash
-# Development environment
-SUPABASE_URL="https://your-dev-project.supabase.co"
-SUPABASE_ANON_KEY="eyJ..."  # Public key with limited permissions
-SUPABASE_SERVICE_ROLE_KEY="eyJ..."  # Full access key for backend
-
-# Production environment
-SUPABASE_URL="https://your-prod-project.supabase.co"
-SUPABASE_ANON_KEY="eyJ..."  # Public key with limited permissions  
-SUPABASE_SERVICE_ROLE_KEY="eyJ..."  # Full access key for backend
-```
-
-### 2. セキュアなクライアント設定
+| ロール          | 利用箇所                                                                                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `service_role`  | アプリケーション本体。`src/config/supabase.ts` の `createSupabaseAdminClient()` が `SUPABASE_SERVICE_ROLE_KEY` で接続する。`service_role` は RLS をバイパスするため、上記ポリシーに関係なく全操作が可能 |
+| `anon`          | テスト用クライアント（`src/shared/testing/TestSupabaseClient.ts`）のみ。本番では使わない                                                                                                                |
+| `authenticated` | 使わない                                                                                                                                                                                                |
 
 ```typescript
-import { createClient } from '@supabase/supabase-js';
-
-// 🔐 推奨: セキュアなクライアント（RLS適用）
-const supabaseClient = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_ANON_KEY')!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+// src/config/supabase.ts（アプリケーションが使う管理者クライアント）
+return createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
   },
-);
-
-// ⚠️ 管理者クライアント（緊急時のみ - RLSバイパス）
-const supabaseAdmin = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  },
-);
-
-// 🚨 重要: 通常の運用では supabaseClient を使用すること
+});
 ```
 
-````
-## RLS Policy Testing
+## 既知の制約
 
-### 1. Test Service Role Access
+- アプリケーションは単一の `service_role`
+  キーで全操作を行うため、スクレイピングと通知送信で権限を分けていない。キーが漏洩すると全テーブルの読み書きが可能になる
+- そのため `SUPABASE_SERVICE_ROLE_KEY` は Secret Manager で管理し、Cloud Run
+  以外に渡さない（[環境変数管理](environment-variable-management.md)）
+
+## ポリシーの確認
 
 ```sql
--- Connect with service role key
-SELECT count(*) FROM tickets;  -- Should return all records
-INSERT INTO tickets (...) VALUES (...);  -- Should succeed
-````
+-- 設定されているポリシー
+SELECT tablename, policyname, cmd, qual
+FROM pg_policies
+WHERE tablename IN ('tickets', 'notifications');
 
-### 2. Test Authenticated User Access
-
-```sql
--- Connect with anon key + authenticate user
-SELECT count(*) FROM tickets;  -- Should return all records (read-only)
-INSERT INTO tickets (...) VALUES (...);  -- Should fail (no insert permission)
+-- RLS が有効か
+SELECT relname, relrowsecurity
+FROM pg_class
+WHERE relname IN ('tickets', 'notifications');
 ```
 
-### 3. Test Anonymous Access
-
-```sql
--- Connect with anon key only
-SELECT count(*) FROM tickets;  -- Should return 0 or error
-```
-
-## Security Best Practices
-
-### 1. RLS Policy Design Principles
-
-#### ❌ Current Implementation Issues
-
-- **Over-permissive service role**: `FOR ALL USING (true)` grants unlimited access
-- **Single-point-of-failure**: One compromised service key affects all operations
-- **No operation segregation**: Same key used for read/write operations
-- **Lack of audit trail**: No service-specific access tracking
-
-#### ✅ Recommended Best Practices
-
-##### A. Principle of Least Privilege
-
-```sql
--- ❌ Bad: Service role with unlimited access
-CREATE POLICY "Service role full access" ON tickets
-FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
-
--- ✅ Good: Operation-specific policies
-CREATE POLICY "Scraper service write" ON tickets
-FOR INSERT, UPDATE USING (
-  auth.jwt() ->> 'role' = 'service_role' AND
-  auth.jwt() ->> 'service' = 'scraper'
-);
-
-CREATE POLICY "Notification service read" ON tickets
-FOR SELECT USING (
-  auth.jwt() ->> 'role' = 'service_role' AND
-  auth.jwt() ->> 'service' = 'notification'
-);
-```
-
-##### B. Service Segregation
-
-- **scraper_service**: tickets INSERT/UPDATE only
-- **notification_service**: tickets SELECT + notifications full access
-- **monitoring_service**: All tables SELECT only
-- **admin_service**: Emergency full access with explicit flag
-
-##### C. JWT Claims Strategy
-
-```typescript
-// Service-specific JWT claims
-{
-  "role": "service_role",
-  "service": "scraper|notification|monitoring|admin",
-  "operations": ["read", "write"],
-  "emergency": false  // true only for admin emergency access
-}
-```
-
-##### D. Time-based Access Control
-
-```sql
--- Business hours restriction for non-critical operations
-CREATE POLICY "Business hours write" ON tickets
-FOR UPDATE USING (
-  auth.jwt() ->> 'role' = 'service_role' AND
-  EXTRACT(hour FROM NOW()) BETWEEN 6 AND 23
-);
-```
-
-### 2. Implementation Roadmap
-
-#### Phase 1: Assessment (Current)
-
-- Document existing over-permissive policies
-- Identify service-specific access requirements
-- Plan minimal disruption migration strategy
-
-#### Phase 2: Service Key Segregation
-
-- Create separate service accounts per function
-- Implement JWT claims-based policies
-- Test each service independently
-
-#### Phase 3: Monitoring & Audit
-
-- Add policy violation logging
-- Implement access pattern monitoring
-- Create emergency access procedures
-
-### 3. Key Management
-
-- Store service role key securely (environment variables only)
-- **NEW**: Use separate keys per service function
-- Rotate keys regularly (every 90 days)
-- Never expose service role key in client-side code
-- Use anon key for public/authenticated client access
-
-### 4. Policy Review
-
-- Review RLS policies monthly
-- Test policies after any schema changes
-- Document policy changes in this file
-- **NEW**: Implement automated policy testing
-- Use least privilege principle
-
-### 3. Monitoring
-
-```sql
--- Monitor failed authentication attempts
-SELECT * FROM auth.audit_log_entries 
-WHERE event_type = 'token_verification_failure'
-ORDER BY created_at DESC;
-
--- Monitor RLS policy violations
-SELECT * FROM postgres_log 
-WHERE message LIKE '%policy violation%'
-ORDER BY log_time DESC;
-```
-
-## Emergency Procedures
-
-### 1. Disable RLS (Emergency Only)
-
-```sql
--- EMERGENCY: Disable RLS temporarily
-ALTER TABLE tickets DISABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
-
--- Remember to re-enable after fixing issues
-ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-```
-
-### 2. Revoke Compromised Keys
+anon キーで REST API にアクセスし、結果が空配列になることでも確認できます。
 
 ```bash
-# Revoke and regenerate keys in Supabase dashboard
-# Update environment variables immediately
-# Test all services after key rotation
+curl "${SUPABASE_URL}/rest/v1/tickets?select=id&limit=1" \
+  -H "apikey: ${SUPABASE_ANON_KEY}" \
+  -H "Authorization: Bearer ${SUPABASE_ANON_KEY}"
+# => []
 ```
 
-## Implementation Commands
+## ポリシーの変更
 
-### Apply RLS Policies
+- ポリシーの変更は `supabase/migrations/` にマイグレーションとして追加し、`migrate-database.yml`
+  で適用する（Supabase SQL エディターで直接変更しない）
+- 新しいテーブルを追加するときは、同じマイグレーション内で RLS を有効にし、`service_role`
+  のポリシーを追加する
+- 変更後は上記のクエリでポリシーを確認し、このドキュメントを更新する
 
-```sql
--- Run these commands in Supabase SQL Editor
--- Copy and paste the policies defined above
+## 緊急時の対応
 
--- Verify policies are active
-SELECT * FROM pg_policies WHERE tablename IN ('tickets', 'notifications');
-```
+**サービスロールキーの漏洩**
+
+1. Supabase ダッシュボードで JWT secret を再生成し、キーを再発行する
+2. Secret Manager の `SUPABASE_SERVICE_ROLE_KEY` に新しいバージョンを追加し、Cloud Run
+   を再デプロイする
+3. CI 用の GitHub Secrets とローカルの環境変数ファイルを更新する
+4. データに不審な変更がないか確認する
+
+RLS を無効化（`ALTER TABLE ... DISABLE ROW LEVEL SECURITY`）すると anon
+キーで全データにアクセスできるようになるため、障害対応でも無効化しないでください。
