@@ -174,7 +174,7 @@ export class Ticket {
 
   /**
    * 通知をスケジューリングすべきかの判定（要件準拠）
-   * 有効期限内で発売前のチケット（データ品質に関係なく通知）
+   * 有効期限内で発売前のチケット
    */
   shouldScheduleNotification(): boolean {
     return this.isValidForNotification() &&

@@ -385,6 +385,7 @@ Deno.test('Ticket - 通知済みの場合の制御', async () => {
   });
 
   assertEquals(ticket.saleStatus, 'before_sale', 'Should be before sale');
+  assertEquals(ticket.notificationScheduled, true, 'Should be marked as scheduled');
 });
 
 Deno.test('Ticket - 新しいプロパティのgetter', async () => {

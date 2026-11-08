@@ -15,7 +15,7 @@ export const COMPETITION_NAMES = {
 /**
  * 完全一致で使う表記の対応表（J リーグチケットサイトの表記）
  */
-export const COMPETITION_EXACT_NAMES: Record<string, string> = {
+const COMPETITION_EXACT_NAMES: Readonly<Record<string, string>> = {
   '明治安田Ｊ１リーグ': COMPETITION_NAMES.J1,
   '明治安田J1リーグ': COMPETITION_NAMES.J1,
   'ＹＢＣルヴァンカップ': COMPETITION_NAMES.LEVAIN_CUP,
@@ -35,7 +35,7 @@ export const COMPETITION_EXACT_NAMES: Record<string, string> = {
  * 部分一致で使う規則（サンフレッチェ広島サイトの表記）
  * 先頭から順に照合し、最初に含まれたキーワードの大会名を返す
  */
-export const COMPETITION_KEYWORD_RULES: ReadonlyArray<readonly [string, string]> = [
+const COMPETITION_KEYWORD_RULES: ReadonlyArray<readonly [string, string]> = [
   ['J1', COMPETITION_NAMES.J1],
   ['ルヴァン', COMPETITION_NAMES.LEVAIN_CUP],
   ['天皇杯', COMPETITION_NAMES.EMPERORS_CUP],
