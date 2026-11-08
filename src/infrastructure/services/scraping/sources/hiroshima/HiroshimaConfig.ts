@@ -23,12 +23,6 @@ export interface HiroshimaScrapingConfig {
   schedulePageConfig: HiroshimaSchedulePageConfig;
   awayKeywords: string[];
   urawaKeywords: string[];
-  saleStatusKeywords: {
-    available: string[];
-    soldOut: string[];
-    notStarted: string[];
-    ended: string[];
-  };
   timeouts: {
     pageLoad: number;
     elementWait: number;
@@ -100,14 +94,6 @@ export const HIROSHIMA_SCRAPING_CONFIG: HiroshimaScrapingConfig = {
     '浦和レッドダイヤモンズ',
     'urawa red diamonds',
   ],
-
-  // 販売状況キーワード
-  saleStatusKeywords: {
-    available: ['販売中', '発売中', '購入可能'],
-    soldOut: ['完売', '売り切れ', '全席種完売'],
-    notStarted: ['販売開始前', '発売前', '販売予定'],
-    ended: ['販売終了', '発売終了', '終了'],
-  },
 
   timeouts: {
     pageLoad: 30000,

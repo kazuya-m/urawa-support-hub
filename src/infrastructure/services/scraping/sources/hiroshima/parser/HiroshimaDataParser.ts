@@ -4,6 +4,7 @@ import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import { DateCalculationService } from '@/domain/services/DateCalculationService.ts';
+import { SALE_STATUS_KEYWORDS } from '@/domain/parsers/saleStatusKeywords.ts';
 
 /**
  * サンフレッチェ広島のデータを共通のTicket形式に変換
@@ -186,26 +187,20 @@ export class HiroshimaDataParser {
     // 文字列の前処理: 空白や改行を除去
     const cleanedStatus = statusStr.trim().replace(/\s+/g, ' ');
 
-    // キーワードによる判定
-    const soldOutKeywords = ['完売', '売り切れ', '全席種完売'];
-    const endedKeywords = ['販売終了', '発売終了', '終了'];
-    const onSaleKeywords = ['販売中', '発売中', 'WEBで購入', '購入可能'];
-    const beforeSaleKeywords = ['販売開始前', '発売前', '販売予定'];
-
-    // 各キーワードグループでマッチング確認
-    if (soldOutKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    // キーワードによる判定（完売 → 終了 → 販売中 → 販売前の順）
+    if (SALE_STATUS_KEYWORDS.soldOut.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'sold_out';
     }
 
-    if (endedKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (SALE_STATUS_KEYWORDS.ended.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'ended';
     }
 
-    if (onSaleKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (SALE_STATUS_KEYWORDS.onSale.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'on_sale';
     }
 
-    if (beforeSaleKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (SALE_STATUS_KEYWORDS.beforeSale.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'before_sale';
     }
 

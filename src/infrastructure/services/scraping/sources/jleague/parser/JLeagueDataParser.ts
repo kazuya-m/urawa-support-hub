@@ -9,6 +9,7 @@ import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import { createJSTDateTime } from '@/shared/utils/datetime.ts';
+import { SALE_STATUS_KEYWORDS } from '@/domain/parsers/saleStatusKeywords.ts';
 
 /**
  * J-League固有のデータパーサー
@@ -300,15 +301,14 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
   private checkSoldOutStatus(statusText: string): SaleStatus | null {
     const cleanedStatus = statusText.trim().replace(/\s+/g, ' ');
 
-    // 完売キーワード
-    const soldOutKeywords = ['完売', '売り切れ', '空席なし', '全席種完売'];
+    // 完売キーワード（「空席なし」は J リーグチケットサイト固有の表記）
+    const soldOutKeywords = [...SALE_STATUS_KEYWORDS.soldOut, '空席なし'];
     if (soldOutKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'sold_out';
     }
 
     // 販売終了キーワード
-    const endedKeywords = ['販売終了', '発売終了', '終了'];
-    if (endedKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (SALE_STATUS_KEYWORDS.ended.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'ended';
     }
 
