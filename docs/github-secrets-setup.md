@@ -75,7 +75,7 @@ CI のテストは `--allow-net=127.0.0.1` で実行され、ワークフロー�
    ```bash
    gcloud iam workload-identity-pools list --location=global
 
-   # POOL_ID は上のコマンドで表示されたプールの ID
+   # POOL_ID は上のコマンドで表示されたプールの ID。PROVIDER_ID は次のコマンドの出力（WIF_PROVIDER の末尾の部分）
    gcloud iam workload-identity-pools providers list \
      --location=global \
      --workload-identity-pool=POOL_ID
@@ -92,6 +92,13 @@ CI のテストは `--allow-net=127.0.0.1` で実行され、ワークフロー�
      --format='value(attributeCondition)'
 
    # 例: assertion.repository == 'kazuya-m/urawa-support-hub'
+   ```
+
+   借用できるかは、`GC_SA_CICD` 側の `roles/iam.workloadIdentityUser` の付与先でも決まります。付与先（member）が、このリポジトリの principalSet（`principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/attribute.repository/kazuya-m/urawa-support-hub`）に絞られていることも確認します。
+
+   ```bash
+   gcloud iam service-accounts get-iam-policy GC_SA_CICD_EMAIL \
+     --format='table(bindings.role, bindings.members)'
    ```
 
 3. **サービスアカウントのメール**:
