@@ -4,19 +4,13 @@ GitHub Actions のワークフローが参照するシークレットと、そ�
 
 ## 概要
 
-GitHub Secrets は、CI/CD
-で必要な機密情報を暗号化して保存します。ワークフロー実行時にのみ参照でき、ログでは `***`
-にマスクされます。
+GitHub Secrets は、CI/CD で必要な機密情報を暗号化して保存します。ワークフロー実行時にのみ参照でき、ログでは `***` にマスクされます。
 
-アプリケーション（Cloud Run）が実行時に使う `SUPABASE_SERVICE_ROLE_KEY` と
-`LINE_CHANNEL_ACCESS_TOKEN` は、GitHub Secrets ではなく Google Secret Manager から Cloud Run
-に渡します（[セットアップガイド](setup-guide.md#1-gcp-リソースの初期作成初回のみ)）。
+アプリケーション（Cloud Run）が実行時に使う `SUPABASE_SERVICE_ROLE_KEY` と `LINE_CHANNEL_ACCESS_TOKEN` は、GitHub Secrets ではなく Google Secret Manager から Cloud Run に渡します（[セットアップガイド](setup-guide.md#1-gcp-リソースの初期作成初回のみ)）。
 
 ## 必要なシークレット
 
-`.github/workflows/*.yml` が参照するシークレットの一覧です。`deploy.yml` と `migrate-database.yml`
-は `environment: production` で実行されるため、これらが使うシークレットはリポジトリシークレットか
-`production` 環境のシークレットとして登録します。
+`.github/workflows/*.yml` が参照するシークレットの一覧です。`deploy.yml` と `migrate-database.yml` は `environment: production` で実行されるため、これらが使うシークレットはリポジトリシークレットか `production` 環境のシークレットとして登録します。
 
 ### 1. Supabase
 
@@ -62,9 +56,7 @@ GitHub Secrets は、CI/CD
 
 #### Supabase
 
-CI のテストは `--allow-net=127.0.0.1` で実行され、ワークフロー内で `supabase start` したローカル
-Supabase に接続します。`SUPABASE_URL`・`SUPABASE_ANON_KEY`・`SUPABASE_SERVICE_ROLE_KEY`
-には、`supabase status` で表示されるローカルの値を登録します。
+CI のテストは `--allow-net=127.0.0.1` で実行され、ワークフロー内で `supabase start` したローカル Supabase に接続します。`SUPABASE_URL`・`SUPABASE_ANON_KEY`・`SUPABASE_SERVICE_ROLE_KEY` には、`supabase status` で表示されるローカルの値を登録します。
 
 マイグレーション用の値は本番プロジェクトから取得します。
 
@@ -75,8 +67,7 @@ Supabase に接続します。`SUPABASE_URL`・`SUPABASE_ANON_KEY`・`SUPABASE_S
 
 #### Google Cloud Platform
 
-1. **プロジェクト情報**: プロジェクト ID → `GC_PROJECT_ID`、リージョン → `GC_REGION`（例:
-   `asia-northeast1`）
+1. **プロジェクト情報**: プロジェクト ID → `GC_PROJECT_ID`、リージョン → `GC_REGION`（例: `asia-northeast1`）
 
 2. **Workload Identity プロバイダー**:
    ```bash
@@ -97,8 +88,7 @@ Supabase に接続します。`SUPABASE_URL`・`SUPABASE_ANON_KEY`・`SUPABASE_S
    # - Cloud Run サービス用 → GC_SA_CLOUD_RUN
    # - Cloud Scheduler 用 → GC_SA_SCHEDULER
    ```
-   各サービスアカウントに必要な権限は
-   [GCP サービスアカウント権限](security/gcp-service-account-permissions.md) を参照してください。
+   各サービスアカウントに必要な権限は [GCP サービスアカウント権限](security/gcp-service-account-permissions.md) を参照してください。
 
 4. **Cloud Run の URL**:
    ```bash
@@ -113,9 +103,7 @@ Supabase に接続します。`SUPABASE_URL`・`SUPABASE_ANON_KEY`・`SUPABASE_S
 
 **トリガー**: `main` への push、Pull Request
 
-Supabase CLI でローカル Supabase を起動し、フォーマット確認 → Lint → 型チェック →
-テストを実行します。テストには `SUPABASE_URL`・`SUPABASE_ANON_KEY`・`SUPABASE_SERVICE_ROLE_KEY`
-を環境変数として渡します。
+Supabase CLI でローカル Supabase を起動し、フォーマット確認 → Lint → 型チェック → テストを実行します。テストには `SUPABASE_URL`・`SUPABASE_ANON_KEY`・`SUPABASE_SERVICE_ROLE_KEY` を環境変数として渡します。
 
 ### 2. Cloud Run デプロイ（`.github/workflows/deploy.yml`）
 
@@ -124,18 +112,14 @@ Supabase CLI でローカル Supabase を起動し、フォーマット確認 �
 1. **認証**: Workload Identity Federation で `GC_SA_CICD` として認証
 2. **Docker ビルド**: Playwright 依存関係を含むイメージをビルド
 3. **レジストリ push**: `GC_REGION-docker.pkg.dev/GC_PROJECT_ID/urawa-support-hub/app` に push
-4. **Cloud Run デプロイ**: サービス `urawa-support-hub` をデプロイ（メモリ 2Gi、タイムアウト 300
-   秒、同時実行数 1、インスタンス 0〜1、Secret Manager の
-   `SUPABASE_SERVICE_ROLE_KEY`・`LINE_CHANNEL_ACCESS_TOKEN` を環境変数として注入）
+4. **Cloud Run デプロイ**: サービス `urawa-support-hub` をデプロイ（メモリ 2Gi、タイムアウト 300 秒、同時実行数 1、インスタンス 0〜1、Secret Manager の `SUPABASE_SERVICE_ROLE_KEY`・`LINE_CHANNEL_ACCESS_TOKEN` を環境変数として注入）
 5. **クリーンアップ**: 最新 2 つを残して古いイメージを削除
 
 ### 3. Cloud Scheduler デプロイ（`.github/workflows/deploy-scheduler.yml`）
 
-**トリガー**: `main` への push で `infrastructure/scheduler/**` か
-`.github/workflows/deploy-scheduler.yml` に変更があったとき、手動実行
+**トリガー**: `main` への push で `infrastructure/scheduler/**` か `.github/workflows/deploy-scheduler.yml` に変更があったとき、手動実行
 
-`infrastructure/scheduler/config.yaml` を読み、次のジョブを作成または更新します。どちらも
-`GC_SA_SCHEDULER` の OIDC トークンで `CLOUD_RUN_URL` を呼び出し、リトライは 3 回です。
+`infrastructure/scheduler/config.yaml` を読み、次のジョブを作成または更新します。どちらも `GC_SA_SCHEDULER` の OIDC トークンで `CLOUD_RUN_URL` を呼び出し、リトライは 3 回です。
 
 | ジョブ                    | スケジュール（Asia/Tokyo）      | エンドポイント         |
 | ------------------------- | ------------------------------- | ---------------------- |
@@ -144,8 +128,7 @@ Supabase CLI でローカル Supabase を起動し、フォーマット確認 �
 
 ### 4. データベースマイグレーション（`.github/workflows/migrate-database.yml`）
 
-**トリガー**: `main` への push で `supabase/migrations/**`
-に変更があったとき、手動実行（`dry_run`・`include_seed` を指定可能）
+**トリガー**: `main` への push で `supabase/migrations/**` に変更があったとき、手動実行（`dry_run`・`include_seed` を指定可能）
 
 `SUPABASE_PROJECT_ID` で `supabase link` し、`supabase db push` でマイグレーションを適用します。
 
@@ -182,8 +165,7 @@ env:
 
 1. **シークレットが見つからない**
    - シークレット名が完全一致しているか（大文字小文字を区別）
-   - `production` 環境のシークレットとして登録した場合、`environment: production`
-     を持つワークフロー（`deploy.yml`・`migrate-database.yml`）からしか参照できない
+   - `production` 環境のシークレットとして登録した場合、`environment: production` を持つワークフロー（`deploy.yml`・`migrate-database.yml`）からしか参照できない
 
 2. **Workload Identity 認証エラー**
    - `WIF_PROVIDER` のリソースパスが正しいか
@@ -196,8 +178,7 @@ env:
 
 4. **Cloud Run デプロイ失敗**
    - `GC_SA_CICD` が `GC_SA_CLOUD_RUN` として振る舞える（`roles/iam.serviceAccountUser`）か
-   - Secret Manager に `SUPABASE_SERVICE_ROLE_KEY`・`LINE_CHANNEL_ACCESS_TOKEN`
-     が存在し、`GC_SA_CLOUD_RUN` が読み取れるか
+   - Secret Manager に `SUPABASE_SERVICE_ROLE_KEY`・`LINE_CHANNEL_ACCESS_TOKEN` が存在し、`GC_SA_CLOUD_RUN` が読み取れるか
 
 5. **Cloud Scheduler の問題**
    - `CLOUD_RUN_URL` が `https://` で始まっているか（ワークフローで検証している）
@@ -206,8 +187,7 @@ env:
 
 ## ローカル開発
 
-ローカル開発では GitHub Secrets ではなく `.env` / `.env.local`
-を使います。詳細は[セットアップガイド](setup-guide.md#2-環境変数ファイル)を参照してください。
+ローカル開発では GitHub Secrets ではなく `.env` / `.env.local` を使います。詳細は[セットアップガイド](setup-guide.md#2-環境変数ファイル)を参照してください。
 
 ## 参考
 

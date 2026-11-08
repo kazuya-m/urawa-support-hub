@@ -15,16 +15,14 @@
 | ランタイム           | Deno + TypeScript                                                |
 | CI/CD                | GitHub Actions                                                   |
 
-Supabase Edge Functions は使っていません。下記の比較のとおり、スクレイピングと通知送信の実行環境には
-Cloud Run を選びました。
+Supabase Edge Functions は使っていません。下記の比較のとおり、スクレイピングと通知送信の実行環境には Cloud Run を選びました。
 
 ## コア技術スタック
 
 ### 実行環境
 
 - **Deno + TypeScript**: TypeScript を標準でサポートするランタイム
-- **理由**: 型安全性、権限モデルによる安全なデフォルト、`deno fmt` / `deno lint` / `deno test`
-  の標準ツール
+- **理由**: 型安全性、権限モデルによる安全なデフォルト、`deno fmt` / `deno lint` / `deno test` の標準ツール
 - **用途**: 全アプリケーションロジック（Cloud Run 上のサービス）とスクリプト
 
 ### Google Cloud Platform
@@ -32,8 +30,7 @@ Cloud Run を選びました。
 - **Google Cloud Run**: コンテナで Playwright と通知送信を実行
 - **Google Cloud Scheduler**: 日次のチケット収集と月次のサマリー送信を起動
 - **Google Cloud Tasks**: 販売開始前の指定時刻に通知送信エンドポイントを呼ぶ
-- **理由**: Playwright に十分なメモリと実行時間、OIDC
-  による呼び出し元の認証、組み込みのリトライ、無料枠
+- **理由**: Playwright に十分なメモリと実行時間、OIDC による呼び出し元の認証、組み込みのリトライ、無料枠
 
 ### Supabase
 
@@ -62,11 +59,9 @@ Cloud Run を選びました。
 
 ### スケジューリング
 
-- **Google Cloud Scheduler**: 毎日 05:00 JST にチケット収集、毎月 1 日 20:00 JST
-  にチケット一覧の送信
+- **Google Cloud Scheduler**: 毎日 05:00 JST にチケット収集、毎月 1 日 20:00 JST にチケット一覧の送信
 - **Google Cloud Tasks**: チケットごとの通知（販売開始前日 20:00、1 時間前、15 分前）
-- **pg_cron**: アプリケーションの起動には使わず、DB
-  内の古いレコード削除にのみ使う（[データベース自動クリーンアップ](database-cleanup.md)）
+- **pg_cron**: アプリケーションの起動には使わず、DB 内の古いレコード削除にのみ使う（[データベース自動クリーンアップ](database-cleanup.md)）
 - **Cloud Tasks を選んだ理由**:
   - 通知時刻にタスクを実行するイベント駆動で、ポーリングが不要
   - 組み込みの指数バックオフによるリトライ
@@ -76,8 +71,7 @@ Cloud Run を選びました。
 
 - **設定駆動設計**: 通知タイミングを `NOTIFICATION_TIMING_CONFIG` に集約
 - **リポジトリパターン**: データアクセスをリポジトリに分離
-- コードの層構成は簡素化に向けて移行中です（#204）。移行後の方針は #215
-  で設計ドキュメントに記載します
+- コードの層構成は簡素化に向けて移行中です（#204）。移行後の方針は #215 で設計ドキュメントに記載します
 
 ## 技術比較
 
@@ -92,8 +86,7 @@ Cloud Run を選びました。
 | **コールドスタート**    | ~100ms                  | ~1-2 秒                  |
 | **コスト**              | 無料枠あり              | 無料枠あり               |
 
-**決定**: Playwright に必要なメモリ・実行時間を確保できる Cloud Run
-を採用。通知送信も同じサービスに置き、実行環境を 1 つにまとめた。
+**決定**: Playwright に必要なメモリ・実行時間を確保できる Cloud Run を採用。通知送信も同じサービスに置き、実行環境を 1 つにまとめた。
 
 ### アプリケーション起動のスケジューリング
 
@@ -106,8 +99,7 @@ Cloud Run を選びました。
 | **コスト**             | 無料             | 無料枠内                        |
 | **監視**               | PostgreSQL ログ  | Cloud Console + Cloud Logging   |
 
-**決定**: アプリケーションの起動は Cloud Scheduler + Cloud Tasks。pg_cron は DB
-内で完結するレコード削除にのみ使う。
+**決定**: アプリケーションの起動は Cloud Scheduler + Cloud Tasks。pg_cron は DB 内で完結するレコード削除にのみ使う。
 
 ## 技術依存関係
 
@@ -131,8 +123,7 @@ LINE Messaging API は SDK を使わず `fetch` で呼び出します。
 
 - **Jリーグチケットサイト**、**サンフレッチェ広島公式サイト**: チケット情報の取得元
 - **LINE Messaging API**: ユーザー通知
-- **Google Cloud APIs**: Cloud Tasks（アプリケーションから）、Cloud Run・Cloud Scheduler（CI/CD
-  から）
+- **Google Cloud APIs**: Cloud Tasks（アプリケーションから）、Cloud Run・Cloud Scheduler（CI/CD から）
 
 ## パフォーマンス特性
 
@@ -160,8 +151,7 @@ LINE Messaging API は SDK を使わず `fetch` で呼び出します。
 | Cloud Run → LINE API          | チャンネルアクセストークン（Secret Manager から注入） |
 | GitHub Actions → Google Cloud | Workload Identity Federation                          |
 
-Cloud Run は `--no-allow-unauthenticated` でデプロイし、`roles/run.invoker`
-を持つサービスアカウントだけが呼び出せます。詳細は [security/](security/) を参照してください。
+Cloud Run は `--no-allow-unauthenticated` でデプロイし、`roles/run.invoker` を持つサービスアカウントだけが呼び出せます。詳細は [security/](security/) を参照してください。
 
 ## コスト分析
 

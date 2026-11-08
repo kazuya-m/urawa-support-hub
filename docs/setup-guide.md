@@ -34,8 +34,7 @@ supabase status      # URL とキーを確認
 | DB       | 54322  |
 | Studio   | 54323  |
 
-`supabase start` 時に `supabase/migrations/` のマイグレーションが適用されます。DB を作り直すときは
-`deno task db:reset` を使います。
+`supabase start` 時に `supabase/migrations/` のマイグレーションが適用されます。DB を作り直すときは `deno task db:reset` を使います。
 
 ### 2. 環境変数ファイル
 
@@ -51,9 +50,7 @@ cp .env.example .env
 cp .env.example .env.local
 ```
 
-`docker-compose.yml` は `SUPABASE_URL=http://host.docker.internal:54321` と
-`CLOUD_TASKS_EMULATOR_HOST=cloud-tasks-emulator:8123` を上書きするため、`.env.local` でこの 2
-つを設定する必要はありません。
+`docker-compose.yml` は `SUPABASE_URL=http://host.docker.internal:54321` と `CLOUD_TASKS_EMULATOR_HOST=cloud-tasks-emulator:8123` を上書きするため、`.env.local` でこの 2 つを設定する必要はありません。
 
 アプリが読む環境変数:
 
@@ -74,10 +71,7 @@ cp .env.example .env.local
 
 キュー名は `notifications` でコードに固定されています（`src/config/app-config.ts`）。
 
-**Cloud Tasks Emulator の制約**: `docker-compose.yml` のエミュレーターは起動時にキュー
-`projects/dev-project/locations/asia-northeast1/queues/notification-queue` を作成しますが、アプリは
-`GC_PROJECT_ID`・ロケーション・`notifications`
-からキューのパスを組み立てます。名前が一致しないため、そのままではエミュレーター上のキューにタスクを登録できません。
+**Cloud Tasks Emulator の制約**: `docker-compose.yml` のエミュレーターは起動時にキュー `projects/dev-project/locations/asia-northeast1/queues/notification-queue` を作成しますが、アプリは `GC_PROJECT_ID`・ロケーション・`notifications` からキューのパスを組み立てます。名前が一致しないため、そのままではエミュレーター上のキューにタスクを登録できません。
 
 ### 3. アプリケーションの起動
 
@@ -139,8 +133,7 @@ deno task pre-commit
 
 ### 1. GCP リソースの初期作成（初回のみ）
 
-以下は workflow では作成されないため、初回に手動で作成します。`GC_REGION` は GitHub Secrets
-と同じ値（例: `asia-northeast1`）を使います。
+以下は workflow では作成されないため、初回に手動で作成します。`GC_REGION` は GitHub Secrets と同じ値（例: `asia-northeast1`）を使います。
 
 ```bash
 gcloud auth login
@@ -169,14 +162,10 @@ printf '%s' 'SERVICE_ROLE_KEY' | gcloud secrets create SUPABASE_SERVICE_ROLE_KEY
 printf '%s' 'LINE_TOKEN' | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-file=-
 ```
 
-Cloud Tasks
-のキューは、タスクの実行先（`/api/send-notification`）がエラー（5xx）を返すとリトライします。
+Cloud Tasks のキューは、タスクの実行先（`/api/send-notification`）がエラー（5xx）を返すとリトライします。
 
-- LINE への送信は 1 回の実行内で最大 3 回試行し、すべて失敗すると通知を `failed` として記録して 200
-  を返します。この場合はリトライされません
-- DB の読み書きの失敗など、処理中に例外が出た場合は 5xx を返し、キューのリトライ対象になります。LINE
-  への送信が成功した後に `sent`
-  への更新が失敗した場合も含まれるため、リトライのたびに同じ通知が再送されることがあります
+- LINE への送信は 1 回の実行内で最大 3 回試行し、すべて失敗すると通知を `failed` として記録して 200 を返します。この場合はリトライされません
+- DB の読み書きの失敗など、処理中に例外が出た場合は 5xx を返し、キューのリトライ対象になります。LINE への送信が成功した後に `sent` への更新が失敗した場合も含まれるため、リトライのたびに同じ通知が再送されることがあります
 
 `--max-attempts` を指定しないとキューの既定値（100 回）が使われるので、上限を指定して作成します。
 
@@ -188,16 +177,11 @@ Secret Manager に登録する値と、Cloud Run に設定する `SUPABASE_URL` 
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase ダッシュボードの **Settings** → **API** の service_role key                        |
 | `LINE_CHANNEL_ACCESS_TOKEN` | LINE Developers コンソールのチャンネル → **Messaging API** タブのチャンネルアクセストークン |
 
-サービスアカウントと必要な権限は
-[GCP サービスアカウント権限](security/gcp-service-account-permissions.md)、GitHub Actions
-からの認証（Workload Identity Federation）と GitHub Secrets は
-[GitHub Secrets設定](github-secrets-setup.md) を参照してください。
+サービスアカウントと必要な権限は [GCP サービスアカウント権限](security/gcp-service-account-permissions.md)、GitHub Actions からの認証（Workload Identity Federation）と GitHub Secrets は [GitHub Secrets設定](github-secrets-setup.md) を参照してください。
 
 ### 2. Cloud Run
 
-`main` への push で `.github/workflows/deploy.yml` が実行され、イメージを Artifact Registry に push
-してサービス `urawa-support-hub` をデプロイします。手動実行は Actions の「Deploy to Cloud
-Run」から行います。
+`main` への push で `.github/workflows/deploy.yml` が実行され、イメージを Artifact Registry に push してサービス `urawa-support-hub` をデプロイします。手動実行は Actions の「Deploy to Cloud Run」から行います。
 
 デプロイ設定（`deploy.yml`）:
 
@@ -211,8 +195,7 @@ Run」から行います。
 | サービスアカウント | `GC_SA_CLOUD_RUN`                                                       |
 | Secret Manager     | `SUPABASE_SERVICE_ROLE_KEY`、`LINE_CHANNEL_ACCESS_TOKEN`                |
 
-`deploy.yml`
-はシークレット以外の環境変数を設定しません。初回デプロイ後に、サービスへ直接設定します（以降のデプロイでも保持されます）。
+`deploy.yml` はシークレット以外の環境変数を設定しません。初回デプロイ後に、サービスへ直接設定します（以降のデプロイでも保持されます）。
 
 ```bash
 gcloud run services update urawa-support-hub \
@@ -224,10 +207,7 @@ gcloud run services update urawa-support-hub \
 
 ### 3. データベース
 
-`main` への push で `supabase/migrations/**`
-に変更があると、`.github/workflows/migrate-database.yml` がマイグレーションを適用します。手動実行は
-Actions の「Migrate Supabase Database」から行い、`dry_run`（適用状況の確認のみ）と `include_seed`
-を指定できます。
+`main` への push で `supabase/migrations/**` に変更があると、`.github/workflows/migrate-database.yml` がマイグレーションを適用します。手動実行は Actions の「Migrate Supabase Database」から行い、`dry_run`（適用状況の確認のみ）と `include_seed` を指定できます。
 
 ローカルから適用する場合:
 
@@ -238,9 +218,7 @@ supabase db push
 
 ### 4. Cloud Scheduler
 
-ジョブの設定は `infrastructure/scheduler/config.yaml` にあり、`main` への push で
-`infrastructure/scheduler/**` か `.github/workflows/deploy-scheduler.yml`
-に変更があると、`deploy-scheduler.yml` がジョブを作成・更新します。
+ジョブの設定は `infrastructure/scheduler/config.yaml` にあり、`main` への push で `infrastructure/scheduler/**` か `.github/workflows/deploy-scheduler.yml` に変更があると、`deploy-scheduler.yml` がジョブを作成・更新します。
 
 | ジョブ                    | スケジュール（Asia/Tokyo）      | エンドポイント         | 期限   |
 | ------------------------- | ------------------------------- | ---------------------- | ------ |
@@ -251,8 +229,7 @@ supabase db push
 
 #### 事前準備
 
-- スケジューラー用サービスアカウントを作成し、Cloud Run サービスに `roles/run.invoker`
-  を付与する（[GCP サービスアカウント権限](security/gcp-service-account-permissions.md)）
+- スケジューラー用サービスアカウントを作成し、Cloud Run サービスに `roles/run.invoker` を付与する（[GCP サービスアカウント権限](security/gcp-service-account-permissions.md)）
 - GitHub Secrets に `GC_SA_SCHEDULER` と `CLOUD_RUN_URL` を登録する
 
 #### 手動でジョブを作成する場合
@@ -291,16 +268,13 @@ supabase status
 deno task db:restart
 ```
 
-Docker Compose から接続する場合は、`SUPABASE_URL` が `host.docker.internal:54321`
-になっていることを確認します（`docker-compose.yml` で設定済み）。
+Docker Compose から接続する場合は、`SUPABASE_URL` が `host.docker.internal:54321` になっていることを確認します（`docker-compose.yml` で設定済み）。
 
 **通知タスクが作成されない**
 
 - `CLOUD_RUN_NOTIFICATION_URL` が未設定だとチケット収集時にエラーになる
-- 本番では `notifications` キューが `CLOUD_TASKS_LOCATION`（または `GCP_REGION`、既定
-  `asia-northeast1`）に存在するか確認する
-- Cloud Run のサービスアカウントが `CLOUD_TASKS_SERVICE_ACCOUNT`
-  として振る舞える（`iam.serviceAccounts.actAs`）か確認する
+- 本番では `notifications` キューが `CLOUD_TASKS_LOCATION`（または `GCP_REGION`、既定 `asia-northeast1`）に存在するか確認する
+- Cloud Run のサービスアカウントが `CLOUD_TASKS_SERVICE_ACCOUNT` として振る舞える（`iam.serviceAccounts.actAs`）か確認する
 
 **Google Cloud の認証**
 

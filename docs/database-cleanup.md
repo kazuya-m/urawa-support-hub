@@ -1,7 +1,6 @@
 # データベース自動クリーンアップ
 
-`tickets` と `notifications` の古いレコードを pg_cron
-で定期的に削除し、データベースの肥大化を防ぎます。
+`tickets` と `notifications` の古いレコードを pg_cron で定期的に削除し、データベースの肥大化を防ぎます。
 
 ## 保持ポリシー
 
@@ -13,13 +12,9 @@ pg_cron のスケジュールは UTC で解釈されます。
 | `cleanup-sent-notifications` | `notifications` | `status = 'sent' AND sent_at < NOW() - INTERVAL '30 days'`       | `30 17 * * *`       | 毎日 02:30     | migration 025                        |
 | `weekly-cleanup`             | `tickets`       | `match_date < NOW() - INTERVAL '7 days'`（`cleanup_old_data()`） | `0 2 * * 0`         | 毎週日曜 11:00 | migration 002（関数は 013 で再定義） |
 
-**既知の不具合**: `weekly-cleanup` が呼ぶ `cleanup_old_data()` は `SET search_path = ''`
-で定義されているのに、`tickets`
-をスキーマなしで参照しています。そのため実行のたびにテーブルを解決できずに失敗し、削除は行われません。実質的な保持期間は
-`cleanup-old-tickets` による試合日から 30 日です。失敗は下記「実行履歴」のクエリで確認できます。
+**既知の不具合**: `weekly-cleanup` が呼ぶ `cleanup_old_data()` は `SET search_path = ''` で定義されているのに、`tickets` をスキーマなしで参照しています。そのため実行のたびにテーブルを解決できずに失敗し、削除は行われません。実質的な保持期間は `cleanup-old-tickets` による試合日から 30 日です。失敗は下記「実行履歴」のクエリで確認できます。
 
-`notifications.ticket_id` は `tickets(id)` への外部キーで `ON DELETE CASCADE`（migration
-017）です。チケットが削除されると、そのチケットの通知も状態にかかわらず削除されます。
+`notifications.ticket_id` は `tickets(id)` への外部キーで `ON DELETE CASCADE`（migration 017）です。チケットが削除されると、そのチケットの通知も状態にかかわらず削除されます。
 
 ## 構成
 
@@ -72,8 +67,7 @@ DELETE FROM public.notifications
 WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '30 days';
 ```
 
-このジョブが削除するのは `sent` の通知だけです。`scheduled`・`failed`・`cancelled`
-の通知は、紐づくチケットが削除されるまで残ります。
+このジョブが削除するのは `sent` の通知だけです。`scheduled`・`failed`・`cancelled` の通知は、紐づくチケットが削除されるまで残ります。
 
 ## 手動クリーンアップ関数
 
@@ -113,8 +107,7 @@ DELETE FROM public.tickets ...
 DELETE FROM public.notifications ...
 ```
 
-**理由**: 関数は search_path インジェクション対策として `SET search_path = ''`
-を設定しているため、スキーマを省略するとテーブルが見つかりません。
+**理由**: 関数は search_path インジェクション対策として `SET search_path = ''` を設定しているため、スキーマを省略するとテーブルが見つかりません。
 
 ### 権限
 
@@ -151,10 +144,8 @@ SELECT COUNT(*) FROM notifications WHERE status = 'sent' AND sent_at < NOW() - I
 
 - `supabase/migrations/002_cron_jobs.sql`: `weekly-cleanup` の登録
 - `supabase/migrations/013_remove_unused_log_tables.sql`: `cleanup_old_data()` の現在の定義
-- `supabase/migrations/024_auto_cleanup_tickets_notifications.sql`:
-  `cleanup-old-tickets`、`manual_cleanup_old_tickets`
-- `supabase/migrations/025_update_notification_cleanup_retention.sql`:
-  `cleanup-sent-notifications`、`manual_cleanup_sent_notifications`
+- `supabase/migrations/024_auto_cleanup_tickets_notifications.sql`: `cleanup-old-tickets`、`manual_cleanup_old_tickets`
+- `supabase/migrations/025_update_notification_cleanup_retention.sql`: `cleanup-sent-notifications`、`manual_cleanup_sent_notifications`
 
 ## テスト
 

@@ -1,9 +1,6 @@
 # GCP サービスアカウント最小権限設定
 
-urawa-support-hub が使う GCP サービスアカウントと、それぞれに必要な最小権限です。権限は
-`.github/workflows/*.yml` とアプリケーションコードが行う操作から導いたもので、本番プロジェクトの IAM
-設定と照合したものではありません。設定を変更するときは `gcloud projects get-iam-policy`
-などで現状を確認してください。
+urawa-support-hub が使う GCP サービスアカウントと、それぞれに必要な最小権限です。権限は `.github/workflows/*.yml` とアプリケーションコードが行う操作から導いたもので、本番プロジェクトの IAM 設定と照合したものではありません。設定を変更するときは `gcloud projects get-iam-policy` などで現状を確認してください。
 
 ## サービスアカウント一覧
 
@@ -14,8 +11,7 @@ urawa-support-hub が使う GCP サービスアカウントと、それぞれに
 | Cloud Scheduler          | GitHub Secret `GC_SA_SCHEDULER`                    | Cloud Run の呼び出し（OIDC）                                    |
 | Cloud Tasks の呼び出し元 | Cloud Run の環境変数 `CLOUD_TASKS_SERVICE_ACCOUNT` | `/api/send-notification` の呼び出し（OIDC）                     |
 
-Cloud Tasks の呼び出し元には、Cloud Run
-サービスのサービスアカウントを兼用してもかまいません。その場合は下記の両方の権限を付与します。
+Cloud Tasks の呼び出し元には、Cloud Run サービスのサービスアカウントを兼用してもかまいません。その場合は下記の両方の権限を付与します。
 
 ## 必要な権限
 
@@ -42,8 +38,7 @@ GitHub Actions から Workload Identity Federation で利用します。
 
 **不要**:
 
-- `roles/run.invoker`: Cloud Run サービス自身は他のサービスを呼び出さない（呼び出すのは Cloud
-  Tasks）
+- `roles/run.invoker`: Cloud Run サービス自身は他のサービスを呼び出さない（呼び出すのは Cloud Tasks）
 - `storage.*`: データは Supabase PostgreSQL に保存し、Cloud Storage は使わない
 
 ### 3. Cloud Scheduler（`GC_SA_SCHEDULER`）
@@ -58,8 +53,7 @@ GitHub Actions から Workload Identity Federation で利用します。
 | ------------------------------------------- | ------------------- | ---------------------------- |
 | `/api/send-notification` の呼び出し（OIDC） | `roles/run.invoker` | サービス `urawa-support-hub` |
 
-Cloud Run は `--no-allow-unauthenticated` でデプロイされるため、`roles/run.invoker`
-のない呼び出しは拒否されます。
+Cloud Run は `--no-allow-unauthenticated` でデプロイされるため、`roles/run.invoker` のない呼び出しは拒否されます。
 
 ## 設定コマンド
 
@@ -110,8 +104,7 @@ done
 
 ### 2. キーを発行しない
 
-- GitHub Actions は Workload Identity Federation、Cloud Run
-  はアタッチしたサービスアカウントで認証するため、サービスアカウントキー（JSON）は発行しない
+- GitHub Actions は Workload Identity Federation、Cloud Run はアタッチしたサービスアカウントで認証するため、サービスアカウントキー（JSON）は発行しない
 - 組織ポリシーでキー作成を禁止できる場合は禁止する
 
 ### 3. 監視と見直し

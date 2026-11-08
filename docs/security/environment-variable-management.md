@@ -1,7 +1,6 @@
 # 環境変数管理ルール
 
-urawa-support-hub
-の環境変数と機密情報の管理方法です。変数の一覧と用途は[セットアップガイド](../setup-guide.md#2-環境変数ファイル)を参照してください。
+urawa-support-hub の環境変数と機密情報の管理方法です。変数の一覧と用途は[セットアップガイド](../setup-guide.md#2-環境変数ファイル)を参照してください。
 
 ## 分類
 
@@ -41,9 +40,7 @@ printf '%s' 'VALUE' | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-fil
 printf '%s' 'NEW_VALUE' | gcloud secrets versions add LINE_CHANNEL_ACCESS_TOKEN --data-file=-
 ```
 
-Cloud Run のサービスアカウント（`GC_SA_CLOUD_RUN`）には、この 2 つのシークレットに対する
-`roles/secretmanager.secretAccessor`
-が必要です（[GCP サービスアカウント権限](gcp-service-account-permissions.md)）。
+Cloud Run のサービスアカウント（`GC_SA_CLOUD_RUN`）には、この 2 つのシークレットに対する `roles/secretmanager.secretAccessor` が必要です（[GCP サービスアカウント権限](gcp-service-account-permissions.md)）。
 
 非機密の設定は Cloud Run サービスに直接設定します。
 
@@ -53,14 +50,11 @@ gcloud run services update urawa-support-hub \
   --update-env-vars="SUPABASE_URL=https://xxxxx.supabase.co"
 ```
 
-機密情報を `--set-env-vars` / `--update-env-vars` で渡さないでください。値が Cloud Run
-のサービス設定にそのまま残ります。
+機密情報を `--set-env-vars` / `--update-env-vars` で渡さないでください。値が Cloud Run のサービス設定にそのまま残ります。
 
 ## 検証
 
-アプリ起動後、`GET /health`（`src/middleware/health.ts`）が `SUPABASE_URL` と
-`SUPABASE_SERVICE_ROLE_KEY`
-の有無を確認します。エラーメッセージには不足している変数名が含まれますが、値は出力しません。
+アプリ起動後、`GET /health`（`src/middleware/health.ts`）が `SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY` の有無を確認します。エラーメッセージには不足している変数名が含まれますが、値は出力しません。
 
 その他の必須変数は、使用時に未設定であればエラーになります。
 
@@ -75,12 +69,10 @@ gcloud run services update urawa-support-hub \
 ### 1. ローテーション
 
 - **LINE チャンネルアクセストークン**: 90 日ごとに再発行
-- **Supabase キー**: 90 日ごとにローテーション（ダッシュボードで JWT secret を再生成すると anon
-  キーも変わる）
+- **Supabase キー**: 90 日ごとにローテーション（ダッシュボードで JWT secret を再生成すると anon キーも変わる）
 - **Supabase DB パスワード**: 漏洩の疑いがあれば即時変更（`SUPABASE_DB_PASSWORD` も更新）
 
-GCP へのアクセスは Workload Identity Federation（GitHub Actions）と Cloud Run
-にアタッチしたサービスアカウントで行うため、サービスアカウントキーは発行しません。
+GCP へのアクセスは Workload Identity Federation（GitHub Actions）と Cloud Run にアタッチしたサービスアカウントで行うため、サービスアカウントキーは発行しません。
 
 ### 2. 開発時のルール
 
@@ -93,10 +85,8 @@ GCP へのアクセスは Workload Identity Federation（GitHub Actions）と Cl
 
 **環境変数が読み込まれない**
 
-- `deno task dev:local` は `.env`、`deno task dev` は `.env.local`
-  を読む。編集したファイルが正しいか確認する
-- Docker Compose では `SUPABASE_URL` と `CLOUD_TASKS_EMULATOR_HOST` が `docker-compose.yml`
-  で上書きされる
+- `deno task dev:local` は `.env`、`deno task dev` は `.env.local` を読む。編集したファイルが正しいか確認する
+- Docker Compose では `SUPABASE_URL` と `CLOUD_TASKS_EMULATOR_HOST` が `docker-compose.yml` で上書きされる
 
 **ファイル権限**
 
@@ -116,8 +106,7 @@ chmod 600 .env .env.local
 **環境変数が原因のサービス障害**
 
 1. `GET /health` の結果を確認する
-2. Cloud Run
-   のリビジョンに設定されている環境変数とシークレットを確認する（`gcloud run services describe urawa-support-hub --region=asia-northeast1`）
+2. Cloud Run のリビジョンに設定されている環境変数とシークレットを確認する（`gcloud run services describe urawa-support-hub --region=asia-northeast1`）
 3. Cloud Logging でエラーログを確認する
 
 ## チェックリスト

@@ -6,8 +6,7 @@
 
 ### 1. AWAYタブの構造
 
-`https://www.jleague-ticket.jp/club/ur/`ページに存在するAWAYタブの要素です。
-これをクリックして、アウェイゲームの情報を表示します。
+`https://www.jleague-ticket.jp/club/ur/`ページに存在するAWAYタブの要素です。これをクリックして、アウェイゲームの情報を表示します。
 
 ```html
 <ul class="ticket-tab js-ticket-tab">
@@ -18,8 +17,7 @@
 
 ### 2. 各試合のチケット購入リンクリスト
 
-アウェイタブに表示される試合のリストの構造。
-「チケット購入」ボタンの設定されているリンクに遷移すると、個別の試合のチケット一覧ページが表示される。
+アウェイタブに表示される試合のリストの構造。「チケット購入」ボタンの設定されているリンクに遷移すると、個別の試合のチケット一覧ページが表示される。
 
 ```html
 <!-- AWAYタブ構造（簡素化版） -->
@@ -61,9 +59,7 @@
 
 ### 3. 個別試合のチケット一覧ページ
 
-試合情報と、席種ごとの発売スケジュールを取得します。セレクタは
-`src/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts` の `detailPage.selectors`
-で管理しています。
+試合情報と、席種ごとの発売スケジュールを取得します。セレクタは `src/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts` の `detailPage.selectors` で管理しています。
 
 | 取得する情報       | セレクタ                                      |
 | ------------------ | --------------------------------------------- |
@@ -77,8 +73,7 @@
 
 **抽出ルール**:
 
-- 席種名にアウェイキーワード（`アウェイ`・`ビジター`・`ミックス` とその英字表記）を含む `.list-wrap`
-  だけを対象にする
+- 席種名にアウェイキーワード（`アウェイ`・`ビジター`・`ミックス` とその英字表記）を含む `.list-wrap` だけを対象にする
 - 販売区分（`.title`）が「一般発売」または「一般販売」の `.date` を発売日時とする（先行販売は除外）
 - 発売日時の形式（`JLeagueDataParser.ts` が解釈する）
   - 発売前: `08/15(金)10:00〜`
@@ -87,7 +82,4 @@
 
 ## サンフレッチェ広島公式サイト
 
-`https://www.sanfrecce.co.jp/tickets/schedule` の試合スケジュール表（`tr.cmn--btr`
-の行）から、浦和レッズ戦の行を取得します。列ごとのセレクタは
-`src/infrastructure/services/scraping/sources/hiroshima/HiroshimaConfig.ts` の
-`schedulePageConfig.selectors` で管理しています。
+`https://www.sanfrecce.co.jp/tickets/schedule` の試合スケジュール表（`tr.cmn--btr` の行）から、浦和レッズ戦の行を取得します。列ごとのセレクタは `src/infrastructure/services/scraping/sources/hiroshima/HiroshimaConfig.ts` の `schedulePageConfig.selectors` で管理しています。

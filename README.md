@@ -11,8 +11,7 @@
 **主要機能:**
 
 - 🎫 Playwrightスクレイピングによる自動チケット監視（Jリーグチケット、サンフレッチェ広島公式サイト）
-- 📱 Google Cloud
-  Tasksによる通知スケジューリングとLINEブロードキャスト通知（販売開始前日20:00・1時間前・15分前）
+- 📱 Google Cloud Tasksによる通知スケジューリングとLINEブロードキャスト通知（販売開始前日20:00・1時間前・15分前）
 - 🗓️ 毎月1日20:00に販売中・販売前チケットの一覧をLINEで送信
 - 🏗️ ハイブリッド構成: Google Cloud（スクレイピング・通知送信） + Supabase（データベース）
 - 🔄 Google Cloud Schedulerによる毎日自動実行
@@ -64,8 +63,7 @@
 - **[GitHub Secrets設定](docs/github-secrets-setup.md)** - CI/CD のシークレット
 - **[要件定義](docs/requirements.md)** - 機能要件と非機能要件
 
-設計ドキュメント（[システムアーキテクチャ](docs/system-architecture.md)、[実装ガイド](docs/implementation-guide.md)、[テストガイドライン](docs/testing-guidelines.md)
-など）は、コードの移行（#204）に合わせて書き直し中のため、現在のコードと異なる記述を含みます。
+設計ドキュメント（[システムアーキテクチャ](docs/system-architecture.md)、[実装ガイド](docs/implementation-guide.md)、[テストガイドライン](docs/testing-guidelines.md) など）は、コードの移行（#204）に合わせて書き直し中のため、現在のコードと異なる記述を含みます。
 
 ## クイックスタート
 
@@ -98,11 +96,9 @@ deno task pre-commit
 **開発環境に含まれるサービス**:
 
 - アプリケーションコンテナ (ポート: 8080)
-- Cloud Tasks Emulator (ポート: 8123) -
-  通知スケジューリングのローカルテスト用（キュー名の制約は[セットアップガイド](docs/setup-guide.md#2-環境変数ファイル)を参照）
+- Cloud Tasks Emulator (ポート: 8123) - 通知スケジューリングのローカルテスト用（キュー名の制約は[セットアップガイド](docs/setup-guide.md#2-環境変数ファイル)を参照）
 
-環境変数と `.env` / `.env.local`
-の使い分けは[セットアップガイド](docs/setup-guide.md)を参照してください。
+環境変数と `.env` / `.env.local` の使い分けは[セットアップガイド](docs/setup-guide.md)を参照してください。
 
 ### 開発コマンド
 
@@ -168,8 +164,7 @@ GC_SA_SCHEDULER
 CLOUD_RUN_URL
 ```
 
-`LINE_CHANNEL_ACCESS_TOKEN` は GitHub Secrets ではなく Google Secret Manager
-に登録します。詳細は[GitHub Secrets設定](docs/github-secrets-setup.md)を参照。
+`LINE_CHANNEL_ACCESS_TOKEN` は GitHub Secrets ではなく Google Secret Manager に登録します。詳細は[GitHub Secrets設定](docs/github-secrets-setup.md)を参照。
 
 ## 運用
 
@@ -179,8 +174,7 @@ CLOUD_RUN_URL
 
 - **Google Cloud**: 無料枠（Cloud Run, Scheduler, Tasks, Logging）
 - **Supabase**: 500MB DB（無料枠）
-- **LINE**: コミュニケーションプランの無料メッセージ数内（ブロードキャストはフォロワー数 ×
-  通数で数える）
+- **LINE**: コミュニケーションプランの無料メッセージ数内（ブロードキャストはフォロワー数 × 通数で数える）
 
 **使用量の目安**:
 

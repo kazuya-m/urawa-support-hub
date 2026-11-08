@@ -4,15 +4,11 @@ urawa-support-hub のデータベーステーブルに設定している RLS ポ
 
 ## 概要
 
-アプリケーションは Cloud Run 上のバックエンドだけで、エンドユーザーが Supabase
-に直接アクセスする経路はありません。そのため RLS は「`service_role`
-以外のアクセスをすべて拒否する」ために使います。
+アプリケーションは Cloud Run 上のバックエンドだけで、エンドユーザーが Supabase に直接アクセスする経路はありません。そのため RLS は「`service_role` 以外のアクセスをすべて拒否する」ために使います。
 
 ## テーブルとポリシー
 
-対象は `tickets` と `notifications` の 2 テーブルです。どちらも RLS を有効にし、`service_role`
-だけを許可するポリシーを 1
-つ設定しています（`supabase/migrations/020_remove_unused_postgresql_functions_cron_jobs.sql`）。
+対象は `tickets` と `notifications` の 2 テーブルです。どちらも RLS を有効にし、`service_role` だけを許可するポリシーを 1 つ設定しています（`supabase/migrations/020_remove_unused_postgresql_functions_cron_jobs.sql`）。
 
 ```sql
 CREATE POLICY "Service role full access tickets" ON tickets
@@ -51,10 +47,8 @@ return createClient(supabaseUrl, supabaseServiceKey, {
 
 ## 既知の制約
 
-- アプリケーションは単一の `service_role`
-  キーで全操作を行うため、スクレイピングと通知送信で権限を分けていない。キーが漏洩すると全テーブルの読み書きが可能になる
-- そのため `SUPABASE_SERVICE_ROLE_KEY` は Secret Manager で管理し、Cloud Run
-  以外に渡さない（[環境変数管理](environment-variable-management.md)）
+- アプリケーションは単一の `service_role` キーで全操作を行うため、スクレイピングと通知送信で権限を分けていない。キーが漏洩すると全テーブルの読み書きが可能になる
+- そのため `SUPABASE_SERVICE_ROLE_KEY` は Secret Manager で管理し、Cloud Run 以外に渡さない（[環境変数管理](environment-variable-management.md)）
 
 ## ポリシーの確認
 
@@ -81,10 +75,8 @@ curl "${SUPABASE_URL}/rest/v1/tickets?select=id&limit=1" \
 
 ## ポリシーの変更
 
-- ポリシーの変更は `supabase/migrations/` にマイグレーションとして追加し、`migrate-database.yml`
-  で適用する（Supabase SQL エディターで直接変更しない）
-- 新しいテーブルを追加するときは、同じマイグレーション内で RLS を有効にし、`service_role`
-  のポリシーを追加する
+- ポリシーの変更は `supabase/migrations/` にマイグレーションとして追加し、`migrate-database.yml` で適用する（Supabase SQL エディターで直接変更しない）
+- 新しいテーブルを追加するときは、同じマイグレーション内で RLS を有効にし、`service_role` のポリシーを追加する
 - 変更後は上記のクエリでポリシーを確認し、このドキュメントを更新する
 
 ## 緊急時の対応
@@ -92,10 +84,8 @@ curl "${SUPABASE_URL}/rest/v1/tickets?select=id&limit=1" \
 **サービスロールキーの漏洩**
 
 1. Supabase ダッシュボードで JWT secret を再生成し、キーを再発行する
-2. Secret Manager の `SUPABASE_SERVICE_ROLE_KEY` に新しいバージョンを追加し、Cloud Run
-   を再デプロイする
+2. Secret Manager の `SUPABASE_SERVICE_ROLE_KEY` に新しいバージョンを追加し、Cloud Run を再デプロイする
 3. CI 用の GitHub Secrets とローカルの環境変数ファイルを更新する
 4. データに不審な変更がないか確認する
 
-RLS を無効化（`ALTER TABLE ... DISABLE ROW LEVEL SECURITY`）すると anon
-キーで全データにアクセスできるようになるため、障害対応でも無効化しないでください。
+RLS を無効化（`ALTER TABLE ... DISABLE ROW LEVEL SECURITY`）すると anon キーで全データにアクセスできるようになるため、障害対応でも無効化しないでください。
