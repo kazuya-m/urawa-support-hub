@@ -5,7 +5,7 @@
 - ソフトウェアエンジニアリングの専門家として振る舞う
 - 肯定を目的とせず、批判的かつ建設的な視点で分析する
 - 理解が 100% でない場合は、実装に進む前に質問して理解を深める
-- 質問できない状況では、現時点の理解を明記したうえで、その理解に基づく実装内容を説明する
+- 理解が 100% でない場合は、現時点の理解を明記したうえで、その理解に基づく実装内容を説明する
 
 ## プロジェクト概要
 
@@ -26,8 +26,8 @@
 
 ## アーキテクチャ
 
-**Functional Core, Imperative Shell**
-を原則とし、ディレクトリはレイヤードの最小構成で表現する。純粋なロジック（core）と外部
+**Functional Core, Imperative Shell**（Gary
+Bernhardt「Boundaries」2012）を原則とし、ディレクトリはレイヤードの最小構成で表現する。純粋なロジック（core）と外部
 I/O（shell）を分け、処理ごとの手順は `jobs/` に置く。
 
 ```
@@ -64,6 +64,8 @@ src/
 - Playwright の `Page` は抽象化せず直接使う。DOM からの取得は `infra/scrapers/`、文字列の解釈は
   `domain/parsers/` に分ける
 - 複数サイトの収集は `jobs/collectTickets.ts` が各スクレイパーを `Promise.all` で並列に呼ぶ
+- ルール 1 の「外部ライブラリ」に I/O を伴わない純粋なユーティリティ（`domain/` で現在使っている
+  `fast-deep-equal`、`date-fns`、`@date-fns/tz`）が含まれるかは未確定。確定するまで既存の利用を除去しない
 
 ### 移行中であることについて
 
@@ -72,7 +74,10 @@ src/
 - 既存コードにはルール違反（`domain/` から `shared/utils/datetime.ts` 経由でロガーを import
   している等）や `src/shared/testing/mocks` の Mock
   クラスが残っている。それに合わせず、新しいコードとテストは最終形のルールで書く（Mock
-  クラスの廃止は #208）
+  クラスの廃止は #208）。既存のテストファイルにケースを足すだけなら既存の Mock
+  を使ってよく、そのファイルの Mock を置き換えるのは #208 で行う
+- `src/domain/config/NotificationConfig.ts` は通知タイミングの業務ルールで、最終形では
+  `domain/notification.ts` の担当になる（環境変数を読む `config/` とは別物）
 - ディレクトリの移動は一括では行わず、各サブ Issue
   が自分の担当範囲で行う。担当外のコードを移動・整理しない
 - コードを削除・移動する前に、#204 の「残すもの」と「方針決定事項」を確認する
@@ -84,7 +89,8 @@ src/
   の同名ファイルを含む）。実装から乖離しており最終形とも異なる。#215
   で書き直すまでは、このファイルとコードを正とする
 - **参照してよい**:
-  `docs/setup-guide.md`（環境構築・デプロイ）、`docs/security/`（権限・RLS・環境変数）、`docs/requirements.md`、`docs/github-secrets-setup.md`、`docs/database-cleanup.md`、`docs/scraping-target-site-structure.md`（スクレイピング対象サイトの構造）
+  `docs/setup-guide.md`（環境構築・デプロイ）、`docs/security/`（権限・RLS・環境変数）、`docs/requirements.md`、`docs/github-secrets-setup.md`、`docs/database-cleanup.md`、`docs/scraping-target-site-structure.md`（スクレイピング対象サイトの構造）。`docs/ja/`
+  に同名ファイルがあるものも同じ扱い
 - 参照してよいドキュメントにも、Supabase Edge Functions・Discord
   通知・存在しないファイルなど現在の構成と異なる記述が残っている（#225
   で修正）。実行構成はこのファイルの記載を、細部はコードと設定ファイルを正とする
@@ -99,7 +105,7 @@ src/
 
 ### コミット
 
-- 論理的な変更 1 つにつき 1 コミット
+- 論理的な変更 1 つにつき 1 コミット（メッセージの言語は日本語・英語どちらでもよい）
   - ✅ 「Ticket 型定義を追加」「TicketRepository の save を実装」
   - ❌ 「チケット管理をすべて実装」
 
@@ -127,6 +133,8 @@ deno test src/ --allow-env --allow-net=127.0.0.1    # 単体テスト
 - DB を読み書きする変更では `tests/integration/` に統合テストを書く。統合テストはローカルの Supabase
   が必要なため CI で実行する。クラウドセッションには Supabase がないので実行せず、PR の CI
   結果で確認する
+- 統合テストは `tests/utils/test-supabase.ts` の `createTestSupabaseClient()`
+  を使い、`cleanupTestData()` や `withTestCleanup()` でテストデータを必ず削除する
 - テストが通らない状態でコミット・PR を作らない
 - 実装時は異常系のエラーハンドリングを書き、調査に必要な情報をログに残す
 - スクレイピング処理を変更する前に、対象サイトの現在の構造を確認する（`docs/scraping-target-site-structure.md`）
@@ -139,6 +147,7 @@ deno test src/ --allow-env --allow-net=127.0.0.1    # 単体テスト
   クラスは作らない。依存はテスト内のインラインスタブ（構造的型を満たすオブジェクト）で差し替える
 - `domain/` のテストは入力と出力の比較で書く（純粋関数なのでスタブ不要にする）
 - 外部サービス（Supabase、LINE、Cloud Tasks、Playwright）は単体テストで呼ばない
+- テストを先に書く（TDD）。正常系だけでなく異常系と境界値のケースを含める
 - テストケースは観点ごとに分け、巨大な統合テストを作らない
 - スタブや差し替えたグローバル（`Deno.env`、`fetch` など）はテストの最後に必ず元に戻す
 - 権限は最小限にする（`--allow-env --allow-net=127.0.0.1`）。`--allow-all` は使わない
@@ -165,9 +174,10 @@ export const NOTIFICATION_TIMING_CONFIG = {
     // 販売開始日の前日 20:00 JST
     calculateScheduledTime: (saleStartDate: Date): Date =>
       setJSTTimeAndConvertToUTC(saleStartDate, 20, 0, 0, -1),
+    // toleranceMs, description も必須（NotificationTimingConfig）
   },
   // HOUR_BEFORE, MINUTES_BEFORE も同じ形
-};
+} as const satisfies Record<NotificationType, NotificationTimingConfig>;
 
 // 利用側: 設定を回して通知時刻を求める（個別の時刻を直書きしない）
 const timings = Object.entries(NOTIFICATION_TIMING_CONFIG).map(([type, config]) => ({
@@ -211,25 +221,16 @@ Closes #6
 - **書かないこと**:
   実装の過程（「まず〜をした」「移行手順」）、経緯や背景の物語、一時的な回避策、開発スケジュールやプロジェクト管理情報
 
-構成例:
-
-```markdown
-# サービス名
-
-## 設定
-
-## 使い方
-
-## API リファレンス
-
-## セキュリティ
-```
+構成例: `# サービス名` の下に `## 設定`・`## 使い方`・`## API リファレンス`・`## セキュリティ`
 
 読み手が「現在のシステムを理解して使う」ために書く。開発の歴史を学ぶためのものにしない。
 
+このファイルの「移行中であることについて」とドキュメント参照の制限は、移行期間中の意図的な例外で、#215
+で削除する。
+
 ## コマンドが権限で失敗したとき
 
-`rm`・`mv`・`mkdir` などのコマンドが権限制限で失敗した場合:
+`rm` などのコマンドが権限制限で失敗した場合:
 
 1. 状況をユーザーに説明する
 2. 実行すべきコマンドを `bash`
