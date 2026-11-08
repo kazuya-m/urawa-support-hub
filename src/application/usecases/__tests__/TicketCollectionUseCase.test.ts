@@ -7,7 +7,7 @@ import {
   MockTicketCollectionService,
   MockTicketRepository,
 } from '@/shared/testing/mocks/index.ts';
-import { ApplicationError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
+import { AppError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 
 // TicketCollectionUseCaseの完全分離テスト（外部依存なし）
 Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
@@ -190,7 +190,7 @@ Deno.test('TicketCollectionUseCase - エラーの包み直し', async (t) => {
 
     const error = await assertRejects(
       () => createMockTicketCollectionUseCase(dependencies).execute(),
-      ApplicationError,
+      AppError,
     );
 
     assertEquals(error.code, 'TICKET_COLLECTION_FAILED');
@@ -209,7 +209,7 @@ Deno.test('TicketCollectionUseCase - エラーの包み直し', async (t) => {
 
     const error = await assertRejects(
       () => createMockTicketCollectionUseCase(dependencies).execute(),
-      ApplicationError,
+      AppError,
     );
 
     assertEquals(error.code, 'USECASE_EXECUTION_FAILED');

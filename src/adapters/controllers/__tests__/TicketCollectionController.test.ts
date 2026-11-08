@@ -1,6 +1,6 @@
 import { assertEquals } from 'std/assert/mod.ts';
 import { TicketCollectionController } from '../TicketCollectionController.ts';
-import { ApplicationError, ErrorCodes } from '@/shared/errors/index.ts';
+import { AppError, ErrorCodes } from '@/shared/errors/index.ts';
 
 // 認証ロジックのみテスト（Controller import回避）
 function validateCloudSchedulerRequest(req: Request): boolean {
@@ -65,9 +65,8 @@ Deno.test('TicketCollectionController - UseCase のエラー応答', async () =>
   const useCase = {
     execute: () =>
       Promise.reject(
-        new ApplicationError(
-          'TicketCollectionUseCase',
-          'Ticket collection failed: boom',
+        new AppError(
+          '[TicketCollectionUseCase] Ticket collection failed: boom',
           ErrorCodes.USECASE_EXECUTION_FAILED,
           undefined,
           { sessionId: 's-1', executionDurationMs: 5 },
