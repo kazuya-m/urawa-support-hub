@@ -13,11 +13,10 @@ pg_cron のスケジュールは UTC で解釈されます。
 | `cleanup-sent-notifications` | `notifications` | `status = 'sent' AND sent_at < NOW() - INTERVAL '30 days'`       | `30 17 * * *`       | 毎日 02:30     | migration 025                        |
 | `weekly-cleanup`             | `tickets`       | `match_date < NOW() - INTERVAL '7 days'`（`cleanup_old_data()`） | `0 2 * * 0`         | 毎週日曜 11:00 | migration 002（関数は 013 で再定義） |
 
-`weekly-cleanup` が呼ぶ `cleanup_old_data()` は `SET search_path = ''`
-で定義されていますが、`tickets`
-をスキーマなしで参照しています。このため実行時にテーブルを解決できずエラーになると考えられます。成功していればチケットは試合日から
-7〜14 日で削除され、失敗していれば `cleanup-old-tickets` により 30
-日で削除されます。実際の結果は下記「実行履歴」のクエリで確認してください。
+**既知の不具合**: `weekly-cleanup` が呼ぶ `cleanup_old_data()` は `SET search_path = ''`
+で定義されているのに、`tickets`
+をスキーマなしで参照しています。そのため実行のたびにテーブルを解決できずに失敗し、削除は行われません。実質的な保持期間は
+`cleanup-old-tickets` による試合日から 30 日です。失敗は下記「実行履歴」のクエリで確認できます。
 
 `notifications.ticket_id` は `tickets(id)` への外部キーで `ON DELETE CASCADE`（migration
 017）です。チケットが削除されると、そのチケットの通知も状態にかかわらず削除されます。
@@ -144,7 +143,7 @@ LIMIT 10;
 ### 削除対象の件数（削除はしない）
 
 ```sql
-SELECT COUNT(*) FROM tickets WHERE match_date < NOW() - INTERVAL '7 days';
+SELECT COUNT(*) FROM tickets WHERE match_date < NOW() - INTERVAL '30 days';
 SELECT COUNT(*) FROM notifications WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '30 days';
 ```
 

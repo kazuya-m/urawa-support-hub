@@ -1,7 +1,9 @@
 # GCP サービスアカウント最小権限設定
 
 urawa-support-hub が使う GCP サービスアカウントと、それぞれに必要な最小権限です。権限は
-`.github/workflows/*.yml` とアプリケーションコードが行う操作から導いています。
+`.github/workflows/*.yml` とアプリケーションコードが行う操作から導いたもので、本番プロジェクトの IAM
+設定と照合したものではありません。設定を変更するときは `gcloud projects get-iam-policy`
+などで現状を確認してください。
 
 ## サービスアカウント一覧
 
@@ -21,14 +23,14 @@ Cloud Tasks の呼び出し元には、Cloud Run
 
 GitHub Actions から Workload Identity Federation で利用します。
 
-| 操作                                  | ロール                                                       | スコープ                               |
-| ------------------------------------- | ------------------------------------------------------------ | -------------------------------------- |
-| イメージの push と古いイメージの削除  | `roles/artifactregistry.repoAdmin`（push のみなら `writer`） | リポジトリ `urawa-support-hub`         |
-| Cloud Run へのデプロイ                | `roles/run.developer`                                        | サービス `urawa-support-hub`           |
-| デプロイ時に Cloud Run の SA を指定   | `roles/iam.serviceAccountUser`                               | `GC_SA_CLOUD_RUN`                      |
-| Scheduler ジョブの作成・更新          | `roles/cloudscheduler.admin`                                 | プロジェクト                           |
-| Scheduler ジョブに OIDC 用 SA を指定  | `roles/iam.serviceAccountUser`                               | `GC_SA_SCHEDULER`                      |
-| Workload Identity Federation での借用 | `roles/iam.workloadIdentityUser`                             | GitHub リポジトリの principal に対して |
+| 操作                                  | ロール                                                       | スコープ                                                  |
+| ------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------- |
+| イメージの push と古いイメージの削除  | `roles/artifactregistry.repoAdmin`（push のみなら `writer`） | リポジトリ `urawa-support-hub`                            |
+| Cloud Run へのデプロイ                | `roles/run.developer`                                        | プロジェクト（初回デプロイ前はサービスが存在しないため）  |
+| デプロイ時に Cloud Run の SA を指定   | `roles/iam.serviceAccountUser`                               | `GC_SA_CLOUD_RUN`                                         |
+| Scheduler ジョブの作成・更新          | `roles/cloudscheduler.admin`                                 | プロジェクト                                              |
+| Scheduler ジョブに OIDC 用 SA を指定  | `roles/iam.serviceAccountUser`                               | `GC_SA_SCHEDULER`                                         |
+| Workload Identity Federation での借用 | `roles/iam.workloadIdentityUser`                             | `GC_SA_CICD` に対し、このリポジトリの principalSet へ付与 |
 
 ### 2. Cloud Run サービス（`GC_SA_CLOUD_RUN`）
 

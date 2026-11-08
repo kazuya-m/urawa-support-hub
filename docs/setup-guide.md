@@ -74,6 +74,11 @@ cp .env.example .env.local
 
 キュー名は `notifications` でコードに固定されています（`src/config/app-config.ts`）。
 
+**Cloud Tasks Emulator の制約**: `docker-compose.yml` のエミュレーターは起動時にキュー
+`projects/dev-project/locations/asia-northeast1/queues/notification-queue` を作成しますが、アプリは
+`GC_PROJECT_ID`・ロケーション・`notifications`
+からキューのパスを組み立てます。名前が一致しないため、そのままではエミュレーター上のキューにタスクを登録できません。
+
 ### 3. アプリケーションの起動
 
 ```bash
@@ -148,7 +153,8 @@ gcloud services enable \
   cloudtasks.googleapis.com \
   artifactregistry.googleapis.com \
   secretmanager.googleapis.com \
-  iamcredentials.googleapis.com
+  iamcredentials.googleapis.com \
+  sts.googleapis.com
 
 # Artifact Registry リポジトリ（deploy.yml が push する先）
 gcloud artifacts repositories create urawa-support-hub \
@@ -156,12 +162,26 @@ gcloud artifacts repositories create urawa-support-hub \
   --location=GC_REGION
 
 # Cloud Tasks キュー（名前はコードに固定）
-gcloud tasks queues create notifications --location=GC_REGION
+gcloud tasks queues create notifications --location=GC_REGION --max-attempts=3
 
 # Secret Manager（deploy.yml の --update-secrets が参照する名前）
 printf '%s' 'SERVICE_ROLE_KEY' | gcloud secrets create SUPABASE_SERVICE_ROLE_KEY --data-file=-
 printf '%s' 'LINE_TOKEN' | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-file=-
 ```
+
+Cloud Tasks
+のキューは、タスクの実行先（`/api/send-notification`）がエラー（5xx）を返すとリトライします。アプリは
+1 回の実行内で LINE への送信を最大 3 回試行するため、送信試行の上限は「3 ×
+キューの最大試行回数」になります。`--max-attempts` を指定しないとキューの既定値（100
+回）が使われるので、上限を指定して作成します。
+
+Secret Manager に登録する値と、Cloud Run に設定する `SUPABASE_URL` の取得元:
+
+| 値                          | 取得元                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`              | Supabase ダッシュボードの **Settings** → **API** の Project URL                             |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase ダッシュボードの **Settings** → **API** の service_role key                        |
+| `LINE_CHANNEL_ACCESS_TOKEN` | LINE Developers コンソールのチャンネル → **Messaging API** タブのチャンネルアクセストークン |
 
 サービスアカウントと必要な権限は
 [GCP サービスアカウント権限](security/gcp-service-account-permissions.md)、GitHub Actions

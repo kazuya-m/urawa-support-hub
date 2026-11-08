@@ -98,7 +98,8 @@ deno task pre-commit
 **開発環境に含まれるサービス**:
 
 - アプリケーションコンテナ (ポート: 8080)
-- Cloud Tasks Emulator (ポート: 8123) - 通知スケジューリングのローカルテスト用
+- Cloud Tasks Emulator (ポート: 8123) -
+  通知スケジューリングのローカルテスト用（キュー名の制約は[セットアップガイド](docs/setup-guide.md#2-環境変数ファイル)を参照）
 
 環境変数と `.env` / `.env.local`
 の使い分けは[セットアップガイド](docs/setup-guide.md)を参照してください。
@@ -142,12 +143,12 @@ deno coverage coverage
 
 ### GitHub Actions
 
-| ワークフロー           | トリガー                             | 内容                                                                   |
-| ---------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
-| `ci.yml`               | `main` への push、Pull Request       | フォーマット確認 → Lint → 型チェック → テスト                          |
-| `deploy.yml`           | `main` への push                     | Dockerイメージのビルド・Artifact Registry へのpush・Cloud Run デプロイ |
-| `deploy-scheduler.yml` | `infrastructure/scheduler/**` の変更 | Cloud Scheduler ジョブの作成・更新                                     |
-| `migrate-database.yml` | `supabase/migrations/**` の変更      | Supabase へのマイグレーション適用                                      |
+| ワークフロー           | トリガー                                                                     | 内容                                                                   |
+| ---------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `ci.yml`               | `main` への push、Pull Request                                               | フォーマット確認 → Lint → 型チェック → テスト                          |
+| `deploy.yml`           | `main` への push、手動実行                                                   | Dockerイメージのビルド・Artifact Registry へのpush・Cloud Run デプロイ |
+| `deploy-scheduler.yml` | `infrastructure/scheduler/**` または `deploy-scheduler.yml` の変更、手動実行 | Cloud Scheduler ジョブの作成・更新                                     |
+| `migrate-database.yml` | `supabase/migrations/**` の変更、手動実行                                    | Supabase へのマイグレーション適用                                      |
 
 ### 必要なシークレット
 
