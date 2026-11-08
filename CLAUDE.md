@@ -1,538 +1,90 @@
-# urawa-support-hub Claude Code Development Guide
+# urawa-support-hub 開発ガイド（Claude Code 向け）
 
-**🌐 Language Versions**:
+## Claude の役割
 
-- **English**: This document (CLAUDE.md)
-- **日本語**: CLAUDE_ja.md
+- ソフトウェアエンジニアリングの専門家として、肯定を目的とせず批判的かつ建設的に分析する
+- 理解が 100% でない場合は、実装に進む前に質問する
+- 質問するときも実装内容を説明するときも、現時点の理解を明記する
 
-## Role (Claude's Role)
+## プロジェクト
 
-- Act as a software engineering expert
-- Analyze with critical and constructive perspective, not seeking affirmation
-- If understanding is not 100%, ask questions to deepen understanding rather than proceeding with
-  implementation
-- When understanding is not 100%, explain implementation content along with current understanding
-  level
+浦和レッズのアウェイ戦チケット販売情報を収集し、LINE で自動通知するシステム。
 
-## Project Overview
+構成: Cloud Run 上の単一 Deno サービス、Cloud Scheduler、Cloud Tasks、Supabase PostgreSQL、LINE
+Messaging API。
 
-Automated notification system for Urawa Red Diamonds away match ticket sales information targeting
-supporters
+### 移行中であることの注記
 
-**🗺️ IMPORTANT**: For issue prioritization and implementation roadmap, always refer to:
+- コードは #204 の最終形（`src/jobs/`・`src/domain/`・`src/infra/`）へ移行中で、旧構成の
+  `src/adapters/`・`src/application/`・`src/infrastructure/`・`src/middleware/` などが残っている
+  （リポジトリ直下の `infrastructure/` は Cloud Scheduler の設定で、移行の対象ではない）
+- **新しく書くコードは下記の 3 ルールに従う**。既存コードのルール違反や `src/shared/testing/mocks`
+  の Mock クラスに合わせない
+- ディレクトリの移動は、各サブ Issue が担当範囲でのみ行う
+- それ以外の作業では既存ファイルを現在の場所で変更し、新しいディレクトリ（`src/jobs/`
+  など）は作らない
+- 構成図・移行計画と、削除・移動の前に確認する「残すもの」「方針決定事項」は #204 を参照
 
-- **docs/issue-priority-roadmap.md** - Complete phase-based development plan with deadlines
-- Phases: Foundation → Core → Notification → Integration → Post-Launch Improvements
-- MVP Launch target: 2025-09-30
+## アーキテクチャの 3 ルール
 
-## Development Workflow
+1. `domain/` は `infra/`・`jobs/`・外部ライブラリ（Supabase、Playwright など）を import
+   しない。ログ出力と現在時刻の取得もしない（時刻は引数で受け取る）
+2. `infra/` は外部とのやり取りだけを行い、業務判断を持たない
+3. `jobs/` が両者をつなぎ、手順を上から順に書く
 
-### Branch Strategy
+## 必須コマンド
 
-- `main`: Stable branch for production environment
-- `feature/*`: Feature development branch (e.g., `feature/implement-ticket-repository`)
-- `fix/*`: Bug fix branch
-
-### Commit Granularity and Branch Management
-
-**🚨 CRITICAL**: Always create a new branch before starting implementation
-
-**Branch Creation Requirements**:
-
-- **MANDATORY**: Create branch with issue number: `feature/#<issue-number>_<description>`
-- **Example**: `feature/#6_add-pre-commit-hooks`
-- **Never implement directly on `main` branch**
-
-**Important**: Create branches appropriately per feature and commit in small units
-
-**Stacked PRs (dependent work)**:
-
-- Use stacked PRs when splitting one issue into several PRs, or when working on dependent issues in
-  sequence (e.g., sub-issues under #204)
-- Branch the follow-up from the preceding branch instead of `main`, and set the PR base to the
-  preceding branch
-- After the preceding PR is merged, change the follow-up PR's base to `main` and rebase
-- Keep every PR in a state where CI passes on its own
-
-#### Recommended Patterns:
-
-1. **Feature Implementation**: Create new branch for each feature
-   ```bash
-   git checkout -b feature/implement-basic-types
-   # Implement type definitions
-   git add . && git commit -m "add basic types for Ticket and NotificationHistory"
-
-   git checkout -b feature/implement-ticket-repository
-   # Implement repository
-   git add . && git commit -m "implement TicketRepositoryImpl with internal dependency resolution"
-   ```
-
-2. **Commit Units**: One commit per logical change
-   - ✅ Good: "add Ticket type definition"
-   - ✅ Good: "implement TicketRepositoryImpl save method"
-   - ❌ Bad: "implement everything for ticket management"
-
-3. **Pull Requests**: Merge to main or develop after feature completion
-
-### Current Implementation Phase
-
-Phase 1: Foundation building and core feature implementation
-
-### Implementation Phases
-
-1. **Google Cloud Setup**: Configure Cloud Run, Scheduler, and Tasks
-2. **Supabase Integration**: Database schema and Edge Functions setup
-3. **Scraping Service**: Playwright-based ticket extraction in Cloud Run
-4. **Notification System**: Event-driven notifications via Cloud Tasks
-5. **Data Persistence**: RepositoryImpl classes with internal dependency resolution
-6. **Error Handling**: Comprehensive monitoring with Discord alerts
-7. **Testing Strategy**: Unit and integration tests with proper permissions
-8. **Production Deployment**: Multi-stage deployment with monitoring
-
-### Core Architecture
-
-**🏗️ Hybrid Google Cloud + Supabase Architecture**
-
-- **Scraping Execution**: Google Cloud Run (Playwright, 2GB memory, 300s timeout)
-- **Daily Trigger**: Google Cloud Scheduler (12:00 JST)
-- **Notification Scheduling**: Google Cloud Tasks (event-driven, exponential backoff)
-- **Database**: Supabase PostgreSQL (primary data storage)
-- **Notification Delivery**: Supabase Edge Functions (512MB memory, 60s timeout)
-- **External Services**: LINE Messaging API + Discord Webhook
-
-### Important Constraints
-
-- **Cloud Run**: 2GB memory, 300 seconds timeout (for scraping)
-- **Edge Functions**: 512MB memory, 60 seconds timeout (for notifications)
-- **Cost**: Must operate within free tier limits
-- **Reliability**: Event-driven architecture with built-in retry mechanisms
-
-### Latest Design Documentation
-
-**⚠️ IMPORTANT**: Always refer to the latest documentation before implementation:
-
-- **docs/system-architecture.md** - Complete system architecture and design patterns
-- **docs/implementation-guide.md** - Detailed technical implementation with code examples
-- **docs/tech-selection.md** - Technology selection rationale and alternatives
-- **docs/requirements.md** - Functional and non-functional requirements
-- **docs/setup-guide.md** - Environment setup and deployment guide
-
-### 📚 Documentation Reference Guide
-
-**🎯 Context-Specific Documentation Usage**:
-
-- **設計・アーキテクチャ検討時**: `docs/system-architecture.md` - Clean
-  Architecture層構造、依存関係原則、GCP+Supabase構成
-- **実装パターン参照時**: `docs/implementation-guide.md` -
-  UseCase/Service/Repository実装例、内部依存解決原則
-- **技術選択・制約確認時**: `docs/tech-selection.md` - GCP+Supabase構成rationale、制約事項
-- **セキュリティ実装時**: `docs/security/` - 認証・権限・RLS設定、環境変数管理
-- **テスト戦略策定時**: `docs/clean-architecture-guide.md` - 小規模プロジェクト向けテスト、Module
-  Mock戦略、Permission設定
-- **環境構築・デプロイ時**: `docs/setup-guide.md` - 環境セットアップ、デプロイ手順
-
-**📋 読み方の原則**:
-
-- **実装前**: 該当するcontext documentを必ず参照
-- **判断に迷った時**: 複数documentを横断参照
-- **新規機能時**: system-architecture.md → implementation-guide.md の順で参照
-
-### Documentation Language Management
-
-**🌐 Multi-language Documentation Policy**:
-
-- **Primary Language**: English (docs/*.md)
-- **Secondary Language**: Japanese (docs/ja/*.md)
-- **Update Order**: Always update English first, then Japanese follows
-- **Consistency Rule**: Japanese version must always track English version
-- **Reference Priority**: Use English docs as the source of truth for implementation
-
-**Important**: When creating or updating documentation:
-
-1. Create/update English version first
-2. Immediately create/update corresponding Japanese version
-3. Ensure content consistency between languages
-4. Reference English docs in CLAUDE.md instructions
-
-### Documentation Creation Principles
-
-**📚 CRITICAL: Documentation as Master Source**
-
-Documentation serves as the single source of truth for implementation and operation, not as
-implementation history or migration guides.
-
-**🎯 Documentation Purpose**:
-
-- **Master reference**: Definitive implementation guide for current state
-- **Operational knowledge**: How systems work and how to use them
-- **Technical specification**: APIs, configurations, and patterns
-
-**❌ What NOT to include**:
-
-- Implementation process descriptions ("Phase 1: First we did...", "Migration steps")
-- Historical context or "how we got here" narratives
-- Temporary workarounds or migration-specific content
-- Development timeline or project management information
-
-**✅ What TO include**:
-
-- Current implementation patterns and examples
-- Configuration requirements and formats
-- API specifications and usage examples
-- Troubleshooting and operational procedures
-- Security requirements and best practices
-
-**Example Structure**:
-
-```markdown
-# Service Name
-
-## Configuration
-
-[Current config format]
-
-## Usage
-
-[How to use the service]
-
-## API Reference
-
-[Current API patterns]
-
-## Security
-
-[Current security requirements]
-```
-
-**🚨 Key Rule**: Write documentation as if the reader needs to understand and use the current
-system, not learn about its development history.
-
-## Development Notes
-
-- Always investigate J-League ticket site structure before implementation
-- Implement error handling for each feature
-- Record appropriate debug information in log output
-- Practice test-driven development
-- **Code Formatting**: Always use `deno fmt` for consistent code formatting across all TypeScript
-  and Markdown files
-- **Entity Design**: Follow explicit null policy for optional properties (see
-  docs/implementation-guide.md#optional-properties-policy)
-
-## Required Development Process
-
-### 🚨 Always perform operation verification and test execution after implementation
-
-#### 1. Operation Verification Steps
-
-- **TypeScript type check**: Confirm no compilation errors with `deno check`
-- **Lint check**: Confirm code quality with `deno lint`
-- **Local environment execution test**: Confirm implemented features work as expected
-- **Database integration verification**: Confirm Supabase connection and CRUD operations
-- **Constraint/validation verification**: Confirm database constraints and type checking work
-  properly
-- **Error handling verification**: Confirm errors are handled appropriately in exceptional cases
-
-#### 2. Test Implementation Requirements
-
-##### Unit Test File Placement Rules
-
-- **Placement**: Create `__tests__` directory at the same level as target file and place test files
-  inside
-- **File naming**: Name in format `targetFileName.test.ts`
-- **Example**: `src/features/repositories/TicketRepository.ts` →
-  `src/features/repositories/__tests__/TicketRepository.test.ts`
-
-##### Test Implementation Requirements
-
-- **Unit tests**: Create tests in `__tests__/` directory at same level as target file
-- **Direct Method Mocking**: Use small-scale project patterns for test isolation
-- **Mock Cleanup**: Ensure proper restoration of all mocks
-- **Integration tests**: Create executable tests in `tests/integration/`
-- **Test verification**: Confirm all test cases succeed
-
-**📋 For comprehensive testing patterns and strategies, refer to:**
-**[Testing Guidelines](./docs/testing-guidelines.md)**
-
-#### 3. Pre-commit Checklist
-
-- [ ] `deno check` type check success confirmed
-- [ ] `deno lint` lint check success confirmed
-- [ ] **Unit tests created** (in `__tests__/` directory at same level as target file)
-- [ ] **Integration tests created** (tests/integration/)
-- [ ] `deno test --allow-env` all tests success confirmed
-- [ ] Operation verification test executed
-- [ ] Error cases and boundary value tests executed
-- [ ] Test data cleanup confirmed
-
-**Important**: Commits/PRs without operation verification are prohibited. Always proceed to next
-step after passing tests.
-
-## Design Principles and Best Practices
-
-### 🎯 Mandatory Compliance Items
-
-#### 0. Small-Scale Project Design Principles
-
-**🚨 CRITICAL: Always follow documented design patterns in docs/ directory**
-
-- Refer to **docs/system-architecture.md** and **docs/implementation-guide.md** for design decisions
-- Follow **docs/clean-architecture-guide.md** for testing strategies and patterns
-- Maintain consistency between documented patterns and actual implementation
-
-#### 1. Technology Selection and Consistency Principles
-
-**🎯 Project Technology Stack Priority**:
-
-- **Primary consideration**: Follow the hybrid Google Cloud + Supabase architecture
-- **Cloud Run**: Use for resource-intensive Playwright scraping operations
-- **Edge Functions**: Use for lightweight notification delivery
-- **External dependencies**: Minimize dependencies; prioritize architecture consistency
-
-**🎯 Problem-solving Approach**:
-
-- **Requirements-based**: Start with "what needs to be achieved" rather than "which tool to use"
-- **Project context**: Understand project philosophy and constraints before proposing solutions
-- **Avoid tool fixation**: Don't default to popular tools; find project-optimal solutions
-
-**Architecture Examples**:
-
-```typescript
-// ✅ Good: Cloud Run for heavy operations
-export class PlaywrightScrapingService {
-  // Runs in Cloud Run with 2GB memory
-}
-
-// ✅ Good: Edge Functions for lightweight tasks
-export class LineNotificationService {
-  // Runs in Edge Functions with 512MB memory
-}
-
-// ❌ Bad: Wrong service for task complexity
-// Running Playwright in Edge Functions (memory limit)
-```
-
-#### 2. Naming Conventions
-
-```typescript
-// ✅ Good: Direct concrete class usage (small-scale project)
-export class TicketRepositoryImpl {
-  constructor() {
-    this.client = createSupabaseAdminClient();
-  }
-}
-
-// ❌ Bad: Interface-based abstraction (over-engineering)
-export class TicketRepositoryImpl implements TicketRepository
-```
-
-#### 2. Unified Error Handling
-
-```typescript
-// ✅ Use common utilities
-if (error) handleSupabaseError('save ticket', error);
-
-// ❌ Duplicate code
-if (error) throw new Error(`Failed to save ticket: ${error.message}`);
-```
-
-#### 3. Test Design
-
-- **Separation**: Create individual test cases (prohibit giant integration tests)
-- **Common utilities**: Utilize `createTestSupabaseClient()`, `cleanupTestData()`
-- **Permissions**: `--allow-env --allow-net=127.0.0.1` (prohibit `--allow-all`)
-- **Cloud Integration**: Test Cloud Run and Edge Functions separately
-- **Mock Services**: Mock external Cloud services for unit tests
-
-#### 4. Directory Structure
-
-```
-src/features/
-├── shared/repositories/  # Interfaces
-├── shared/utils/        # Common processing
-└── {feature}/repositories/{Entity}RepositoryImpl.ts
-```
-
-### 🚨 Prohibited Items
-
-- Including external service names in class names
-- Duplicate error handling
-- Using `--allow-all` permissions
-- Giant integration tests
-
-### 🎯 Next Session Check Items
-
-- [ ] Use `{Entity}RepositoryImpl` direct concrete class naming
-- [ ] Utilize common error handlers
-- [ ] Set minimum permissions
-- [ ] Confirm consistency with existing patterns
-
-## GitHub Issue and Pull Request Management
-
-### 🎯 Pull Request Creation Requirements
-
-**Language Requirements**:
-
-- **PR Title**: Use Japanese (`pre-commitフック実装（Denoネイティブ）#6`)
-- **PR Description**: Write in Japanese for better team understanding
-- **Include issue number**: Add `#<issue-number>` in title for GitHub integration
-
-**Auto-close Requirements**:
-
-- **Always include**: `Closes #<issue-number>` in PR description
-- **Effect**: GitHub automatically closes linked issue when PR is merged
-- **Alternative keywords**: `Fixes #<issue-number>`, `Resolves #<issue-number>`
-
-**Example PR Format**:
-
-```markdown
-## 概要
-
-- 実装内容の概要
-
-## 実装内容
-
-- 詳細な変更内容
-
-Closes #6
-```
-
-## Configuration-Driven Design Pattern
-
-### 🎯 NotificationConfig Externalization
-
-Complete externalization of notification timing settings to handle value changes during operation
-
-```typescript
-// ✅ Configuration-driven: NotificationConfig.ts
-export const NOTIFICATION_TIMING_CONFIG = {
-  day_before: {
-    displayName: 'Day before sale start',
-    calculateScheduledTime: (saleStartDate: Date): Date => {
-      // Set to 20:00 previous day (modify only here when changing)
-    },
-    toleranceMs: 5 * 60 * 1000
-  }
-}
-
-// ✅ Entities reference configuration
-shouldSendNotification(type: NotificationType, currentTime: Date): boolean {
-  return shouldSendNotificationAtTime(type, this.saleStartDate, currentTime);
-}
-```
-
-#### Benefits
-
-- **Maintainability**: Only modify one place when changing notification timing
-- **Extensibility**: Easily add new notification types
-- **Type safety**: Ensure consistency with TypeScript type checking
-
-#### Applied Locations
-
-- `src/domain/entities/NotificationConfig.ts`: Configuration definition
-- `src/domain/entities/Ticket.ts`: Removed hard coding, use configuration
-- `src/domain/entities/NotificationHistory.ts`: Unified display names and validation
-
-## Command Execution Guidelines
-
-### When Commands Fail Due to Permissions
-
-If system modification commands (like `rm`, `mv`, `mkdir`) fail due to permission restrictions:
-
-1. **Explain the situation clearly** to the user
-2. **Provide the exact commands** in copy-pastable format
-3. **Use alternative approaches** when possible (e.g., Edit/Write tools for file modifications)
-
-#### Example Response Pattern:
-
-````
-⚠️ Permission denied for direct file deletion.
-
-Please run the following commands manually:
+コミット前に次を順に実行し、すべて成功させる。
 
 ```bash
-rm docs/environment-setup.md
-rm docs/ja/environment-setup.md
-rm docs/ja/basic-design.md
-rm docs/ja/detailed-design.md
-````
-
-Alternatively, I can mark files as DEPRECATED using the Edit tool.
-
-```
-#### Alternative Approaches:
-
-- **File deletion**: Use Edit/Write to create DEPRECATED placeholders
-- **File moves**: Use Read + Write to copy content to new location
-- **Directory operations**: Provide manual commands with clear explanations
-- **Git operations**: Always provide commands for user execution
-
-### Command Format Requirements:
-
-- Use proper code blocks with `bash` syntax highlighting
-- Include clear descriptions of what each command does
-- Group related commands together
-- Provide verification commands when applicable
+deno fmt
+deno task pre-commit                              # deno check src/ + deno lint + deno fmt --check
+deno test src/ --allow-env --allow-net=127.0.0.1  # 単体テスト
 ```
 
-- to memorize 'write docs and code with deno fmt'
+- DB を読み書きする変更では `tests/integration/` に統合テストを書く。統合テストは Supabase
+  が必要なので CI で実行される。クラウドセッションでは実行せず、PR の CI 結果で確認する
+- `deno task pre-commit` の型チェックは `src/` のみ
+- export しているものを削除・改名・型変更したときは `deno check tests/ scripts/` も実行し、`main`
+  で実行した結果からエラーが増えていないことを確認する
 
-## Knowledge Base Documentation Policy
+## テストの最小ルール
 
-### 🎯 Personal Knowledge Base Integration
+- 対象ファイルと同じ階層の `__tests__/<対象ファイル名>.test.ts` に置く
+- Mock クラスは作らず、テスト内のインラインスタブ（構造的型を満たすオブジェクト）を使う
+- skip で通さない。`--allow-all` は使わない
 
-During development, proactively identify and document reusable technical knowledge for the personal
-KB:
+## ブランチ・コミット・PR
 
-**Target Path**: `/Users/kazuyamatsuo/second_brain/30_Resources/SoftwareEngineer/`
+- `main` で直接実装しない。Issue 番号付きのブランチを作る: `feature/#<番号>_<説明>`（バグ修正は
+  `fix/#<番号>_<説明>`）
+- コミットは論理的な変更 1 つにつき 1 つ
+- PR のタイトルは日本語で末尾に `#<番号>`、本文も日本語で `Closes #<番号>` を含める
 
-#### Documentation Criteria
+### Stacked PR（依存関係のある作業）
 
-**✅ Should Document**:
+- 1 つの Issue を複数 PR に分ける場合や、依存関係のある Issue を続けて対応する場合に使う
+- 後続ブランチは先行ブランチから切り、PR の base も先行ブランチにする
+- 先行 PR がマージされたら、後続 PR の base を `main` に付け替えて rebase する
+- 各 PR は単独で CI が通る状態を保つ
 
-- External service integrations (LINE Bot, Discord Webhook, etc.)
-- Development tools and workflows (ngrok, testing patterns)
-- Generic implementation patterns and best practices
-- Security configurations and considerations
-- Troubleshooting solutions for common development issues
+## ドキュメント索引
 
-**❌ Avoid Documenting**:
+| 作業                           | 読むもの                                 |
+| ------------------------------ | ---------------------------------------- |
+| 環境構築・デプロイ             | `docs/setup-guide.md`                    |
+| 権限・RLS・環境変数            | `docs/security/`                         |
+| GitHub Secrets の設定          | `docs/github-secrets-setup.md`           |
+| 機能要件の確認                 | `docs/requirements.md`                   |
+| スクレイピング対象サイトの変更 | `docs/scraping-target-site-structure.md` |
+| DB クリーンアップ              | `docs/database-cleanup.md`               |
+| 構成図・移行計画               | #204                                     |
 
-- Project-specific business logic
-- Highly context-dependent implementations
-- Temporary workarounds or project-specific configurations
-
-#### Documentation Standards
-
-**Content Requirements**:
-
-- **Generic and reusable**: Avoid project-specific context dependencies
-- **Concise and practical**: Focus on actionable information
-- **Engineer-focused**: Assume technical background, skip basic concepts
-- **Multi-language support**: Include both English and Japanese examples where relevant
-
-**File Naming Convention**:
-
-- Use descriptive, technology-focused names
-- Avoid terms like "完全ガイド" (complete guide)
-- Examples: `LINE Messaging API - Bot開発と配信実装.md`, `Discord Webhook - 外部サービス通知実装.md`
-
-**Obsidian Format**:
-
-- Include frontmatter with tags and metadata
-- Use consistent heading structure
-- Implement cross-references where appropriate
-
-#### Integration Workflow
-
-1. **During Development**: Identify reusable technical patterns
-2. **Post-Implementation**: Create or update relevant KB documents
-3. **Content Review**: Ensure generic applicability and conciseness
-4. **Cross-Reference**: Link related documents and concepts
-
-**Example Trigger Scenarios**:
-
-- Setting up external service APIs
-- Implementing webhook receivers
-- Configuring development tools
-- Solving common integration challenges
-- Creating reusable testing patterns
+- 次の設計ドキュメントは実装と乖離しているため、#215 で書き直すまで参照しない（`docs/ja/`
+  の同名ファイルも同じ）
+  - `docs/system-architecture.md`
+  - `docs/implementation-guide.md`
+  - `docs/clean-architecture-guide.md`
+  - `docs/testing-guidelines.md`
+  - `docs/logging-specification.md`
+- ドキュメントとコード・設定ファイルが食い違う場合は、コードと設定ファイルを正とする
