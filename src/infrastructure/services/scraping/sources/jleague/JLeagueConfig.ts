@@ -50,7 +50,6 @@ export interface JLeagueScrapingConfig {
     maxRetries: number;
     baseDelay: number;
   };
-  competitionNormalization: Record<string, string>;
   urawaTeamNames: {
     primary: string;
     alternatives: string[];
@@ -148,22 +147,6 @@ export const J_LEAGUE_SCRAPING_CONFIG: JLeagueScrapingConfig = {
     maxRetries: 2,
     baseDelay: 3000,
   },
-
-  competitionNormalization: {
-    '明治安田Ｊ１リーグ': 'J1リーグ',
-    '明治安田J1リーグ': 'J1リーグ',
-    'ＹＢＣルヴァンカップ': 'ルヴァンカップ',
-    'JリーグYBCルヴァンカップ': 'ルヴァンカップ',
-    'ルヴァンカップ': 'ルヴァンカップ',
-    '天皇杯': '天皇杯',
-    'ＡＦＣチャンピオンズリーグエリート': 'ACLE',
-    'AFCチャンピオンズリーグエリート': 'ACLE',
-    'ＡＦＣチャンピオンズリーグ２': 'ACL2',
-    'AFCチャンピオンズリーグ2': 'ACL2',
-    'AFCチャンピオンズリーグ２': 'ACL2',
-    'ACLE': 'ACLE',
-    'ACL2': 'ACL2',
-  } as const,
 
   urawaTeamNames: {
     primary: '浦和レッズ',

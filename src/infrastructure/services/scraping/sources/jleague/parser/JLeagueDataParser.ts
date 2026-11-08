@@ -10,6 +10,7 @@ import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import { createJSTDateTime } from '@/shared/utils/datetime.ts';
 import { SALE_STATUS_KEYWORDS } from '@/domain/parsers/saleStatusKeywords.ts';
+import { normalizeCompetitionExact } from '@/domain/parsers/competitionNormalization.ts';
 
 /**
  * J-League固有のデータパーサー
@@ -535,8 +536,6 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
     }
 
     const normalized = competition.trim();
-    return J_LEAGUE_SCRAPING_CONFIG.competitionNormalization[
-      normalized as keyof typeof J_LEAGUE_SCRAPING_CONFIG.competitionNormalization
-    ] || normalized;
+    return normalizeCompetitionExact(normalized);
   }
 }

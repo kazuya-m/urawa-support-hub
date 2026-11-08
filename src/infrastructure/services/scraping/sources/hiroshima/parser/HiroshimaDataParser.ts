@@ -5,6 +5,10 @@ import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import { DateCalculationService } from '@/domain/services/DateCalculationService.ts';
 import { SALE_STATUS_KEYWORDS } from '@/domain/parsers/saleStatusKeywords.ts';
+import {
+  COMPETITION_NAMES,
+  normalizeCompetitionByKeyword,
+} from '@/domain/parsers/competitionNormalization.ts';
 
 /**
  * サンフレッチェ広島のデータを共通のTicket形式に変換
@@ -213,27 +217,8 @@ export class HiroshimaDataParser {
    */
   private normalizeCompetition(competition?: string): string | null {
     if (!competition) {
-      return 'J1リーグ';
+      return COMPETITION_NAMES.J1;
     }
-
-    // サンフレッチェ広島サイトの表記を統一
-    const competitionMap: Record<string, string> = {
-      'J1': 'J1リーグ',
-      'J1リーグ': 'J1リーグ',
-      '明治安田J1': 'J1リーグ',
-      'ルヴァン': 'ルヴァンカップ',
-      'ルヴァンカップ': 'ルヴァンカップ',
-      '天皇杯': '天皇杯',
-      'ACL': 'ACLE',
-      'ACLE': 'ACLE',
-    };
-
-    for (const [key, value] of Object.entries(competitionMap)) {
-      if (competition.includes(key)) {
-        return value;
-      }
-    }
-
-    return competition;
+    return normalizeCompetitionByKeyword(competition);
   }
 }
