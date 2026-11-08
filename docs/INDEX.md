@@ -1,103 +1,71 @@
-# Documentation Index
+# ドキュメント索引
 
-This directory contains the comprehensive documentation for the urawa-support-hub project.
+urawa-support-hub のドキュメント一覧です。ドキュメントは日本語で管理します。
 
-## 📚 Essential Documentation (Read in Order)
+## 📚 ドキュメント一覧
 
-### 1. Architecture & Design
+### 1. 開発・運用
 
-- **[System Architecture](system-architecture.md)** - Complete hybrid Google Cloud + Supabase
-  architecture
-- **[Implementation Guide](implementation-guide.md)** - Code patterns, examples, and best practices
-- **[Clean Architecture Guide](clean-architecture-guide.md)** - Small-scale project Clean
-  Architecture approach
+- **[セットアップガイド](setup-guide.md)** - 環境構築とデプロイ手順
+- **[GitHub Secrets設定](github-secrets-setup.md)** - CI/CD シークレット設定
+- **[データベース自動クリーンアップ](database-cleanup.md)** - pg_cron による古いレコードの削除
 
-### 2. Development & Testing
+### 2. 要件・技術選定
 
-- **[Setup Guide](setup-guide.md)** - Environment setup and deployment procedures
-- **[Testing Guidelines](testing-guidelines.md)** - Test strategy and patterns
+- **[要件定義](requirements.md)** - 機能要件と非機能要件
+- **[技術選定](tech-selection.md)** - 構成の選定理由と代替案
 
-### 3. Technical Decisions
+### 3. セキュリティ
 
-- **[Technology Selection](tech-selection.md)** - Architecture rationale and alternatives
-- **[Requirements](requirements.md)** - Functional and non-functional requirements
+- **[セキュリティドキュメント](security/)** - 環境変数・サービスアカウント・RLS
+  - [環境変数管理](security/environment-variable-management.md)
+  - [GCP サービスアカウント権限](security/gcp-service-account-permissions.md)
+  - [Supabase RLS 設定](security/supabase-rls-settings.md)
 
-### 4. Operations
+### 4. スクレイピング
 
-- **[Logging Specification](logging-specification.md)** - Structured logging with Google Cloud
-  Logging
-- **[Issue Priority Roadmap](issue-priority-roadmap.md)** - Development phases and priorities
+- **[スクレイピング対象サイト構造](scraping-target-site-structure.md)** -
+  Jリーグチケットサイトの構造
 
-### 5. Security
+### 5. 設計（移行中）
 
-- **[GitHub Secrets Setup](github-secrets-setup.md)** - CI/CD secrets configuration
-- **[Security Documentation](security/)** - Authentication, authorization, and RLS policies
+コードの層構成を簡素化する移行中（#204）のため、以下は現在のコードと異なる記述を含みます。移行完了後に
+#215 で書き直します。
 
-## 🎯 Context-Specific Reference Guide
+- [システムアーキテクチャ](system-architecture.md)
+- [実装ガイド](implementation-guide.md)
+- [クリーンアーキテクチャガイド](clean-architecture-guide.md)
+- [テストガイドライン](testing-guidelines.md)
+- [ログ仕様](logging-specification.md)
 
-Use this guide to quickly find relevant documentation for your current task:
+## 🎯 コンテキスト別参照ガイド
 
-| Context                   | Primary Documentation                           | Secondary Documentation                                 |
-| ------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
-| **Design & Architecture** | [System Architecture](system-architecture.md)   | [Clean Architecture Guide](clean-architecture-guide.md) |
-| **Implementation**        | [Implementation Guide](implementation-guide.md) | [Testing Guidelines](testing-guidelines.md)             |
-| **Technical Choices**     | [Technology Selection](tech-selection.md)       | [Requirements](requirements.md)                         |
-| **Security**              | [Security/](security/)                          | [GitHub Secrets Setup](github-secrets-setup.md)         |
-| **Testing**               | [Testing Guidelines](testing-guidelines.md)     | [Clean Architecture Guide](clean-architecture-guide.md) |
-| **Setup & Deployment**    | [Setup Guide](setup-guide.md)                   | [GitHub Secrets Setup](github-secrets-setup.md)         |
+| コンテキスト           | 主要ドキュメント                                      | 補助ドキュメント                                       |
+| ---------------------- | ----------------------------------------------------- | ------------------------------------------------------ |
+| **環境構築・デプロイ** | [セットアップガイド](setup-guide.md)                  | [GitHub Secrets設定](github-secrets-setup.md)          |
+| **技術選択・制約確認** | [技術選定](tech-selection.md)                         | [要件定義](requirements.md)                            |
+| **セキュリティ**       | [security/](security/)                                | [GitHub Secrets設定](github-secrets-setup.md)          |
+| **データベース運用**   | [データベース自動クリーンアップ](database-cleanup.md) | [Supabase RLS 設定](security/supabase-rls-settings.md) |
 
-## 🌐 Multi-Language Support
+## 🔍 クイックナビゲーション
 
-- **English**: Primary language (this directory)
-- **日本語**: Secondary language ([docs/ja/](ja/))
+**プロジェクト初見？** こちらから開始：
 
-**Update Policy**: Always update English docs first, then Japanese follows.
+1. [README](../README.md) - システム構成の概要
+2. [セットアップガイド](setup-guide.md) - 環境を構築
+3. [要件定義](requirements.md) - 何を実現するシステムか
 
-## 📋 Additional Resources
+**本番デプロイ？** こちらに従う：
 
-### Specialized Topics
+1. [セットアップガイド](setup-guide.md) - デプロイ手順
+2. [GitHub Secrets設定](github-secrets-setup.md) - CI/CD設定
+3. [セキュリティドキュメント](security/) - セキュリティベストプラクティス
 
-- **[Scraping Target Site Structure](scraping-target-site-structure.md)** - J-League ticket site
-  analysis
-- **[Data Quality Notifications](issue-data-quality-notification.md)** - Data quality monitoring
-  implementation
+## 📖 ドキュメント原則
 
-### Project Management
+[CLAUDE.md](../CLAUDE.md) の方針に従い、ドキュメントには現在の実装と運用を書きます。
 
-- **[Issue Priority Roadmap](issue-priority-roadmap.md)** - Complete development roadmap with phases
-
-## 🔍 Quick Navigation
-
-**New to the project?** Start here:
-
-1. [System Architecture](system-architecture.md) - Understand the hybrid architecture
-2. [Setup Guide](setup-guide.md) - Get your environment running
-3. [Implementation Guide](implementation-guide.md) - Learn coding patterns
-
-**Implementing a feature?** Check:
-
-1. [Implementation Guide](implementation-guide.md) - Code examples and patterns
-2. [Testing Guidelines](testing-guidelines.md) - Testing approach
-3. [Clean Architecture Guide](clean-architecture-guide.md) - Architecture principles
-
-**Deploying to production?** Follow:
-
-1. [Setup Guide](setup-guide.md) - Deployment procedures
-2. [GitHub Secrets Setup](github-secrets-setup.md) - CI/CD configuration
-3. [Security Documentation](security/) - Security best practices
-
-## 📖 Documentation Principles
-
-As stated in [CLAUDE.md](../CLAUDE.md):
-
-> Documentation serves as the single source of truth for implementation and operation, not as
-> implementation history or migration guides.
-
-All documentation in this directory follows these principles:
-
-- ✅ Current implementation patterns
-- ✅ Operational knowledge
-- ✅ Technical specifications
-- ❌ No implementation process descriptions
-- ❌ No historical context
-- ❌ No temporary workarounds
+- ✅ 現在の実装パターン、設定、運用手順
+- ✅ 技術仕様
+- ❌ 実装の経緯や移行手順
+- ❌ 一時的な回避策
