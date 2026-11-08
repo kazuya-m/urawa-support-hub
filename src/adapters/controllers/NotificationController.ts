@@ -1,15 +1,6 @@
 import { INotificationUseCase } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
-import type { ErrorHandlingOptions } from '@/adapters/helpers/withErrorHandling.ts';
 import { validateNotificationRequest } from '@/adapters/validators/NotificationRequestValidator.ts';
-import { LogCategory } from '@/shared/logging/types.ts';
-
-export const NOTIFICATION_ERROR_OPTIONS: ErrorHandlingOptions = {
-  logMessage: 'Unexpected error in NotificationController',
-  category: LogCategory.NOTIFICATION,
-  severity: 'critical',
-  unexpectedResponse: (errorMessage) => ['Internal Server Error', errorMessage],
-};
 
 export class NotificationController {
   constructor(

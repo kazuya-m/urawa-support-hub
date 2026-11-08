@@ -1,18 +1,15 @@
 import { assertEquals } from 'std/assert/mod.ts';
-import { withErrorHandling } from '../withErrorHandling.ts';
-import {
-  TICKET_COLLECTION_ERROR_OPTIONS,
-  TicketCollectionController,
-} from '@/adapters/controllers/TicketCollectionController.ts';
+import { type ErrorHandlingOptions, withErrorHandling } from '../withErrorHandling.ts';
 import {
   NOTIFICATION_ERROR_OPTIONS,
-  NotificationController,
-} from '@/adapters/controllers/NotificationController.ts';
-import {
+  TICKET_COLLECTION_ERROR_OPTIONS,
   TICKET_SUMMARY_ERROR_OPTIONS,
-  TicketSummaryController,
-} from '@/adapters/controllers/TicketSummaryController.ts';
-import { AppError, ErrorCodes } from '@/shared/errors/index.ts';
+} from '../routeErrorOptions.ts';
+import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
+import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
+import { TicketSummaryController } from '@/adapters/controllers/TicketSummaryController.ts';
+import { AppError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
+import { LogCategory } from '@/shared/logging/types.ts';
 import type { INotificationUseCase } from '@/application/interfaces/usecases/INotificationUseCase.ts';
 
 type LogEntry = {
@@ -26,14 +23,14 @@ type LogEntry = {
  * 本番と同じく stack を出さないよう、実行中だけ NODE_ENV=production にする
  */
 async function captureLogs<T>(fn: () => Promise<T>): Promise<{ result: T; logs: LogEntry[] }> {
-  const logs: LogEntry[] = [];
+  const lines: string[] = [];
   const originalLog = console.log;
   const originalNodeEnv = Deno.env.get('NODE_ENV');
-  console.log = (line: string) => logs.push(JSON.parse(line));
+  console.log = (line: string) => lines.push(line);
   Deno.env.set('NODE_ENV', 'production');
   try {
     const result = await fn();
-    return { result, logs };
+    return { result, logs: lines.map((line) => JSON.parse(line) as LogEntry) };
   } finally {
     console.log = originalLog;
     if (originalNodeEnv === undefined) Deno.env.delete('NODE_ENV');
@@ -181,5 +178,55 @@ Deno.test('ticket-summary: UseCase の想定外エラー', async () => {
     category: 'NOTIFICATION',
     context: { processingStage: 'TicketSummaryController' },
     error: { message: 'summary failed', recoverable: false },
+  });
+});
+
+Deno.test('withErrorHandling - 汎用の挙動', async (t) => {
+  const options: ErrorHandlingOptions = {
+    logMessage: 'test error',
+    category: LogCategory.SYSTEM,
+    context: { stage: 'test' },
+    unexpectedResponse: (errorMessage) => ['Unexpected', { errorMessage }],
+  };
+
+  await t.step('正常時はハンドラの応答をそのまま返す', async () => {
+    const ok = new Response('ok', { status: 201 });
+    const { result, logs } = await captureLogs(() =>
+      withErrorHandling(() => Promise.resolve(ok), options)
+    );
+    assertEquals(result, ok);
+    assertEquals(logs.length, 0);
+  });
+
+  await t.step('DatabaseError は AppError として扱い、context をログに付ける', async () => {
+    const { result: response, logs } = await captureLogs(() =>
+      withErrorHandling(
+        () => Promise.reject(new DatabaseError('Repo', 'op', 'x', ErrorCodes.DB_FETCH_ERROR)),
+        options,
+      )
+    );
+    const body = await response.json();
+
+    assertEquals(response.status, 500);
+    assertEquals(body.error, '[DB_FETCH_ERROR] [Repo.op] x');
+    assertEquals(body.details, { type: 'DATABASE' });
+    assertEquals(logs[0].severity, 'ERROR');
+    assertEquals(logs[0].jsonPayload, {
+      category: 'SYSTEM',
+      context: { stage: 'test' },
+      error: { details: '[Repo.op] x', recoverable: true },
+    });
+  });
+
+  await t.step('severity を省略した想定外エラーは ERROR で記録する', async () => {
+    const { result: response, logs } = await captureLogs(() =>
+      withErrorHandling(() => Promise.reject(new Error('boom')), options)
+    );
+    const body = await response.json();
+
+    assertEquals(response.status, 500);
+    assertEquals(body.error, 'Unexpected');
+    assertEquals(body.details, { errorMessage: 'boom' });
+    assertEquals(logs[0].severity, 'ERROR');
   });
 });

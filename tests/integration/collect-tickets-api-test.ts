@@ -111,7 +111,7 @@ async function testDirectApiCall(): Promise<void> {
     const { createTicketCollectionController } = await import('@/config/di.ts');
     const { withErrorHandling } = await import('@/adapters/helpers/withErrorHandling.ts');
     const { TICKET_COLLECTION_ERROR_OPTIONS } = await import(
-      '@/adapters/controllers/TicketCollectionController.ts'
+      '@/adapters/helpers/routeErrorOptions.ts'
     );
 
     const ticketController = createTicketCollectionController();

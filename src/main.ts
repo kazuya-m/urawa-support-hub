@@ -5,9 +5,11 @@ import {
 } from '@/config/di.ts';
 import { handleHealthCheck } from '@/middleware/health.ts';
 import { withErrorHandling } from '@/adapters/helpers/withErrorHandling.ts';
-import { TICKET_COLLECTION_ERROR_OPTIONS } from '@/adapters/controllers/TicketCollectionController.ts';
-import { NOTIFICATION_ERROR_OPTIONS } from '@/adapters/controllers/NotificationController.ts';
-import { TICKET_SUMMARY_ERROR_OPTIONS } from '@/adapters/controllers/TicketSummaryController.ts';
+import {
+  NOTIFICATION_ERROR_OPTIONS,
+  TICKET_COLLECTION_ERROR_OPTIONS,
+  TICKET_SUMMARY_ERROR_OPTIONS,
+} from '@/adapters/helpers/routeErrorOptions.ts';
 
 async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);

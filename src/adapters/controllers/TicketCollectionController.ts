@@ -1,13 +1,5 @@
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
-import type { ErrorHandlingOptions } from '@/adapters/helpers/withErrorHandling.ts';
-import { LogCategory } from '@/shared/logging/types.ts';
-
-export const TICKET_COLLECTION_ERROR_OPTIONS: ErrorHandlingOptions = {
-  logMessage: 'UseCase error in ticket collection',
-  category: LogCategory.TICKET_COLLECTION,
-  unexpectedResponse: (errorMessage) => ['Ticket collection failed', errorMessage],
-};
 
 export class TicketCollectionController {
   constructor(
