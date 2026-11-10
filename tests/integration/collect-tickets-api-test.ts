@@ -109,6 +109,10 @@ async function testDirectApiCall(): Promise<void> {
   try {
     // 直接APIハンドラをimportして呼び出し
     const { createTicketCollectionController } = await import('@/config/di.ts');
+    const { withErrorHandling } = await import('@/adapters/helpers/withErrorHandling.ts');
+    const { TICKET_COLLECTION_ERROR_OPTIONS } = await import(
+      '@/adapters/helpers/routeErrorOptions.ts'
+    );
 
     const ticketController = createTicketCollectionController();
 
@@ -126,7 +130,10 @@ async function testDirectApiCall(): Promise<void> {
     });
 
     console.log('📞 Calling API handler directly...');
-    const response = await ticketController.handleCollectTickets(testRequest);
+    const response = await withErrorHandling(
+      () => ticketController.handleCollectTickets(testRequest),
+      TICKET_COLLECTION_ERROR_OPTIONS,
+    );
     const result: ApiResponse = await response.json();
 
     console.log('\n📋 API Response:');
