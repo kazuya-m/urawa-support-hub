@@ -25,7 +25,7 @@ GitHub Secrets は、CI/CD で必要な機密情報を暗号化して保存し�
 
 ### 2. Google Cloud Platform（Workload Identity Federation）
 
-値の例のうち大文字の部分（`PROJECT_ID`・`PROJECT_NUMBER`・`POOL_ID`・`PROVIDER_ID`・`*_SA_NAME` など）は、環境ごとの値に置き換えて読んでください。
+値の例のうち大文字の部分（`PROJECT_ID`・`PROJECT_NUMBER`・`POOL_ID`・`PROVIDER_ID`・`*_SA_NAME`・`OWNER/REPO`・`REPOSITORY_ID` など）は、環境ごとの値に置き換えて読んでください。
 
 | シークレット名    | 説明                                    | 使用するワークフロー                 | 値の例                                                                                         |
 | ----------------- | --------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- |
@@ -83,7 +83,7 @@ CI のテストは `--allow-net=127.0.0.1` で実行され、ワークフロー�
    # プロバイダーの完全なリソース名をコピー → WIF_PROVIDER
    ```
 
-   プロバイダーの属性条件（attribute condition）で、このリポジトリからのトークンだけを受け付けるよう絞っていることを確認します。条件が空だと、他のリポジトリの GitHub Actions からも `GC_SA_CICD` を借用できる可能性があります。
+   プロバイダーの属性条件（attribute condition）で、このリポジトリの `main` ブランチからのトークンだけを受け付けるよう絞っていることを確認します。条件が空、またはオーナー単位（`assertion.repository_owner`）だけの条件では、他のリポジトリや任意のブランチの GitHub Actions からも `GC_SA_CICD` を借用できる可能性があります。
 
    ```bash
    gcloud iam workload-identity-pools providers describe PROVIDER_ID \
@@ -91,10 +91,22 @@ CI のテストは `--allow-net=127.0.0.1` で実行され、ワークフロー�
      --workload-identity-pool=POOL_ID \
      --format='value(attributeCondition)'
 
-   # 例: assertion.repository == 'kazuya-m/urawa-support-hub'
+   # 推奨: assertion.repository_id == 'REPOSITORY_ID' && assertion.ref == 'refs/heads/main'
    ```
 
-   借用できるかは、`GC_SA_CICD` 側の `roles/iam.workloadIdentityUser` の付与先でも決まります。付与先（member）が、このリポジトリの principalSet（`principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/attribute.repository/kazuya-m/urawa-support-hub`）に絞られていることも確認します。
+   `REPOSITORY_ID` は GitHub のリポジトリ ID です。リポジトリ名ではなく ID を使うと、改名や同名での作り直しの影響を受けません。条件を変えるときは次のコマンドを使います。`ref` で `main` に絞るため、`main` 以外のブランチから `deploy.yml`・`deploy-scheduler.yml` を手動実行すると認証に失敗します。
+
+   ```bash
+   # REPOSITORY_ID の取得
+   gh api repos/OWNER/REPO --jq .id
+
+   gcloud iam workload-identity-pools providers update-oidc PROVIDER_ID \
+     --location=global \
+     --workload-identity-pool=POOL_ID \
+     --attribute-condition="assertion.repository_id == 'REPOSITORY_ID' && assertion.ref == 'refs/heads/main'"
+   ```
+
+   借用できるかは、`GC_SA_CICD` 側の `roles/iam.workloadIdentityUser` の付与先でも決まります。付与先（member）が、このリポジトリの principalSet（`principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/attribute.repository/OWNER/REPO`）に絞られていて、プール全体（`.../*`）になっていないことも確認します。
 
    ```bash
    gcloud iam service-accounts get-iam-policy GC_SA_CICD_EMAIL \
