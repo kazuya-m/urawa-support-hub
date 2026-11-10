@@ -1,6 +1,6 @@
 import { assertEquals } from 'std/assert/mod.ts';
 
-// 認証ロジックのみテスト（Controller import回避）
+// 認証ロジックはローカル関数でテストする
 function validateCloudSchedulerRequest(req: Request): boolean {
   const authHeader = req.headers.get('Authorization');
 

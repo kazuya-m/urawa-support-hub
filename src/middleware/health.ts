@@ -1,86 +1,51 @@
 import { HttpStatusCodes } from '@/shared/constants/HttpStatusCodes.ts';
 import { getErrorMessage } from '@/shared/utils/errorUtils.ts';
 
-interface ErrorResponse {
-  error: string;
-  details?: unknown;
-  timestamp: string;
-  traceId?: string;
-}
+const REQUIRED_ENV_VARS = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
 
 export function handleHealthCheck(): Response {
-  try {
-    const envCheck = executeHealthCheck(() => checkEnvironmentVariables());
-    const supabaseCheck = executeHealthCheck(() => checkSupabaseEnvironment());
+  const missing = executeHealthCheck(findMissingEnvVar);
+  const healthy = missing.success && missing.value === null;
 
-    const allHealthy = envCheck.success && supabaseCheck.success;
-
-    return new Response(
-      JSON.stringify({
-        status: allHealthy ? 'healthy' : 'unhealthy',
-        timestamp: new Date().toISOString(),
-        checks: {
-          environment: envCheck.success ? 'ok' : `error: ${envCheck.error}`,
-          supabase: supabaseCheck.success ? 'ok' : `error: ${supabaseCheck.error}`,
-        },
-      }),
-      {
-        status: allHealthy ? HttpStatusCodes.OK : HttpStatusCodes.SERVICE_UNAVAILABLE,
-        headers: { 'Content-Type': 'application/json' },
+  return new Response(
+    JSON.stringify({
+      status: healthy ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      checks: {
+        environment: healthy
+          ? 'ok'
+          : `error: ${
+            missing.success
+              ? `Required environment variable ${missing.value} is not set`
+              : missing.error
+          }`,
+        supabase: healthy
+          ? 'ok'
+          : `error: ${
+            missing.success ? 'Supabase environment variables not configured' : missing.error
+          }`,
       },
-    );
-  } catch (error) {
-    return createErrorResponse(
-      'Health check failed',
-      getErrorMessage(error),
-      HttpStatusCodes.SERVICE_UNAVAILABLE,
-    );
-  }
+    }),
+    {
+      status: healthy ? HttpStatusCodes.OK : HttpStatusCodes.SERVICE_UNAVAILABLE,
+      headers: { 'Content-Type': 'application/json' },
+    },
+  );
 }
 
-function checkEnvironmentVariables(): void {
-  const requiredVars = [
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
-  ];
-
-  for (const varName of requiredVars) {
-    if (!Deno.env.get(varName)) {
-      throw new Error(`Required environment variable ${varName} is not set`);
-    }
-  }
+/**
+ * 未設定の必須環境変数のうち最初の 1 つを返す（すべて設定済みなら null）
+ */
+function findMissingEnvVar(): string | null {
+  return REQUIRED_ENV_VARS.find((name) => !Deno.env.get(name)) ?? null;
 }
 
-function checkSupabaseEnvironment(): void {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase environment variables not configured');
-  }
-}
-
-function executeHealthCheck(checkFn: () => void): { success: boolean; error?: string } {
+function executeHealthCheck<T>(
+  checkFn: () => T,
+): { success: true; value: T } | { success: false; error: string } {
   try {
-    checkFn();
-    return { success: true };
+    return { success: true, value: checkFn() };
   } catch (error) {
-    return {
-      success: false,
-      error: getErrorMessage(error),
-    };
+    return { success: false, error: getErrorMessage(error) };
   }
-}
-
-function createErrorResponse(error: string, details: unknown, status: number): Response {
-  const errorResponse: ErrorResponse = {
-    error,
-    details,
-    timestamp: new Date().toISOString(),
-  };
-
-  return new Response(JSON.stringify(errorResponse), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
 }

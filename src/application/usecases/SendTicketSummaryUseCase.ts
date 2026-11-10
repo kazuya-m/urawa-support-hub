@@ -4,7 +4,7 @@ import { INotificationService } from '@/application/interfaces/services/INotific
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
-import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
+import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 
 export class SendTicketSummaryUseCase implements ITicketSummaryUseCase {
   constructor(

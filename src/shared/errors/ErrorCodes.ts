@@ -1,8 +1,9 @@
 /**
- * アプリケーション全体で使用するエラーコード定数
+ * エラーコード定数
+ * エラークラスの code と、Cloud Logging の構造化ログに出すエラーコードを一元管理する
  */
 export const ErrorCodes = {
-  // Database errors
+  // データベース操作（DatabaseError の code。database-error-handler.ts で Supabase のエラーから変換）
   DB_CONNECTION_ERROR: 'DB_CONNECTION_ERROR',
   DB_SAVE_ERROR: 'DB_SAVE_ERROR',
   DB_FETCH_ERROR: 'DB_FETCH_ERROR',
@@ -10,29 +11,32 @@ export const ErrorCodes = {
   DB_DELETE_ERROR: 'DB_DELETE_ERROR',
   DB_NOT_FOUND: 'DB_NOT_FOUND',
 
-  // Business logic errors
-  BUSINESS_RULE_VIOLATION: 'BUSINESS_RULE_VIOLATION',
-  TICKET_NOT_FOUND: 'TICKET_NOT_FOUND',
-  NOTIFICATION_NOT_FOUND: 'NOTIFICATION_NOT_FOUND',
-  INVALID_NOTIFICATION_TIMING: 'INVALID_NOTIFICATION_TIMING',
-  INVALID_SALE_STATUS: 'INVALID_SALE_STATUS',
-
-  // Application layer errors
+  // UseCase の失敗
   USECASE_EXECUTION_FAILED: 'USECASE_EXECUTION_FAILED',
   TICKET_COLLECTION_FAILED: 'TICKET_COLLECTION_FAILED',
-  NOTIFICATION_SEND_FAILED: 'NOTIFICATION_SEND_FAILED',
-  NOTIFICATION_BATCH_FAILED: 'NOTIFICATION_BATCH_FAILED',
 
-  // External service errors
-  EXTERNAL_API_ERROR: 'EXTERNAL_API_ERROR',
-  LINE_API_ERROR: 'LINE_API_ERROR',
-  SCRAPING_ERROR: 'SCRAPING_ERROR',
+  // スクレイピング
+  SCRAPING_SERVICE_ERROR: 'SCR_005', // 個別スクレイピングサービスエラー
 
-  // Validation errors
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  INVALID_REQUEST: 'INVALID_REQUEST',
-  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD',
-  INVALID_FIELD_TYPE: 'INVALID_FIELD_TYPE',
+  // データパース - ERROR（ビジネス機能阻害）
+  PARSE_MATCH_DATE_UNKNOWN_FORMAT: 'PRS_001', // 試合日時の未知フォーマット
+  PARSE_SALE_START_DATE_MISSING_BEFORE_SALE: 'PRS_002', // 販売前なのに販売開始日が取得できない（通知不可）
+
+  // データパース - WARNING（補完情報の欠落、処理は継続可能）
+  PARSE_VENUE_INFO_MISSING: 'PRS_W003', // 会場情報が取得できない
+  PARSE_COMPETITION_MISSING: 'PRS_W004', // 大会名が取得できない
+
+  // 通知
+  NOTIFICATION_FAILED: 'NOT_003', // 通知処理失敗
+  TICKET_SUMMARY_ERROR: 'NOT_004', // チケットサマリー処理失敗
+  MAX_RETRIES_EXCEEDED: 'NOT_005', // 最大リトライ回数超過
+
+  // Cloud Tasks
+  CLOUD_TASKS_ERROR: 'TASKS_001', // Cloud Tasks一般エラー
+  PERMISSION_DENIED: 'TASKS_403', // 権限不足エラー（403）
+
+  // ブラウザ
+  BROWSER_CLOSE_ERROR: 'BRW_001', // ブラウザクローズエラー
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
