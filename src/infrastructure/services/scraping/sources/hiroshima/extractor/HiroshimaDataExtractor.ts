@@ -147,11 +147,6 @@ export class HiroshimaDataExtractor {
         return null;
       }
 
-      // 浦和戦で会場情報が取得できない場合は警告
-      if (!matchInfo.venue) {
-        this.addWarning('Venue information not found for Urawa match');
-      }
-
       // 販売状況を取得
       const saleStatus = await this.extractText(rowElement, this.config.selectors.ticketStatus);
       if (!saleStatus) {
@@ -163,7 +158,8 @@ export class HiroshimaDataExtractor {
         matchDate: matchInfo.date!, // 既に null チェック済み
         matchTime: matchInfo.time || undefined,
         opponent,
-        venue: matchInfo.venue,
+        // 1 列目に会場の行があればそれを使い、なければ既定の会場（日程表に会場の記載がないため）
+        venue: matchInfo.venue ?? HIROSHIMA_SCRAPING_CONFIG.defaultVenue,
         saleStatus,
         ticketUrl: HIROSHIMA_SCRAPING_CONFIG.ticketPurchaseUrl, // 固定のチケット購入URL
         saleDate,
@@ -179,7 +175,7 @@ export class HiroshimaDataExtractor {
    * 1番目のtdから日付、時間、会場を抽出
    * HTML例: "2026/27明治安田J1リーグ第1節<br><span>8.8</span> [土]<br>19:15 K.O."
    * 日程未定の例: "...第33節<br>2027年<span>5.3</span> [月・祝]<br>or <span>4</span> [火・祝]<br>キックオフ時刻未定"
-   * 会場は現在のページに記載がないため、通常は null になる
+   * 会場は現在のページに記載がないため、通常は null になる（呼び出し側で既定の会場を使う）
    */
   private async extractMatchInfo(rowElement: ElementHandle): Promise<{
     date: string | null;

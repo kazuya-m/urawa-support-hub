@@ -262,11 +262,30 @@ Deno.test('HiroshimaDataExtractor - 1 列目（日程）の取得', async (t) =>
     assertEquals(tickets[0].matchTime, '19:15');
   });
 
-  await t.step('会場の記載がない行は会場 null（大会名や時刻の行を会場にしない）', async () => {
+  await t.step('会場の記載がない行は既定の会場（大会名や時刻の行を会場にしない）', async () => {
     const tickets = await extract([
       fullRow('浦和レッズ', '5.3', SALE_DATES, status('WEBで購入', 'a')),
     ]);
-    assertEquals(tickets[0].venue, null);
+    assertEquals(tickets[0].venue, HIROSHIMA_SCRAPING_CONFIG.defaultVenue);
+    assertEquals(tickets[0].venue, 'エディオンピースウイング広島');
+  });
+
+  await t.step('1 列目に会場の行があればそれを使う', async () => {
+    const tickets = await extract([
+      rowStub([
+        {
+          text: '',
+          child: 'p',
+          html:
+            `2026/27明治安田J1リーグ第1節<br> <span>8.8</span> [土]<br>19:15 K.O.<br>広島スタジアム（仮）`,
+        },
+        teamCell('浦和レッズ'),
+        priceCell,
+        ...SALE_DATES.map((text) => ({ text })),
+        status('WEBで購入', 'a'),
+      ]),
+    ]);
+    assertEquals(tickets[0].venue, '広島スタジアム（仮）');
   });
 
   await t.step('キックオフ時刻未定の行は取得しない', async () => {
