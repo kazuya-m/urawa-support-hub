@@ -2,7 +2,7 @@ import { ITicketSummaryUseCase } from '@/application/interfaces/usecases/ITicket
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
-import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
+import { AppError, DatabaseError } from '@/shared/errors/index.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 export class TicketSummaryController {
@@ -19,27 +19,6 @@ export class TicketSummaryController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      if (error instanceof ApplicationError) {
-        CloudLogger.error('UseCase error in ticket summary processing', {
-          category: LogCategory.NOTIFICATION,
-          context: { processingStage: 'TicketSummaryController' },
-          error: {
-            code: error.code,
-            message: error.message,
-            details: JSON.stringify(error.context),
-          },
-        });
-
-        return HttpResponseBuilder.error(
-          'Ticket summary processing failed',
-          {
-            errorType: 'ApplicationError',
-            errorMessage: error.message,
-            details: JSON.stringify(error.context),
-          },
-        );
-      }
-
       if (error instanceof DatabaseError) {
         CloudLogger.error('Database error in ticket summary processing', {
           category: LogCategory.DATABASE,
@@ -56,6 +35,27 @@ export class TicketSummaryController {
           {
             errorType: 'DatabaseError',
             errorMessage: error.message,
+          },
+        );
+      }
+
+      if (error instanceof AppError) {
+        CloudLogger.error('UseCase error in ticket summary processing', {
+          category: LogCategory.NOTIFICATION,
+          context: { processingStage: 'TicketSummaryController' },
+          error: {
+            code: error.code,
+            message: error.message,
+            details: JSON.stringify(error.context),
+          },
+        });
+
+        return HttpResponseBuilder.error(
+          'Ticket summary processing failed',
+          {
+            errorType: 'ApplicationError',
+            errorMessage: error.message,
+            details: JSON.stringify(error.context),
           },
         );
       }

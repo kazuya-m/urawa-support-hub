@@ -4,7 +4,7 @@ import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { toErrorInfo } from '@/shared/utils/errorUtils.ts';
-import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
+import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 
 export class BrowserManager implements IBrowserManager {
   private playwrightClient: IPlaywrightClient;
