@@ -126,6 +126,21 @@ export class HiroshimaDataExtractor {
         return null;
       }
 
+      // 日程が未定（候補日が複数、キックオフ時刻未定）の試合は取得しない。確定後に改めて取得する
+      if (matchInfo.kickoffUndecided) {
+        CloudLogger.info('Skipping Urawa match with undecided kickoff time', {
+          category: LogCategory.TICKET_COLLECTION,
+          context: {
+            stage: 'data_extraction',
+          },
+          metadata: {
+            source: 'hiroshima',
+            date: matchInfo.date,
+          },
+        });
+        return null;
+      }
+
       // 対戦相手は既に確認済みなので再度取得
       const opponent = await this.extractOpponent(rowElement);
       if (!opponent) {
@@ -162,23 +177,27 @@ export class HiroshimaDataExtractor {
 
   /**
    * 1番目のtdから日付、時間、会場を抽出
-   * HTML例: "第36節<br>11.9 [日]<br>13:00K.O.<br>エディオンピースウイング広島"
+   * HTML例: "2026/27明治安田J1リーグ第1節<br><span>8.8</span> [土]<br>19:15 K.O."
+   * 日程未定の例: "...第33節<br>2027年<span>5.3</span> [月・祝]<br>or <span>4</span> [火・祝]<br>キックオフ時刻未定"
+   * 会場は現在のページに記載がないため、通常は null になる
    */
   private async extractMatchInfo(rowElement: ElementHandle): Promise<{
     date: string | null;
     time: string | null;
     venue: string | null;
+    kickoffUndecided: boolean;
   }> {
+    const empty = { date: null, time: null, venue: null, kickoffUndecided: false };
     try {
       const firstTd = await rowElement.$('td:first-child p');
       if (!firstTd) {
-        return { date: null, time: null, venue: null };
+        return empty;
       }
 
       // innerHTML()を使って<br>タグを直接処理
       const innerHTML = await firstTd.innerHTML();
       if (!innerHTML) {
-        return { date: null, time: null, venue: null };
+        return empty;
       }
 
       // <br>タグで分割してHTMLタグを除去
@@ -190,6 +209,7 @@ export class HiroshimaDataExtractor {
       let date = null;
       let time = null;
       let venue = null;
+      let kickoffUndecided = false;
 
       for (const line of lines) {
         // 日付を抽出（例: "11.9 [日]"）
@@ -199,25 +219,27 @@ export class HiroshimaDataExtractor {
           continue;
         }
 
-        // 時間を抽出（例: "13:00K.O."）
-        const timeMatch = line.match(/(\d{1,2}:\d{2})K\.O\./);
+        // 時間を抽出（例: "19:15 K.O."、"13:00K.O."）
+        const timeMatch = line.match(/(\d{1,2}:\d{2})\s*K\.O\./);
         if (timeMatch) {
           time = timeMatch[1];
           continue;
         }
 
-        // 会場を抽出（<br>分割により単独行になった会場名）
-        if (
-          line.includes('エディオン') || line.includes('広島') ||
-          (!line.includes('節') && !line.includes('K.O.') && line.length > 2)
-        ) {
+        if (line.includes('キックオフ時刻未定')) {
+          kickoffUndecided = true;
+          continue;
+        }
+
+        // 会場を抽出（会場名が単独行で書かれている場合のみ）
+        if (line.includes('エディオン') || line.includes('広島')) {
           venue = line;
         }
       }
 
-      return { date, time, venue };
+      return { date, time, venue, kickoffUndecided };
     } catch {
-      return { date: null, time: null, venue: null };
+      return empty;
     }
   }
 

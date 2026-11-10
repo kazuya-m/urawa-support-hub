@@ -90,12 +90,20 @@ function rowStub(cells: CellStub[]) {
   };
 }
 
+/** 1 列目（日程）。2026-11-10 時点のサイトの表記 */
 const dateCell = (date: string): CellStub => ({
   text: '',
   child: 'p',
   html:
-    `2026/27明治安田J1リーグ第33節<br>${date} [日]<br>14:00K.O.<br>エディオンピースウイング広島`,
+    `2026/27明治安田J1リーグ第33節<br> <span class="font-weight-bold">${date}</span> [日]<br>14:00 K.O. `,
 });
+/** 日程が未定の 1 列目（候補日が 2 つ、キックオフ時刻未定） */
+const undecidedDateCell: CellStub = {
+  text: '',
+  child: 'p',
+  html:
+    `2026/27明治安田J1リーグ第33節<br> 2027年<span class="font-weight-bold">5.3</span> [月・祝]<br>or <span class="font-weight-bold">4</span> [火・祝]</span><br>キックオフ時刻未定 `,
+};
 const teamCell = (name: string): CellStub => ({ text: name, child: 'img', alt: name });
 const priceCell: CellStub = { text: '☆☆☆☆', child: 'a' };
 const status = (text: string, child: 'span' | 'a'): CellStub => ({ text, child });
@@ -222,5 +230,55 @@ Deno.test('HiroshimaDataExtractor - 販売日（7 列目：一般販売）の取
       groupedRow('浦和レッズ', '12.13', status('WEBで購入', 'a')),
     ]);
     assertEquals(tickets[0].saleDate, undefined);
+  });
+});
+
+Deno.test('HiroshimaDataExtractor - 1 列目（日程）の取得', async (t) => {
+  const extract = async (rows: ReturnType<typeof rowStub>[]) => {
+    const extractor = new HiroshimaDataExtractor(
+      HIROSHIMA_SCRAPING_CONFIG.schedulePageConfig,
+      HIROSHIMA_SCRAPING_CONFIG.urawaKeywords,
+    );
+    return await extractor.extractTickets(pageStub(rows));
+  };
+
+  await t.step('日付とキックオフ時刻（「19:15 K.O.」のように空白あり）を取得する', async () => {
+    const tickets = await extract([
+      rowStub([
+        {
+          text: '',
+          child: 'p',
+          html:
+            `2026/27明治安田J1リーグ第1節<br> <span class="font-weight-bold" style="font-size: x-large;">8.8</span> [土]<br>19:15 K.O. `,
+        },
+        teamCell('浦和レッズ'),
+        priceCell,
+        ...SALE_DATES.map((text) => ({ text })),
+        status('WEBで購入', 'a'),
+      ]),
+    ]);
+    assertEquals(tickets.length, 1);
+    assertEquals(tickets[0].matchDate, '8.8');
+    assertEquals(tickets[0].matchTime, '19:15');
+  });
+
+  await t.step('会場の記載がない行は会場 null（大会名や時刻の行を会場にしない）', async () => {
+    const tickets = await extract([
+      fullRow('浦和レッズ', '5.3', SALE_DATES, status('WEBで購入', 'a')),
+    ]);
+    assertEquals(tickets[0].venue, null);
+  });
+
+  await t.step('キックオフ時刻未定の行は取得しない', async () => {
+    const tickets = await extract([
+      rowStub([
+        undecidedDateCell,
+        teamCell('浦和レッズ'),
+        { text: '未定' },
+        ...['未定', '未定', '未定', '未定'].map((text) => ({ text })),
+        status('販売開始前', 'span'),
+      ]),
+    ]);
+    assertEquals(tickets.length, 0);
   });
 });
