@@ -74,11 +74,13 @@ export const HIROSHIMA_SCRAPING_CONFIG: HiroshimaScrapingConfig = {
       venue: [
         'td:first-child p',
       ],
-      // チケット販売状況（8番目のtd：販売開始前）
+      // チケット販売状況（最後の td：販売開始前・WEBで購入・販売終了・全席種完売）
+      // 販売日の列を rowspan で共有する後続行は td が 4 つしかなく、販売中は <a>WEBで購入</a> になる
       ticketStatus: [
         'td:nth-child(8) span',
         'td:last-child span',
         'td:nth-child(8)',
+        'td:last-child',
       ],
       // チケット詳細リンク（7番目のtd：☆☆☆）
       ticketLink: [
