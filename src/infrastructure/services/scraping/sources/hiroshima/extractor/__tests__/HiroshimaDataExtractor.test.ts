@@ -175,7 +175,7 @@ Deno.test('HiroshimaDataExtractor - 販売状況の取得', async (t) => {
   }
 });
 
-Deno.test('HiroshimaDataExtractor - 販売日（6 列目）の取得', async (t) => {
+Deno.test('HiroshimaDataExtractor - 販売日（7 列目：一般販売）の取得', async (t) => {
   const extract = async (rows: ReturnType<typeof rowStub>[]) => {
     const extractor = new HiroshimaDataExtractor(
       HIROSHIMA_SCRAPING_CONFIG.schedulePageConfig,
@@ -184,21 +184,21 @@ Deno.test('HiroshimaDataExtractor - 販売日（6 列目）の取得', async (t)
     return await extractor.extractTickets(pageStub(rows));
   };
 
-  await t.step('8 列の行は自分の 6 列目を使う', async () => {
+  await t.step('8 列の行は自分の 7 列目（一般販売）を使う', async () => {
     const tickets = await extract([
       fullRow('浦和レッズ', '11.21', SALE_DATES, status('WEBで購入', 'a')),
     ]);
-    assertEquals(tickets[0].saleDate, '10/22(木)12:00');
+    assertEquals(tickets[0].saleDate, '10/23(金)12:00');
   });
 
-  await t.step('rowspan の後続行は、グループ先頭行の 6 列目を引き継ぐ', async () => {
+  await t.step('rowspan の後続行は、グループ先頭行の 7 列目を引き継ぐ', async () => {
     const tickets = await extract([
       fullRow('横浜F・マリノス', '11.21', SALE_DATES, status('WEBで購入', 'a'), 3),
       groupedRow('ヴィッセル神戸', '12.6', status('WEBで購入', 'a')),
       groupedRow('浦和レッズ', '12.13', status('WEBで購入', 'a')),
     ]);
     assertEquals(tickets.length, 1);
-    assertEquals(tickets[0].saleDate, '10/22(木)12:00');
+    assertEquals(tickets[0].saleDate, '10/23(金)12:00');
   });
 
   await t.step('rowspan の範囲を過ぎた 4 列の行は販売日なし', async () => {
@@ -216,7 +216,7 @@ Deno.test('HiroshimaDataExtractor - 販売日（6 列目）の取得', async (t)
       fullRow(
         'セレッソ大阪',
         '9.12',
-        ['8/4', '8/5', '8/6(木)12:00', '8/7'],
+        ['8/4(火)12:00', '8/5(水)12:00', '8/6(木)12:00', '8/7(金)12:00'],
         status('販売終了', 'span'),
       ),
       groupedRow('浦和レッズ', '12.13', status('WEBで購入', 'a')),

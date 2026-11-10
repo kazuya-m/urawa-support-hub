@@ -259,15 +259,16 @@ export class HiroshimaDataExtractor {
   }
 
   /**
-   * 6番目のtdから販売日と rowspan を取得
+   * 7番目のtd（一般販売）から販売日と rowspan を取得
+   * 4〜6番目のtdは会員向けの先行販売日なので使わない
    * HTML例: "10/10(金)<br>12:00～"
-   * rowspan の後続行（td が 4 つ）には 6 番目の td がないので null を返す
+   * rowspan の後続行（td が 4 つ）には 7 番目の td がないので null を返す
    */
   private async extractSaleDate(
     rowElement: ElementHandle,
   ): Promise<{ value: string | undefined; rowspan: number } | null> {
     try {
-      const saleTd = await rowElement.$('td:nth-child(6)');
+      const saleTd = await rowElement.$('td:nth-child(7)');
       if (!saleTd) {
         return null;
       }
