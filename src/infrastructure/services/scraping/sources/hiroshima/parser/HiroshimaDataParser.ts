@@ -4,6 +4,11 @@ import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import { DateCalculationService } from '@/domain/services/DateCalculationService.ts';
+import { HIROSHIMA_SCRAPING_CONFIG } from '../HiroshimaConfig.ts';
+import {
+  COMPETITION_NAMES,
+  normalizeCompetitionByKeyword,
+} from '@/domain/parsers/competitionNormalization.ts';
 
 /**
  * サンフレッチェ広島のデータを共通のTicket形式に変換
@@ -186,26 +191,22 @@ export class HiroshimaDataParser {
     // 文字列の前処理: 空白や改行を除去
     const cleanedStatus = statusStr.trim().replace(/\s+/g, ' ');
 
-    // キーワードによる判定
-    const soldOutKeywords = ['完売', '売り切れ', '全席種完売'];
-    const endedKeywords = ['販売終了', '発売終了', '終了'];
-    const onSaleKeywords = ['販売中', '発売中', 'WEBで購入', '購入可能'];
-    const beforeSaleKeywords = ['販売開始前', '発売前', '販売予定'];
+    const { soldOut, ended, onSale, beforeSale } = HIROSHIMA_SCRAPING_CONFIG.saleStatusKeywords;
 
-    // 各キーワードグループでマッチング確認
-    if (soldOutKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    // キーワードによる判定（完売 → 終了 → 販売中 → 販売前の順）
+    if (soldOut.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'sold_out';
     }
 
-    if (endedKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (ended.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'ended';
     }
 
-    if (onSaleKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (onSale.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'on_sale';
     }
 
-    if (beforeSaleKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (beforeSale.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'before_sale';
     }
 
@@ -218,27 +219,8 @@ export class HiroshimaDataParser {
    */
   private normalizeCompetition(competition?: string): string | null {
     if (!competition) {
-      return 'J1リーグ';
+      return COMPETITION_NAMES.J1;
     }
-
-    // サンフレッチェ広島サイトの表記を統一
-    const competitionMap: Record<string, string> = {
-      'J1': 'J1リーグ',
-      'J1リーグ': 'J1リーグ',
-      '明治安田J1': 'J1リーグ',
-      'ルヴァン': 'ルヴァンカップ',
-      'ルヴァンカップ': 'ルヴァンカップ',
-      '天皇杯': '天皇杯',
-      'ACL': 'ACLE',
-      'ACLE': 'ACLE',
-    };
-
-    for (const [key, value] of Object.entries(competitionMap)) {
-      if (competition.includes(key)) {
-        return value;
-      }
-    }
-
-    return competition;
+    return normalizeCompetitionByKeyword(competition);
   }
 }

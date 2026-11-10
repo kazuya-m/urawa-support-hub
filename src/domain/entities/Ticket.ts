@@ -1,8 +1,3 @@
-import {
-  NotificationType,
-  shouldSendNotificationAtTime,
-} from '@/domain/config/NotificationConfig.ts';
-import { DataQuality, determineDataQuality } from './DataQuality.ts';
 import { formatDateOnly } from '@/shared/utils/datetime.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import fastDeepEqual from 'fast-deep-equal';
@@ -154,18 +149,6 @@ export class Ticket {
       !!this.props.saleStartDate;
   }
 
-  getDataQuality(): DataQuality {
-    return determineDataQuality({
-      hasTicketUrl: !!this.props.ticketUrl && this.props.ticketUrl.trim() !== '',
-      hasVenue: !!this.props.venue && this.props.venue.trim() !== '',
-      hasTicketTypes: !!this.props.ticketTypes && this.props.ticketTypes.length > 0,
-    });
-  }
-
-  equals(other: Ticket): boolean {
-    return this.id === other.id;
-  }
-
   hasSameBusinessData(other: Ticket | null): boolean {
     if (!other) return false;
 
@@ -189,19 +172,9 @@ export class Ticket {
     return fastDeepEqual(thisBusinessData, otherBusinessData);
   }
 
-  shouldSendNotification(type: NotificationType, currentTime: Date = new Date()): boolean {
-    if (!this.props.saleStartDate) return false;
-    return shouldSendNotificationAtTime(type, this.props.saleStartDate, currentTime);
-  }
-
-  requiresNotification(): boolean {
-    return this.saleStatus === 'before_sale' && !this.notificationScheduled &&
-      this.props.saleStartDate !== null;
-  }
-
   /**
    * 通知をスケジューリングすべきかの判定（要件準拠）
-   * 有効期限内で発売前のチケット（データ品質に関係なく通知）
+   * 有効期限内で発売前のチケット
    */
   shouldScheduleNotification(): boolean {
     return this.isValidForNotification() &&

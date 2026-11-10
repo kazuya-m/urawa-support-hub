@@ -11,20 +11,12 @@ class PlaywrightPage implements IPage {
     return await this.page.$eval(selector, pageFunction);
   }
 
-  async $$eval<R>(selector: string, pageFunction: (elements: Element[]) => R): Promise<R> {
-    return await this.page.$$eval(selector, pageFunction);
-  }
-
   async $(selector: string) {
     return await this.page.$(selector);
   }
 
   async $$(selector: string) {
     return await this.page.$$(selector);
-  }
-
-  async click(selector: string): Promise<void> {
-    await this.page.click(selector);
   }
 
   async setExtraHTTPHeaders(headers: Record<string, string>): Promise<void> {
@@ -41,14 +33,6 @@ class PlaywrightPage implements IPage {
 
   async waitForSelector(selector: string, options?: { timeout?: number }) {
     return await this.page.waitForSelector(selector, options);
-  }
-
-  async evaluate<R>(pageFunction: () => R): Promise<R> {
-    return await this.page.evaluate(pageFunction);
-  }
-
-  async textContent(): Promise<string | null> {
-    return await this.page.textContent('body');
   }
 }
 

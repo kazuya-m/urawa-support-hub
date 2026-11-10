@@ -24,10 +24,10 @@ export interface HiroshimaScrapingConfig {
   awayKeywords: string[];
   urawaKeywords: string[];
   saleStatusKeywords: {
-    available: string[];
     soldOut: string[];
-    notStarted: string[];
     ended: string[];
+    onSale: string[];
+    beforeSale: string[];
   };
   timeouts: {
     pageLoad: number;
@@ -37,7 +37,6 @@ export interface HiroshimaScrapingConfig {
     maxRetries: number;
     baseDelay: number;
   };
-  competitionNormalization: Record<string, string>;
 }
 
 export const HIROSHIMA_SCRAPING_CONFIG: HiroshimaScrapingConfig = {
@@ -103,12 +102,14 @@ export const HIROSHIMA_SCRAPING_CONFIG: HiroshimaScrapingConfig = {
     'urawa red diamonds',
   ],
 
-  // 販売状況キーワード
+  // 販売状況キーワード（「チケット購入」列の表示。2026-11-10 にサイトで確認）
   saleStatusKeywords: {
-    available: ['販売中', '発売中', '購入可能'],
-    soldOut: ['完売', '売り切れ', '全席種完売'],
-    notStarted: ['販売開始前', '発売前', '販売予定'],
-    ended: ['販売終了', '発売終了', '終了'],
+    // 「販売終了」の代わりに表示される（確認時点ではページ内の HTML コメントにのみ存在）
+    soldOut: ['全席種完売'],
+    ended: ['販売終了'],
+    // 販売中は購入ボタン（ticket.sanfrecce.co.jp へのリンク）の文言
+    onSale: ['WEBで購入'],
+    beforeSale: ['販売開始前'],
   },
 
   timeouts: {
@@ -120,21 +121,4 @@ export const HIROSHIMA_SCRAPING_CONFIG: HiroshimaScrapingConfig = {
     maxRetries: 2,
     baseDelay: 2000,
   },
-
-  competitionNormalization: {
-    'J1リーグ': 'J1リーグ',
-    'J1': 'J1リーグ',
-    '明治安田Ｊ１リーグ': 'J1リーグ',
-    '明治安田J1リーグ': 'J1リーグ',
-    'ルヴァンカップ': 'ルヴァンカップ',
-    'ＹＢＣルヴァンカップ': 'ルヴァンカップ',
-    'JリーグYBCルヴァンカップ': 'ルヴァンカップ',
-    '天皇杯': '天皇杯',
-    'ＡＦＣチャンピオンズリーグエリート': 'ACLE',
-    'AFCチャンピオンズリーグエリート': 'ACLE',
-    'ＡＦＣチャンピオンズリーグ２': 'ACL2',
-    'AFCチャンピオンズリーグ2': 'ACL2',
-    'ACLE': 'ACLE',
-    'ACL2': 'ACL2',
-  } as const,
 };

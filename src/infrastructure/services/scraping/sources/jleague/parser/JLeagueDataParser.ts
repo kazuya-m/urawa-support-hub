@@ -9,6 +9,7 @@ import { ErrorCodes } from '@/shared/logging/ErrorCodes.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import { createJSTDateTime } from '@/shared/utils/datetime.ts';
+import { normalizeCompetitionExact } from '@/domain/parsers/competitionNormalization.ts';
 
 /**
  * J-League固有のデータパーサー
@@ -300,15 +301,15 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
   private checkSoldOutStatus(statusText: string): SaleStatus | null {
     const cleanedStatus = statusText.trim().replace(/\s+/g, ' ');
 
+    const { soldOut, ended } = J_LEAGUE_SCRAPING_CONFIG.saleStatusKeywords;
+
     // 完売キーワード
-    const soldOutKeywords = ['完売', '売り切れ', '空席なし', '全席種完売'];
-    if (soldOutKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (soldOut.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'sold_out';
     }
 
     // 販売終了キーワード
-    const endedKeywords = ['販売終了', '発売終了', '終了'];
-    if (endedKeywords.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (ended.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'ended';
     }
 
@@ -535,8 +536,6 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
     }
 
     const normalized = competition.trim();
-    return J_LEAGUE_SCRAPING_CONFIG.competitionNormalization[
-      normalized as keyof typeof J_LEAGUE_SCRAPING_CONFIG.competitionNormalization
-    ] || normalized;
+    return normalizeCompetitionExact(normalized);
   }
 }

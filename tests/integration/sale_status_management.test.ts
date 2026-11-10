@@ -29,12 +29,7 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
 
     // データベースに保存
     const saveResult1 = await ticketRepository.upsert(beforeSaleTicket);
-    // saveResult1 is now a Ticket, not TicketUpsertResult
-    assertEquals(
-      saveResult1.requiresNotification(),
-      true,
-      'Should require notification when before sale',
-    );
+    assertEquals(saveResult1.saleStatus, 'before_sale', 'Status should be before_sale');
 
     // 2. 販売中状態への遷移（同じIDで更新）
     const existingTicket = await ticketRepository.findById(saveResult1.id);
@@ -58,13 +53,7 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
     });
 
     const saveResult2 = await ticketRepository.upsert(onSaleTicket);
-    // saveResult2 is now a Ticket, not TicketUpsertResult
     assertEquals(saveResult2.saleStatus, 'on_sale', 'Status should be on_sale');
-    assertEquals(
-      saveResult2.requiresNotification(),
-      false,
-      'Should not require notification when on sale',
-    );
 
     // 3. 販売終了状態への遷移（同じIDで更新）
     const existingTicket2 = await ticketRepository.findById(saveResult1.id);
@@ -88,13 +77,7 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
     });
 
     const saveResult3 = await ticketRepository.upsert(endedTicket);
-    // saveResult3 is now a Ticket, not TicketUpsertResult
     assertEquals(saveResult3.saleStatus, 'ended', 'Status should be ended');
-    assertEquals(
-      saveResult3.requiresNotification(),
-      false,
-      'Should not require notification when ended',
-    );
 
     // 4. データ整合性確認
     const retrievedTicket = await ticketRepository.findById(beforeSaleTicket.id);
@@ -134,12 +117,8 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
     });
 
     const result1 = await ticketRepository.upsert(beforeSaleTicket);
-    // result1 is now a Ticket, not TicketUpsertResult
-    assertEquals(
-      result1.requiresNotification(),
-      true,
-      'New before_sale ticket should require notification',
-    );
+    assertEquals(result1.saleStatus, 'before_sale');
+    assertEquals(result1.notificationScheduled, false);
 
     // 通知スケジュール済みに更新（同じIDで更新）
     const existingForSchedule = await ticketRepository.findById(result1.id);
@@ -163,12 +142,8 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
     });
 
     const result2 = await ticketRepository.upsert(scheduledTicket);
-    // result2 is now a Ticket, not TicketUpsertResult
-    assertEquals(
-      result2.requiresNotification(),
-      false,
-      'Scheduled ticket should not require notification',
-    );
+    // notification_scheduled = true が保存されて返ってくることを確認
+    assertEquals(result2.notificationScheduled, true);
 
     // 販売中に変更 - 通知不要（同じIDで更新）
     const existingForOnSale = await ticketRepository.findById(result1.id);
@@ -192,12 +167,8 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
     });
 
     const result3 = await ticketRepository.upsert(onSaleTicket);
-    // result3 is now a Ticket, not TicketUpsertResult
-    assertEquals(
-      result3.requiresNotification(),
-      false,
-      'On-sale ticket should not require notification',
-    );
+    assertEquals(result3.saleStatus, 'on_sale');
+    assertEquals(result3.notificationScheduled, true);
   } finally {
     await cleanupTestData(client, 'tickets', `match_name LIKE '%${testId}%'`);
   }

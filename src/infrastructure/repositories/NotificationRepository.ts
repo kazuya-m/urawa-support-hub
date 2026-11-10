@@ -9,16 +9,6 @@ export class NotificationRepository implements INotificationRepository {
     private readonly client: SupabaseClient,
   ) {}
 
-  async findAll(): Promise<Notification[]> {
-    const { data, error } = await this.client
-      .from('notifications')
-      .select('*')
-      .order('notification_time', { ascending: true });
-
-    if (error) throwDatabaseError('NotificationRepository', 'fetch notifications', error);
-    return (data || []).map(NotificationConverter.toDomainEntity);
-  }
-
   async findById(id: string): Promise<Notification | null> {
     const { data, error } = await this.client
       .from('notifications')
@@ -33,34 +23,6 @@ export class NotificationRepository implements INotificationRepository {
     return data ? NotificationConverter.toDomainEntity(data) : null;
   }
 
-  async findByIds(ids: string[]): Promise<Map<string, Notification>> {
-    if (ids.length === 0) {
-      return new Map();
-    }
-
-    const { data, error } = await this.client
-      .from('notifications')
-      .select('*')
-      .in('id', ids);
-
-    if (error) {
-      throwDatabaseError('NotificationRepository', 'findByIds', error, {
-        table: 'notifications',
-        notificationIds: ids,
-      });
-    }
-
-    const resultMap = new Map<string, Notification>();
-    if (data) {
-      for (const row of data) {
-        const notification = NotificationConverter.toDomainEntity(row);
-        resultMap.set(notification.id, notification);
-      }
-    }
-
-    return resultMap;
-  }
-
   async findByTicketId(ticketId: string): Promise<Notification[]> {
     const { data, error } = await this.client
       .from('notifications')
@@ -69,44 +31,6 @@ export class NotificationRepository implements INotificationRepository {
       .order('notification_time', { ascending: true });
 
     if (error) throwDatabaseError('NotificationRepository', 'fetch notifications by ticket', error);
-    return (data || []).map(NotificationConverter.toDomainEntity);
-  }
-
-  async findByColumn(column: string, value: unknown): Promise<Notification[]> {
-    const { data, error } = await this.client
-      .from('notifications')
-      .select('*')
-      .eq(column, value)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      throwDatabaseError('NotificationRepository', `fetch notifications by ${column}`, error);
-    }
-    return (data || []).map(NotificationConverter.toDomainEntity);
-  }
-
-  async findByDateRange(
-    column: string,
-    startDate?: Date,
-    endDate?: Date,
-  ): Promise<Notification[]> {
-    let query = this.client
-      .from('notifications')
-      .select('*');
-
-    if (startDate) {
-      query = query.gte(column, startDate.toISOString());
-    }
-
-    if (endDate) {
-      query = query.lte(column, endDate.toISOString());
-    }
-
-    const { data, error } = await query.order('created_at', { ascending: true });
-
-    if (error) {
-      throwDatabaseError('NotificationRepository', 'fetch notifications by date range', error);
-    }
     return (data || []).map(NotificationConverter.toDomainEntity);
   }
 
@@ -125,14 +49,5 @@ export class NotificationRepository implements INotificationRepository {
       .eq('id', notification.id);
 
     if (error) throwDatabaseError('NotificationRepository', 'update notification', error);
-  }
-
-  async delete(id: string): Promise<void> {
-    const { error } = await this.client
-      .from('notifications')
-      .delete()
-      .eq('id', id);
-
-    if (error) throwDatabaseError('NotificationRepository', 'delete notification', error);
   }
 }

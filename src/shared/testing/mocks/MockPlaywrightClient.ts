@@ -27,19 +27,6 @@ class MockPage implements IPage {
     return Promise.resolve(pageFunction(mockElement));
   }
 
-  $$eval<R>(selector: string, pageFunction: (elements: Element[]) => R): Promise<R> {
-    const mockValue = this.mockData[selector];
-    const mockElements = Array.isArray(mockValue)
-      ? mockValue.map((val) => ({
-        textContent: val,
-        getAttribute: () => val,
-        querySelector: () => null,
-        querySelectorAll: () => [],
-      } as unknown as Element))
-      : [];
-    return Promise.resolve(pageFunction(mockElements));
-  }
-
   $(_selector: string): Promise<ElementHandle | null> {
     // Mock implementation returns null for simplicity
     return Promise.resolve(null);
@@ -48,10 +35,6 @@ class MockPage implements IPage {
   $$(_selector: string): Promise<ElementHandle[]> {
     // Mock implementation returns empty array for simplicity
     return Promise.resolve([]);
-  }
-
-  async click(_selector: string): Promise<void> {
-    // Mock implementation - do nothing
   }
 
   async setExtraHTTPHeaders(_headers: Record<string, string>): Promise<void> {
@@ -71,14 +54,6 @@ class MockPage implements IPage {
     _options?: { timeout?: number },
   ): Promise<ElementHandle | null> {
     return this.$(selector);
-  }
-
-  evaluate<R>(pageFunction: () => R): Promise<R> {
-    return Promise.resolve(pageFunction());
-  }
-
-  textContent(): Promise<string | null> {
-    return Promise.resolve(this.mockData['body'] as string || null);
   }
 }
 

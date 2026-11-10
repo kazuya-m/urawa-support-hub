@@ -33,14 +33,6 @@ export class HttpResponseBuilder {
     return this.json(data, status);
   }
 
-  static unauthorized(details?: string): Response {
-    return this.error(
-      'Unauthorized',
-      details || 'Invalid or missing authentication',
-      HttpStatusCodes.UNAUTHORIZED,
-    );
-  }
-
   static badRequest(details: string): Response {
     return this.error('Bad Request', details, HttpStatusCodes.BAD_REQUEST);
   }

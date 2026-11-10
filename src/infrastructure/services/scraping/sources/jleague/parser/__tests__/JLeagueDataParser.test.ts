@@ -338,3 +338,79 @@ Deno.test('JLeagueDataParser - 完売表示がない場合は販売日時から�
   assertEquals(ticket.saleStatus, 'before_sale');
   assertEquals(ticket.saleStartDate?.getUTCMonth(), 8); // September
 });
+
+Deno.test('JLeagueDataParser - 一覧ページの販売状況キーワード判定', async (t) => {
+  const parser = new JLeagueDataParser();
+  const referenceDate = new Date('2025-11-01T00:00:00.000Z');
+  const cases: Array<[string, string]> = [
+    ['完売', 'sold_out'],
+    ['売り切れ', 'sold_out'],
+    ['空席なし', 'sold_out'],
+    ['全席種完売', 'sold_out'],
+    ['  完売  ', 'sold_out'],
+    ['販売終了', 'ended'],
+    ['発売終了', 'ended'],
+    ['終了', 'ended'],
+  ];
+
+  for (const [saleStatusText, expected] of cases) {
+    await t.step(`'${saleStatusText}' → ${expected}`, async () => {
+      const ticket = await parser.parseToTicket({
+        matchName: '浦和レッズ vs ファジアーノ岡山',
+        matchDate: '11/30',
+        enhancedMatchDateTime: '2025/11/30 14:00',
+        venue: 'ＪＦＥ晴れの国スタジアム',
+        competition: 'J1リーグ',
+        saleDate: undefined,
+        saleStatusText,
+        ticketTypes: [],
+        ticketUrl: 'https://example.com/ticket',
+        scrapedAt: referenceDate,
+      }, referenceDate);
+      assertEquals(ticket.saleStatus, expected);
+    });
+  }
+});
+
+Deno.test('JLeagueDataParser - 大会名の正規化（完全一致）', async (t) => {
+  const parser = new JLeagueDataParser();
+  const referenceDate = new Date('2025-11-01T00:00:00.000Z');
+  const cases: Array<[string, string]> = [
+    ['明治安田Ｊ１リーグ', 'J1リーグ'],
+    ['明治安田J1リーグ', 'J1リーグ'],
+    ['ＹＢＣルヴァンカップ', 'ルヴァンカップ'],
+    ['JリーグYBCルヴァンカップ', 'ルヴァンカップ'],
+    ['ルヴァンカップ', 'ルヴァンカップ'],
+    ['天皇杯', '天皇杯'],
+    ['ＡＦＣチャンピオンズリーグエリート', 'ACLE'],
+    ['AFCチャンピオンズリーグエリート', 'ACLE'],
+    ['ＡＦＣチャンピオンズリーグ２', 'ACL2'],
+    ['AFCチャンピオンズリーグ2', 'ACL2'],
+    ['AFCチャンピオンズリーグ２', 'ACL2'],
+    ['ACLE', 'ACLE'],
+    ['ACL2', 'ACL2'],
+    [' 天皇杯 ', '天皇杯'],
+    // 完全一致なので、マップにない表記はそのまま返る
+    ['J1', 'J1'],
+    ['天皇杯 3回戦', '天皇杯 3回戦'],
+    ['プレシーズンマッチ', 'プレシーズンマッチ'],
+  ];
+
+  for (const [competition, expected] of cases) {
+    await t.step(`'${competition}' → ${expected}`, async () => {
+      const ticket = await parser.parseToTicket({
+        matchName: '浦和レッズ vs ファジアーノ岡山',
+        matchDate: '11/30',
+        enhancedMatchDateTime: '2025/11/30 14:00',
+        venue: 'ＪＦＥ晴れの国スタジアム',
+        competition,
+        saleDate: undefined,
+        saleStatusText: '完売',
+        ticketTypes: [],
+        ticketUrl: 'https://example.com/ticket',
+        scrapedAt: referenceDate,
+      }, referenceDate);
+      assertEquals(ticket.competition, expected);
+    });
+  }
+});
