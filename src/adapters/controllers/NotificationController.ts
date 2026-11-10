@@ -7,7 +7,7 @@ import { validateNotificationRequest } from '@/adapters/validators/NotificationR
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
-import { ApplicationError, DatabaseError } from '@/shared/errors/index.ts';
+import { AppError, DatabaseError } from '@/shared/errors/index.ts';
 
 export class NotificationController {
   constructor(
@@ -46,20 +46,6 @@ export class NotificationController {
         executionTimeMs: result.executionDurationMs,
       });
     } catch (error) {
-      if (error instanceof ApplicationError) {
-        CloudLogger.error('UseCase error in notification processing', {
-          category: LogCategory.NOTIFICATION,
-          error: {
-            details: error.message,
-            recoverable: true,
-          },
-        });
-        return HttpResponseBuilder.error(
-          error.formatMessage(),
-          error.context,
-        );
-      }
-
       if (error instanceof DatabaseError) {
         CloudLogger.error('Database error in notification processing', {
           category: LogCategory.DATABASE,
@@ -71,6 +57,20 @@ export class NotificationController {
         return HttpResponseBuilder.error(
           'Database operation failed',
           { operation: 'notification processing' },
+        );
+      }
+
+      if (error instanceof AppError) {
+        CloudLogger.error('UseCase error in notification processing', {
+          category: LogCategory.NOTIFICATION,
+          error: {
+            details: error.message,
+            recoverable: true,
+          },
+        });
+        return HttpResponseBuilder.error(
+          error.formatMessage(),
+          error.context,
         );
       }
 

@@ -3,7 +3,7 @@
  * GCP Cloud Loggingで使用する構造化ログのインターフェース定義
  */
 
-import type { ErrorCode } from './ErrorCodes.ts';
+import type { ErrorCode } from '@/shared/errors/ErrorCodes.ts';
 
 /**
  * ログカテゴリ
