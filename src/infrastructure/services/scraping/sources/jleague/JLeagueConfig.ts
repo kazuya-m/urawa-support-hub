@@ -54,6 +54,10 @@ export interface JLeagueScrapingConfig {
     primary: string;
     alternatives: string[];
   };
+  saleStatusKeywords: {
+    soldOut: string[];
+    ended: string[];
+  };
 }
 
 export const J_LEAGUE_SCRAPING_CONFIG: JLeagueScrapingConfig = {
@@ -152,4 +156,10 @@ export const J_LEAGUE_SCRAPING_CONFIG: JLeagueScrapingConfig = {
     primary: '浦和レッズ',
     alternatives: ['浦和', 'Urawa Reds', 'URAWA'],
   } as const,
+
+  // 一覧ページの販売状況表示（完売・販売終了の判定に使う）
+  saleStatusKeywords: {
+    soldOut: ['完売', '売り切れ', '空席なし', '全席種完売'],
+    ended: ['販売終了', '発売終了', '終了'],
+  },
 };

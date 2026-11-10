@@ -12,7 +12,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
       matchTime: '13:00',
       opponent: '浦和レッズ',
       venue: 'エディオンピースウイング広島',
-      saleStatus: '販売中',
+      saleStatus: 'WEBで購入',
       ticketUrl: 'https://ticket.sanfrecce.co.jp/',
       saleDate: '10/10(金) 12:00～',
       ticketTypes: ['ビジター席'],
@@ -43,7 +43,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
         matchTime: '13:00',
         opponent: '浦和レッズ',
         venue: 'エディオンピースウイング広島',
-        saleStatus: '販売中',
+        saleStatus: 'WEBで購入',
         ticketUrl: 'https://ticket.sanfrecce.co.jp/',
         ticketTypes: ['ビジター席'],
       },
@@ -52,7 +52,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
         matchTime: '14:00',
         opponent: '浦和レッズ',
         venue: 'エディオンピースウイング広島',
-        saleStatus: '完売',
+        saleStatus: '全席種完売',
         ticketUrl: 'https://ticket.sanfrecce.co.jp/',
         ticketTypes: ['ビジター席'],
       },
@@ -67,16 +67,11 @@ Deno.test('HiroshimaDataParser', async (t) => {
 
   await t.step('販売状況を正しくマップする', async () => {
     const testCases: Array<{ input: string; expected: string }> = [
-      { input: '販売中', expected: 'on_sale' },
-      { input: '発売中', expected: 'on_sale' },
-      { input: '購入可能', expected: 'on_sale' },
-      { input: '完売', expected: 'sold_out' },
-      { input: '売り切れ', expected: 'sold_out' },
+      // サイトの「チケット購入」列の表示
+      { input: 'WEBで購入', expected: 'on_sale' },
       { input: '全席種完売', expected: 'sold_out' },
       { input: '販売終了', expected: 'ended' },
-      { input: '発売終了', expected: 'ended' },
       { input: '販売開始前', expected: 'before_sale' },
-      { input: '発売前', expected: 'before_sale' },
     ];
 
     for (const testCase of testCases) {
@@ -120,7 +115,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
         matchTime: testCase.time,
         opponent: '浦和レッズ',
         venue: 'エディオンピースウイング広島',
-        saleStatus: '販売中',
+        saleStatus: 'WEBで購入',
         ticketUrl: 'https://ticket.sanfrecce.co.jp/',
         ticketTypes: ['ビジター席'],
       };
@@ -179,7 +174,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
       matchTime: '13:00',
       opponent: '浦和レッズ',
       venue: 'エディオンピースウイング広島',
-      saleStatus: '販売中',
+      saleStatus: 'WEBで購入',
       ticketUrl: 'https://ticket.sanfrecce.co.jp/',
       ticketTypes: ['ビジター席'],
       competition: '明治安田J1リーグ',
@@ -197,7 +192,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
         matchTime: '13:00',
         opponent: '浦和レッズ',
         venue: 'エディオンピースウイング広島',
-        saleStatus: '販売中',
+        saleStatus: 'WEBで購入',
         ticketUrl: 'https://ticket.sanfrecce.co.jp/',
         ticketTypes: ['ビジター席'],
       },
@@ -207,7 +202,7 @@ Deno.test('HiroshimaDataParser', async (t) => {
         // matchTime なし
         opponent: '浦和レッズ',
         venue: 'エディオンピースウイング広島',
-        saleStatus: '販売中',
+        saleStatus: 'WEBで購入',
         ticketUrl: 'https://ticket.sanfrecce.co.jp/',
         ticketTypes: ['ビジター席'],
       },
@@ -217,13 +212,13 @@ Deno.test('HiroshimaDataParser', async (t) => {
     assertEquals(tickets.length, 0);
   });
 
-  await t.step('販売中の場合は販売開始日がnullになる', async () => {
+  await t.step('販売中（WEBで購入）の場合は販売開始日がnullになる', async () => {
     const rawTicketData: HiroshimaRawTicketData = {
       matchDate: '11.9',
       matchTime: '13:00',
       opponent: '浦和レッズ',
       venue: 'エディオンピースウイング広島',
-      saleStatus: '販売中',
+      saleStatus: 'WEBで購入',
       ticketUrl: 'https://ticket.sanfrecce.co.jp/',
       saleDate: '10/10(金) 12:00～',
       ticketTypes: ['ビジター席'],
@@ -256,25 +251,19 @@ Deno.test('HiroshimaDataParser', async (t) => {
 Deno.test('HiroshimaDataParser - 販売状況キーワード判定', async (t) => {
   const parser = new HiroshimaDataParser();
   const cases: Array<[string, string]> = [
-    ['完売', 'sold_out'],
-    ['売り切れ', 'sold_out'],
-    ['全席種完売', 'sold_out'],
-    ['販売終了', 'ended'],
-    ['発売終了', 'ended'],
-    ['終了', 'ended'],
-    ['販売中', 'on_sale'],
-    ['発売中', 'on_sale'],
-    ['WEBで購入', 'on_sale'],
-    ['購入可能', 'on_sale'],
+    // サイトの「チケット購入」列の表示（2026-11-10 に確認）
     ['販売開始前', 'before_sale'],
-    ['発売前', 'before_sale'],
-    ['販売予定', 'before_sale'],
-    // 判定順: 完売 → 終了 → 販売中 → 販売前
-    ['完売 販売中', 'sold_out'],
-    ['販売中（終了間近）', 'ended'],
-    // どれにも当たらなければ販売前（広島は「空席なし」を完売として扱わない）
-    ['空席なし', 'before_sale'],
+    ['WEBで購入', 'on_sale'],
+    ['販売終了', 'ended'],
+    ['全席種完売', 'sold_out'],
+    // 前後の空白・改行は無視する
+    [' \n 販売終了 \n ', 'ended'],
+    // どれにも当たらなければ販売前（既定値）
     ['未定', 'before_sale'],
+    // 他サイトの表記は広島の判定に使わない（J リーグチケットの「空席なし」など）
+    ['空席なし', 'before_sale'],
+    ['販売中', 'before_sale'],
+    ['売り切れ', 'before_sale'],
   ];
 
   for (const [saleStatus, expected] of cases) {
@@ -318,7 +307,7 @@ Deno.test('HiroshimaDataParser - 大会名の正規化（部分一致）', async
         matchTime: '13:00',
         opponent: '浦和レッズ',
         venue: 'エディオンピースウイング広島',
-        saleStatus: '販売中',
+        saleStatus: 'WEBで購入',
         ticketUrl: 'https://ticket.sanfrecce.co.jp/',
         ticketTypes: ['ビジター席'],
         competition,

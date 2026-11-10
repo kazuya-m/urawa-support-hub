@@ -23,6 +23,12 @@ export interface HiroshimaScrapingConfig {
   schedulePageConfig: HiroshimaSchedulePageConfig;
   awayKeywords: string[];
   urawaKeywords: string[];
+  saleStatusKeywords: {
+    soldOut: string[];
+    ended: string[];
+    onSale: string[];
+    beforeSale: string[];
+  };
   timeouts: {
     pageLoad: number;
     elementWait: number;
@@ -93,6 +99,16 @@ export const HIROSHIMA_SCRAPING_CONFIG: HiroshimaScrapingConfig = {
     '浦和レッドダイヤモンズ',
     'urawa red diamonds',
   ],
+
+  // 販売状況キーワード（「チケット購入」列の表示。2026-11-10 にサイトで確認）
+  saleStatusKeywords: {
+    // 「販売終了」の代わりに表示される（確認時点ではページ内の HTML コメントにのみ存在）
+    soldOut: ['全席種完売'],
+    ended: ['販売終了'],
+    // 販売中は購入ボタン（ticket.sanfrecce.co.jp へのリンク）の文言
+    onSale: ['WEBで購入'],
+    beforeSale: ['販売開始前'],
+  },
 
   timeouts: {
     pageLoad: 30000,

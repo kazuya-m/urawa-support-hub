@@ -4,7 +4,7 @@ import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import type { SaleStatus } from '@/domain/types/SaleStatus.ts';
 import { DateCalculationService } from '@/domain/services/DateCalculationService.ts';
-import { SALE_STATUS_KEYWORDS } from '@/domain/parsers/saleStatusKeywords.ts';
+import { HIROSHIMA_SCRAPING_CONFIG } from '../HiroshimaConfig.ts';
 import {
   COMPETITION_NAMES,
   normalizeCompetitionByKeyword,
@@ -191,20 +191,22 @@ export class HiroshimaDataParser {
     // 文字列の前処理: 空白や改行を除去
     const cleanedStatus = statusStr.trim().replace(/\s+/g, ' ');
 
+    const { soldOut, ended, onSale, beforeSale } = HIROSHIMA_SCRAPING_CONFIG.saleStatusKeywords;
+
     // キーワードによる判定（完売 → 終了 → 販売中 → 販売前の順）
-    if (SALE_STATUS_KEYWORDS.soldOut.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (soldOut.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'sold_out';
     }
 
-    if (SALE_STATUS_KEYWORDS.ended.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (ended.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'ended';
     }
 
-    if (SALE_STATUS_KEYWORDS.onSale.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (onSale.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'on_sale';
     }
 
-    if (SALE_STATUS_KEYWORDS.beforeSale.some((keyword) => cleanedStatus.includes(keyword))) {
+    if (beforeSale.some((keyword) => cleanedStatus.includes(keyword))) {
       return 'before_sale';
     }
 
