@@ -1,117 +1,148 @@
-# urawa-support-hub Requirements Specification
+# urawa-support-hub 要件定義書
 
-## 1. System Overview
+## 1. システム概要
 
-Build a comprehensive support tool "urawa-support-hub" for Urawa Red Diamonds supporters that
-automatically monitors away match ticket sales information and sends reminder notifications via LINE
-broadcast messaging before sales start.
+浦和レッズサポーター向けの支援ツール「urawa-support-hub」として、アウェイ戦チケットの販売情報を自動で監視し、販売開始前に LINE Bot のフォロワー全員へブロードキャスト配信でリマインド通知を送るシステムを構築する。
 
-## 2. Functional Requirements
+## 2. 機能要件
 
-### 2.1 Monitoring Function
+### 2.1 監視機能
 
-- **Monitoring Target**: J-League ticket site Urawa Red Diamonds page AWAY tab
-  - Main URL: `https://www.jleague-ticket.jp/club/ur/`
-  - AWAY tab: `https://www.jleague-ticket.jp/club/ur/?tab=away` (estimated)
-- **Monitoring Frequency**: Once daily, executed at 12:00 JST (03:00 UTC) every day
-- **Monitoring Period**: Year-round execution, except December (off-season) (January to November)
-- **Target Tickets**:
-  - Seat categories containing any of "Visitor", "Mix", "Away", "Back Away", "Main Away"
-  - Limited to "General Sales" (excludes pre-sales)
+- **監視対象**:
+  - Jリーグチケット 浦和レッズページの AWAY タブ（`https://www.jleague-ticket.jp/club/ur/`）
+  - サンフレッチェ広島公式サイトのチケットスケジュール（`https://www.sanfrecce.co.jp/tickets/schedule`）
+- **監視頻度**: 1 日 1 回、毎日 05:00 JST に実行（通年）
+- **対象チケット**:
+  - Jリーグチケット: 席種名に「アウェイ」「ビジター」「ミックス」のいずれか（英字表記を含む）を含むもの
+  - サンフレッチェ広島公式サイト: 浦和レッズ戦のビジター席
+  - 発売日時は一般発売（一般販売）のものを使う（先行販売は対象外）
+- **販売状況の追跡**: 販売前・販売中・完売（「空席なし」表示）を記録する
 
-### 2.2 Notification Function
+### 2.2 通知機能
 
-- **Notification Destination**: LINE Bot broadcast messaging (to all Bot followers)
-- **Notification Timing**:
-  1. 20:00 JST on the day before sales start
-  2. 1 hour before sales start time
-  3. 15 minutes before sales start time
+- **通知先**: LINE Bot ブロードキャスト配信（Bot のフォロワー全員）
+- **通知タイミング**（`NOTIFICATION_TIMING_CONFIG` で設定）:
+  1. 販売開始日前日の 20:00 JST
+  2. 販売開始時刻の 1 時間前
+  3. 販売開始時刻の 15 分前
+- **通知内容**:
+  - 試合名（例：「FC東京 vs 浦和レッズ」）
+  - 試合日時
+  - 会場名
+  - 販売開始日時
+  - チケット購入 URL
+- **月次サマリー**: 毎月 1 日 20:00 JST に、販売前・販売中で試合日が未来のチケットの一覧を送信する（対象がなければ送信しない）
 
-- **Notification Content**:
-  - Match name (e.g., "FC Tokyo vs Urawa Red Diamonds")
-  - Match date and time
-  - Sales start date and time
-  - Ticket purchase URL
-  - Venue name
+### 2.3 データ管理機能
 
-### 2.3 Data Management Function
+- チケット販売情報の取得・解析
+- 既存データとの差分検出（新規・更新判定）
+- 通知の管理（送信済みの通知は再送しない）
+- 古いデータの自動削除（[データベース自動クリーンアップ](database-cleanup.md)）
+  - 試合日から 30 日を過ぎたチケット（紐づく通知も削除される）
+  - 送信から 30 日を過ぎた通知
 
-- Ticket sales information retrieval and analysis
-- Difference detection with existing data (new/update determination)
-- Notification history management (duplicate notification prevention)
-- Automatic deletion of data after match date passes (7 days after match date)
+### 2.4 システム監視機能
 
-### 2.4 System Monitoring Function
+- **エラー監視**: 実行時エラーを Google Cloud Logging に構造化ログとして出力する
+- **ヘルスチェック**: `GET /health` で必須の環境変数が設定されているかを返す
+- **通知失敗の記録**: 送信に失敗した通知は `notifications` テーブルに `failed` とエラーメッセージを記録する
 
-- **Error Monitoring**: Immediately catch and notify runtime errors for all functions
-- **Health Status Monitoring**: Regular collection and evaluation of system metrics
-- **Discord Notification**:
-  - Error level-based notifications (warning/error/critical)
-  - System status reports (healthy/degraded/down)
-  - Detailed information display in rich embed format
-- **Log Management**:
-  - Persistence of structured logs
-  - Analysis and reporting of error trends
-  - Preservation of debugging support information
+### 2.5 再試行
 
-### 2.5 Notification System Integration
+- **通知送信**: 1 回の実行内で LINE への送信を最大 3 回試行する
+- **日次収集・月次サマリー**: Cloud Scheduler が最大 3 回、指数バックオフで再試行する
 
-- **User Notifications**: LINE (ticket sales information)
-- **Developer Notifications**: Discord (system status/errors)
-- **Duplicate Prevention**: Duplicate checking by notification type and target
-- **Retry Function**: Automatic retry on notification failure (max 3 times, exponential backoff)
+## 3. 非機能要件
 
-## 3. Non-functional Requirements
+### 3.1 性能要件
 
-### 3.1 Performance Requirements
+- **実行時間**: 1 回のリクエストを 300 秒以内に完了する（Cloud Run のタイムアウト）
+- **メモリ使用量**: 2GB 以内（Cloud Run の割り当て）
+- **通知の遅延**: 指定時刻から 30 秒以内に送信を開始する
 
-- **Execution Time**: Within 60 seconds (Supabase Edge Functions limitation)
-- **Memory Usage**: Within 512MB
-- **Response Time**: Scraping processing within 30 seconds
+### 3.2 可用性要件
 
-### 3.2 Availability Requirements
+- **稼働率**: 99% 以上
+- **障害対応**: Cloud Scheduler / Cloud Tasks のリトライによる自動復旧
+- **データ整合性**: 送信済みの通知を重複送信しない
 
-- **Uptime**: 99% or higher (excluding December)
-- **Fault Response**: Automatic recovery function (fallback URL)
-- **Data Consistency**: Complete prevention of duplicate notifications
+### 3.3 監視要件
 
-### 3.3 Monitoring Requirements
+- **エラー検出**: すべての実行時エラーを Cloud Logging に記録する
+- **ログ保持期間**: Cloud Logging の既定の保持期間
 
-- **Error Detection Time**: Within 5 minutes (runtime errors)
-- **Notification Send Time**: Within 30 seconds (Discord/LINE)
-- **Log Retention Period**: 90 days (for error analysis)
-- **Metrics Collection Frequency**: 5-minute intervals
+### 3.4 保守性要件
 
-### 3.4 Alert Requirements
+- 取得元サイトごとにスクレイピング処理を分け、サイトの構造変更の影響を局所化する
+- 設定変更の容易性（通知タイミングは `NOTIFICATION_TIMING_CONFIG`、スケジュールは `infrastructure/scheduler/config.yaml`）
+- 構造化ログ出力によるデバッグ支援
 
-- **Error Level Response**:
-  - warning: Discord notification only
-  - error: Discord notification + log recording
-  - critical: Discord notification + log recording + stack trace
-- **Escalation**:
-  - 3 consecutive critical errors → Special alert
-  - 10 or more errors in 24 hours → System degradation warning
+## 4. 制約事項
 
-### 3.5 Maintainability Requirements
+### 4.1 技術制約
 
-- Resistance to external service changes (repository pattern adoption)
-- Easy configuration changes (environment variables and configuration file utilization)
-- Debug support through structured log output
-- Preventive maintenance through error trend analysis
+- Google Cloud と Supabase の無料枠内で運用する
+- Cloud Run の 1 リクエストあたり 2GB メモリ・300 秒の範囲で Playwright を実行する
+- JavaScript で描画されるサイトはブラウザでの取得が必要
 
-## 4. Future Feature Extensions
+### 4.2 法的制約
 
-### 4.1 User Management
+- robots.txt に従う
+- 適切なアクセス頻度（1 日 1 回）
+- サイトの利用規約を守る
 
-- Enhanced user targeting options for broadcast messaging
-- Individual user preference settings
+## 5. 成功基準
 
-### 4.2 Enhanced Monitoring
+- **検出精度**: アウェイ戦チケット販売情報の 100% 検出
+- **通知成功率**: 95% 以上（LINE）
+- **システム稼働率**: 99% 以上
+- **運用コスト**: 月額 $0（全て無料枠内）
+- **平均復旧時間**: エラー発生から修正まで 24 時間以内
 
-- Home match monitoring
-- Pre-sale information monitoring
+## 6. 想定リスク
 
-### 4.3 Advanced Notifications
+### 6.1 技術的リスク
 
-- Email notification support
-- Mobile app push notifications
+- **取得元サイトの構造変更**
+  - 影響度: 高
+  - 対策: 複数のセレクタ候補、取得失敗時のエラーログ
+
+- **LINE API の制限・障害**
+  - 影響度: 中
+  - 対策: 再試行、失敗した通知の記録
+
+- **無料枠の超過**
+  - 影響度: 中
+  - 対策: 古いレコードの自動削除、古いイメージの削除、使用量の確認
+
+- **Cloud Run のメモリ・実行時間の超過**
+  - 影響度: 中
+  - 対策: 同時実行数 1、ブラウザのリソース解放
+
+### 6.2 運用的リスク
+
+- **取得元サイトのアクセス制限**
+  - 影響度: 高
+  - 対策: 適切なアクセス頻度、エラーログの確認
+
+- **長期間のシステム停止・エラーの見落とし**
+  - 影響度: 中
+  - 対策: Cloud Logging の構造化ログによる確認
+
+## 7. 将来の機能拡張
+
+### 7.1 ユーザー管理
+
+- ブロードキャスト配信の対象を絞り込むオプション
+- ユーザーごとの通知設定
+
+### 7.2 監視の拡張
+
+- ホーム戦の監視
+- 先行販売情報の監視
+
+### 7.3 通知手段
+
+- メール通知
+- モバイルアプリのプッシュ通知

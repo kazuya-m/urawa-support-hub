@@ -1,253 +1,244 @@
-# Environment Setup Guide
+# 環境セットアップガイド
 
-Simple setup guide for the urawa-support-hub Google Cloud + Supabase hybrid architecture.
+urawa-support-hub（Google Cloud Run + Supabase）のローカル開発環境と本番環境のセットアップ手順です。
 
-## Quick Start
+## 前提ツール
 
-### Prerequisites
+| ツール           | 用途                                              | 備考                                                                                                                                                                                         |
+| ---------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deno             | ランタイム                                        | CI と Dockerfile は 2.4.5 に固定                                                                                                                                                             |
+| Docker / Compose | ローカル開発環境（アプリ + Cloud Tasks Emulator） | `deno task dev` で使用                                                                                                                                                                       |
+| Supabase CLI     | ローカル DB、マイグレーション                     | CI は 2.122.0 に固定。インストール方法は [Supabase CLI のドキュメント](https://supabase.com/docs/guides/local-development/cli/getting-started) を参照（`npm install -g` には対応していない） |
+| Google Cloud CLI | 本番環境の初期設定・確認                          | ローカル開発だけなら不要                                                                                                                                                                     |
 
 ```bash
-# 1. Install required tools
-curl -fsSL https://deno.land/install.sh | sh  # Deno runtime
-npm install -g supabase                       # Supabase CLI
-curl https://sdk.cloud.google.com | bash     # Google Cloud CLI
-
-# 2. Verify installations
 deno --version
 supabase --version
 gcloud --version
 ```
 
-### Core Setup
+## ローカル開発
 
-#### 1. Supabase Setup
+### 1. ローカル Supabase の起動
+
+`supabase/config.toml` はリポジトリに含まれているため、`supabase init` は不要です。
 
 ```bash
-# Login and create project
-supabase login
-supabase init
-supabase start
-
-# Note the local URLs and keys from supabase status
+deno task db:start   # supabase start
+supabase status      # URL とキーを確認
 ```
 
-#### 2. Google Cloud Setup
+| サービス | ポート |
+| -------- | ------ |
+| API      | 54321  |
+| DB       | 54322  |
+| Studio   | 54323  |
+
+`supabase start` 時に `supabase/migrations/` のマイグレーションが適用されます。DB を作り直すときは `deno task db:reset` を使います。
+
+### 2. 環境変数ファイル
+
+| ファイル     | 読み込む側                                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `.env`       | アプリ起動時に `src/config/di.ts` が `@std/dotenv` で読み込む（`deno task dev:local`）。`scripts/` 配下のスクリプトも同様 |
+| `.env.local` | `docker-compose.yml` の `env_file`（`deno task dev`）                                                                     |
+
+どちらも `.gitignore` で除外されています。テンプレートは `.env.example` です。
 
 ```bash
-# Login and set project
-gcloud auth login
-gcloud config set project your-project-id
-
-# Enable required APIs
-gcloud services enable run.googleapis.com
-gcloud services enable cloudscheduler.googleapis.com
-gcloud services enable cloudtasks.googleapis.com
-```
-
-#### 3. Environment Variables
-
-##### Local Development
-
-Create `.env` file from template:
-
-```bash
-# Copy template
 cp .env.example .env
-
-# Edit with your values
-nano .env
+cp .env.example .env.local
 ```
 
-Required environment variables:
+`docker-compose.yml` は `SUPABASE_URL=http://host.docker.internal:54321` と `CLOUD_TASKS_EMULATOR_HOST=cloud-tasks-emulator:8123` を上書きするため、`.env.local` でこの 2 つを設定する必要はありません。
 
-- **Supabase**: URL, Anon Key, Service Role Key
-- **Google Cloud**: Project ID, Region, Service Names
-- **LINE API**: Channel Access Token
-- **Cloud Monitoring**: Alert Policy for Discord notifications
+アプリが読む環境変数:
 
-See [`.env.example`](../.env.example) for complete list with descriptions.
+| 変数                          | 必須 | 用途                                                                                  |
+| ----------------------------- | ---- | ------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`                | ✅   | Supabase の URL                                                                       |
+| `SUPABASE_SERVICE_ROLE_KEY`   | ✅   | Supabase のサービスロールキー（アプリは管理者クライアントで接続する）                 |
+| `SUPABASE_ANON_KEY`           |      | テスト用クライアントで使用                                                            |
+| `LINE_CHANNEL_ACCESS_TOKEN`   | ✅   | LINE Messaging API のチャンネルアクセストークン                                       |
+| `GC_PROJECT_ID`               | ✅   | Cloud Tasks のプロジェクト ID                                                         |
+| `CLOUD_TASKS_LOCATION`        |      | Cloud Tasks のロケーション。未設定時は `GCP_REGION`、それもなければ `asia-northeast1` |
+| `CLOUD_TASKS_SERVICE_ACCOUNT` | ✅   | Cloud Tasks が通知エンドポイントを呼ぶときの OIDC トークン用サービスアカウント        |
+| `CLOUD_RUN_NOTIFICATION_URL`  | ✅   | 通知送信エンドポイントの完全な URL（`https://<Cloud Run URL>/api/send-notification`） |
+| `CLOUD_TASKS_EMULATOR_HOST`   |      | 設定すると Cloud Tasks Emulator に接続する（`NODE_ENV=production` のときは無視）      |
+| `CLOUD_TASKS_DEBUG`           |      | `true` で Cloud Tasks のデバッグログを出力                                            |
+| `NODE_ENV`                    |      | `production` で本番動作。本番は `Dockerfile` で設定済み                               |
+| `PORT`                        |      | 待ち受けポート（既定 8080）                                                           |
 
-##### Production (GitHub Actions)
+キュー名は `notifications` でコードに固定されています（`src/config/app-config.ts`）。
 
-For CI/CD and production deployments, configure GitHub Secrets:
+**Cloud Tasks Emulator の制約**: `docker-compose.yml` のエミュレーターは起動時にキュー `projects/dev-project/locations/asia-northeast1/queues/notification-queue` を作成しますが、アプリは `GC_PROJECT_ID`・ロケーション・`notifications` からキューのパスを組み立てます。名前が一致しないため、そのままではエミュレーター上のキューにタスクを登録できません。
 
-1. Go to Repository Settings → Secrets and variables → Actions
-2. Add required secrets:
-
-**Supabase Database Migration Secrets:**
-
-- `SUPABASE_ACCESS_TOKEN`: Personal access token from Supabase Dashboard
-- `SUPABASE_DB_PASSWORD`: Database password for your Supabase project
-- `SUPABASE_PROJECT_ID`: Project reference ID (found in project settings)
-
-**Google Cloud Platform Secrets:**
-
-- `WIF_PROVIDER`: Workload Identity Federation provider
-- `GC_SA_CICD`: CI/CD service account email
-- `GC_PROJECT_ID`: GCP project ID
-- `GC_REGION`: GCP region (e.g., asia-northeast1)
-- `GC_SA_CLOUD_RUN`: Cloud Run service account email
-
-**External Service Secrets:**
-
-- `SUPABASE_SERVICE_ROLE_KEY`: Service role key for production
-- `LINE_CHANNEL_ACCESS_TOKEN`: LINE Bot channel access token
-
-3. Verify secrets in GitHub Actions workflows
-
-⚠️ **Security Note**: Never commit `.env` files or secrets to version control
-
-## Development Workflow
-
-### Daily Commands
+### 3. アプリケーションの起動
 
 ```bash
-# Start local environment
-supabase start
+# Docker Compose（アプリ + Cloud Tasks Emulator、--watch 付き）
+deno task dev
+deno task dev:logs
+deno task dev:down
 
-# Run tests
-deno test --allow-env --allow-net=127.0.0.1
-
-# Type check
-deno check src/**/*.ts
-
-# Format code
-deno fmt src/
+# Docker を使わずに直接起動（Playwright を動かすための権限付き）
+deno task dev:local
 ```
 
-### Architecture-Specific Setup
+| サービス             | ポート |
+| -------------------- | ------ |
+| アプリケーション     | 8080   |
+| Cloud Tasks Emulator | 8123   |
 
-#### Cloud Run Configuration
-
-- **Memory**: 2GB (for Playwright scraping)
-- **Timeout**: 300 seconds
-- **Concurrency**: 1 (sequential processing)
-
-#### Cloud Tasks Configuration
-
-- **Queue**: notifications
-- **Location**: asia-northeast1
-- **Retry**: 3 attempts with exponential backoff
-
-**Development Environment**:
-
-- **Emulator**: Cloud Tasks Emulator (runs in Docker Compose)
-- **Port**: 8123
-- **Environment Variable**: `CLOUD_TASKS_EMULATOR_HOST=cloud-tasks-emulator:8123`
-- **Auto-detection**: CloudTasksClient automatically connects to emulator when environment variable
-  is set
-
-## Testing Setup
-
-### Local Testing
+### 4. 動作確認
 
 ```bash
-# Unit tests
-deno test src/ --coverage
+# ヘルスチェック（SUPABASE_URL と SUPABASE_SERVICE_ROLE_KEY の有無を確認）
+curl http://localhost:8080/health
 
-# Integration tests with Supabase
-deno test tests/integration/ --allow-env --allow-net=127.0.0.1
-
-# Test permissions (minimal required)
---allow-env --allow-net=127.0.0.1
-```
-
-### Cloud Integration Testing
-
-```bash
-# Test Cloud Run locally
-deno run --allow-net --allow-env src/main.ts
-
-# Test with curl
+# 通知送信エンドポイント
 curl -X POST 'http://localhost:8080/api/send-notification' \
   -H 'Content-Type: application/json' \
   -d '{"ticketId": "test-123", "notificationType": "day_before"}'
 ```
 
-## Deployment
+エンドポイント:
 
-### Database Deployment
+| メソッド | パス                     | 呼び出し元              |
+| -------- | ------------------------ | ----------------------- |
+| POST     | `/api/collect-tickets`   | Cloud Scheduler（毎日） |
+| POST     | `/api/ticket-summary`    | Cloud Scheduler（毎月） |
+| POST     | `/api/send-notification` | Cloud Tasks             |
+| GET      | `/health`                | ヘルスチェック          |
 
-#### Automatic Deployment (Recommended)
+動作確認用のスクリプトは `deno.json` の `demo:*`・`debug:*` タスクにあります。
 
-Database migrations are automatically deployed via GitHub Actions when:
-
-- Changes are pushed to `main` branch in `supabase/migrations/**` directory
-- The `migrate-database.yml` workflow runs automatically
-
-#### Manual Migration Deployment
+### 5. テスト
 
 ```bash
-# Local manual deployment
+# 全テスト（統合テストはローカル Supabase が必要）
+deno test --allow-env --allow-net=127.0.0.1
+
+# ユニットテストのみ
+deno test src/
+
+# 統合テストのみ
+deno test tests/integration/ --allow-env --allow-net=127.0.0.1
+
+# 型チェック・Lint・フォーマット確認
+deno task pre-commit
+```
+
+## 本番環境
+
+### 1. GCP リソースの初期作成（初回のみ）
+
+以下は workflow では作成されないため、初回に手動で作成します。`GC_REGION` は GitHub Secrets と同じ値（例: `asia-northeast1`）を使います。
+
+```bash
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+
+# API の有効化
+gcloud services enable \
+  run.googleapis.com \
+  cloudscheduler.googleapis.com \
+  cloudtasks.googleapis.com \
+  artifactregistry.googleapis.com \
+  secretmanager.googleapis.com \
+  iamcredentials.googleapis.com \
+  sts.googleapis.com
+
+# Artifact Registry リポジトリ（deploy.yml が push する先）
+gcloud artifacts repositories create urawa-support-hub \
+  --repository-format=docker \
+  --location=GC_REGION
+
+# Cloud Tasks キュー（名前はコードに固定）
+gcloud tasks queues create notifications --location=GC_REGION --max-attempts=3
+
+# Secret Manager（deploy.yml の --update-secrets が参照する名前）
+# 値はコマンドラインに書かず、表示されない入力で渡す（シェルの履歴に残さないため）。実行後に値を貼り付けて Enter
+read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create SUPABASE_SERVICE_ROLE_KEY --data-file=- && unset VALUE
+read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-file=- && unset VALUE
+```
+
+Cloud Tasks のキューは、タスクの実行先（`/api/send-notification`）がエラー（5xx）を返すとリトライします。
+
+- LINE への送信は 1 回の実行内で最大 3 回試行し、すべて失敗すると通知を `failed` として記録して 200 を返します。この場合はリトライされません
+- DB の読み書きの失敗など、処理中に例外が出た場合は 5xx を返し、キューのリトライ対象になります。LINE への送信が成功した後に `sent` への更新が失敗した場合も含まれるため、リトライのたびに同じ通知が再送されることがあります
+
+`--max-attempts` を指定しないとキューの既定値（100 回）が使われるので、上限を指定して作成します。
+
+Secret Manager に登録する値と、Cloud Run に設定する `SUPABASE_URL` の取得元:
+
+| 値                          | 取得元                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`              | Supabase ダッシュボードの **Settings** → **API** の Project URL                             |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase ダッシュボードの **Settings** → **API** の service_role key                        |
+| `LINE_CHANNEL_ACCESS_TOKEN` | LINE Developers コンソールのチャンネル → **Messaging API** タブのチャンネルアクセストークン |
+
+サービスアカウントと必要な権限は [GCP サービスアカウント権限](security/gcp-service-account-permissions.md)、GitHub Actions からの認証（Workload Identity Federation）と GitHub Secrets は [GitHub Secrets設定](github-secrets-setup.md) を参照してください。
+
+### 2. Cloud Run
+
+`main` への push で `.github/workflows/deploy.yml` が実行され、イメージを Artifact Registry に push してサービス `urawa-support-hub` をデプロイします。手動実行は Actions の「Deploy to Cloud Run」から行います。
+
+デプロイ設定（`deploy.yml`）:
+
+| 項目               | 値                                                                      |
+| ------------------ | ----------------------------------------------------------------------- |
+| メモリ             | 2Gi                                                                     |
+| タイムアウト       | 300 秒                                                                  |
+| インスタンス数     | 0〜1                                                                    |
+| 同時実行数         | 1                                                                       |
+| 認証               | `--no-allow-unauthenticated`（呼び出しには `roles/run.invoker` が必要） |
+| サービスアカウント | `GC_SA_CLOUD_RUN`                                                       |
+| Secret Manager     | `SUPABASE_SERVICE_ROLE_KEY`、`LINE_CHANNEL_ACCESS_TOKEN`                |
+
+`deploy.yml` はシークレット以外の環境変数を設定しません。初回デプロイ後に、サービスへ直接設定します（以降のデプロイでも保持されます）。
+
+```bash
+gcloud run services update urawa-support-hub \
+  --region=GC_REGION \
+  --update-env-vars="SUPABASE_URL=https://xxxxx.supabase.co,GC_PROJECT_ID=YOUR_PROJECT_ID,CLOUD_TASKS_SERVICE_ACCOUNT=SA_EMAIL,CLOUD_RUN_NOTIFICATION_URL=https://<Cloud Run URL>/api/send-notification"
+```
+
+`NODE_ENV=production` と `PORT=8080` は `Dockerfile` で設定されています。
+
+### 3. データベース
+
+`main` への push で `supabase/migrations/**` に変更があると、`.github/workflows/migrate-database.yml` がマイグレーションを適用します。手動実行は Actions の「Migrate Supabase Database」から行い、`dry_run`（適用状況の確認のみ）と `include_seed` を指定できます。
+
+ローカルから適用する場合:
+
+```bash
+supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
-
-# GitHub Actions manual trigger
-# Go to Actions → "Migrate Supabase Database" → Run workflow
 ```
 
-### Cloud Run Deployment
+### 4. Cloud Scheduler
+
+ジョブの設定は `infrastructure/scheduler/config.yaml` にあり、`main` への push で `infrastructure/scheduler/**` か `.github/workflows/deploy-scheduler.yml` に変更があると、`deploy-scheduler.yml` がジョブを作成・更新します。
+
+| ジョブ                    | スケジュール（Asia/Tokyo）      | エンドポイント         | 期限   |
+| ------------------------- | ------------------------------- | ---------------------- | ------ |
+| `daily-ticket-collection` | `0 5 * * *`（毎日 05:00）       | `/api/collect-tickets` | 300 秒 |
+| `monthly-ticket-summary`  | `0 20 1 * *`（毎月 1 日 20:00） | `/api/ticket-summary`  | 120 秒 |
+
+どちらも POST、リトライ 3 回、`GC_SA_SCHEDULER` の OIDC トークンで Cloud Run を呼び出します。
+
+#### 事前準備
+
+- スケジューラー用サービスアカウントを作成し、Cloud Run サービスに `roles/run.invoker` を付与する（[GCP サービスアカウント権限](security/gcp-service-account-permissions.md)）
+- GitHub Secrets に `GC_SA_SCHEDULER` と `CLOUD_RUN_URL` を登録する
+
+#### 手動でジョブを作成する場合
 
 ```bash
-# Build and deploy
-gcloud run deploy urawa-scraper \
-  --source . \
-  --region asia-northeast1 \
-  --memory 2Gi \
-  --timeout 300
-```
-
-### Cloud Scheduler Setup
-
-#### Prerequisites
-
-**1. Service Account Creation (Manual)**
-
-Create the scheduler service account **before** CI/CD deployment:
-
-```bash
-# Set your project ID
-export GC_PROJECT_ID=your-project-id
-
-# Create service account for scheduler
-gcloud iam service-accounts create scheduler-sa \
-  --display-name="Scheduler Service Account" \
-  --description="Service account for Cloud Scheduler to invoke Cloud Run"
-
-# Grant Cloud Run invoker permission
-gcloud run services add-iam-policy-binding your-service-name \
-  --member="serviceAccount:scheduler-sa@${GC_PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/run.invoker" \
-  --region=asia-northeast1
-```
-
-**2. GitHub Secrets Configuration**
-
-Add these secrets for automatic deployment:
-
-- `GC_PROJECT_ID`: Your GCP project ID
-- `GC_SA_SCHEDULER`: `scheduler-sa@your-project-id.iam.gserviceaccount.com`
-- `GC_SA_CICID`: CI/CD service account key (JSON)
-- `CLOUD_RUN_URL`: Your Cloud Run service URL
-
-#### Automatic Deployment (Recommended)
-
-The scheduler deploys automatically via GitHub Actions when changes are pushed to:
-
-- `infrastructure/scheduler/**`
-- `.github/workflows/deploy-scheduler.yml`
-
-#### Manual Deployment (Alternative)
-
-```bash
-# Set variables
-export GC_PROJECT_ID=your-project-id
-export GC_SA_SCHEDULER=scheduler-sa@${GC_PROJECT_ID}.iam.gserviceaccount.com
-export CLOUD_RUN_URL=your-cloud-run-service-url
-
-# Create scheduler job (05:00 JST daily)
-gcloud scheduler jobs create http your-job-name \
-  --location=asia-northeast1 \
-  --schedule="0 20 * * *" \
+gcloud scheduler jobs create http daily-ticket-collection \
+  --location=GC_REGION \
+  --schedule="0 5 * * *" \
   --time-zone="Asia/Tokyo" \
   --uri="${CLOUD_RUN_URL}/api/collect-tickets" \
   --http-method=POST \
@@ -255,68 +246,48 @@ gcloud scheduler jobs create http your-job-name \
   --message-body='{"source":"cloud-scheduler"}' \
   --attempt-deadline="300s" \
   --max-retry-attempts=3 \
-  --oidc-service-account-email="${GC_SA_SCHEDULER}"
+  --min-backoff=30s \
+  --max-backoff=300s \
+  --oidc-service-account-email="${GC_SA_SCHEDULER}" \
+  --oidc-token-audience="${CLOUD_RUN_URL}"
 ```
 
-#### Verification
+#### 確認
 
 ```bash
-# Check scheduler job
-gcloud scheduler jobs describe your-job-name --location=asia-northeast1
-
-# Test execution
-gcloud scheduler jobs run your-job-name --location=asia-northeast1
-
-# Check logs
+gcloud scheduler jobs describe daily-ticket-collection --location=GC_REGION
+gcloud scheduler jobs run daily-ticket-collection --location=GC_REGION
 gcloud logging read 'resource.type=cloud_scheduler_job' --limit=5
 ```
 
-## Troubleshooting
+## トラブルシューティング
 
-### Common Issues
-
-**Supabase Connection**
+**Supabase に接続できない**
 
 ```bash
-# Check status
 supabase status
-
-# Restart services
-supabase stop && supabase start
+deno task db:restart
 ```
 
-**Google Cloud Auth**
+Docker Compose から接続する場合は、`SUPABASE_URL` が `host.docker.internal:54321` になっていることを確認します（`docker-compose.yml` で設定済み）。
+
+**通知タスクが作成されない**
+
+- `CLOUD_RUN_NOTIFICATION_URL` が未設定だとチケット収集時にエラーになる
+- 本番では `notifications` キューが `CLOUD_TASKS_LOCATION`（または `GCP_REGION`、既定 `asia-northeast1`）に存在するか確認する
+- Cloud Run のサービスアカウントが `CLOUD_TASKS_SERVICE_ACCOUNT` として振る舞える（`iam.serviceAccounts.actAs`）か確認する
+
+**Google Cloud の認証**
 
 ```bash
-# Check authentication
 gcloud auth list
-
-# Re-authenticate
 gcloud auth login
 ```
 
-**Memory Issues**
+## 関連ドキュメント
 
-- Use Cloud Run (2GB) for all operations including notifications
-- Supabase is used only for database and PostgREST API
-- All business logic runs in Cloud Run
-
-## Architecture Notes
-
-- **Application Runtime**: All business logic runs in Cloud Run
-- **Scraping**: Playwright execution with adequate memory (2GB)
-- **Notifications**: LINE/Discord delivery via Cloud Run endpoints
-- **Scheduling**: Cloud Scheduler + Cloud Tasks for reliability
-- **Database**: Supabase PostgreSQL with automatic API generation
-- **Cost**: Designed to operate within free tier limits
-
-## Next Steps
-
-1. Follow the [system architecture documentation](system-architecture.md) for system design
-2. Review [technology selection rationale](tech-selection.md)
-3. Check [requirements documentation](requirements.md) for specifications
-4. Refer to [implementation guide](implementation-guide.md)
-
----
-
-For detailed architecture information, always refer to the latest documentation in `/docs`.
+- [GitHub Secrets設定](github-secrets-setup.md)
+- [セキュリティドキュメント](security/)
+- [技術選定](tech-selection.md)
+- [要件定義](requirements.md)
+- [システムアーキテクチャ](system-architecture.md)（コードの移行中（#204）のため、現在のコードと異なる記述を含む）

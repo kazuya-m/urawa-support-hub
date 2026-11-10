@@ -1,193 +1,114 @@
-# GCP Service Account Minimum Permissions
+# GCP サービスアカウント最小権限設定
 
-This document defines the minimum required permissions for GCP service accounts used in the Urawa
-Support Hub project.
+urawa-support-hub が使う GCP サービスアカウントと、それぞれに必要な最小権限です。権限は `.github/workflows/*.yml` とアプリケーションコードが行う操作から導いたもので、本番プロジェクトの IAM 設定と照合したものではありません。設定を変更するときは `gcloud projects get-iam-policy` などで現状を確認してください。
 
-## Service Account Strategy
+## サービスアカウント一覧
 
-### 1. Scraping Service Account (for Cloud Run)
+| 用途                     | 参照箇所                                           | 主な操作                                                        |
+| ------------------------ | -------------------------------------------------- | --------------------------------------------------------------- |
+| CI/CD                    | GitHub Secret `GC_SA_CICD`                         | イメージの push・削除、Cloud Run デプロイ、Scheduler ジョブ更新 |
+| Cloud Run サービス       | GitHub Secret `GC_SA_CLOUD_RUN`                    | Cloud Tasks へのタスク登録、Secret Manager の読み取り           |
+| Cloud Scheduler          | GitHub Secret `GC_SA_SCHEDULER`                    | Cloud Run の呼び出し（OIDC）                                    |
+| Cloud Tasks の呼び出し元 | Cloud Run の環境変数 `CLOUD_TASKS_SERVICE_ACCOUNT` | `/api/send-notification` の呼び出し（OIDC）                     |
 
-**Purpose**: Execute Playwright scraping operations **Resources**: Cloud Run service execution
+Cloud Tasks の呼び出し元には、Cloud Run サービスのサービスアカウントを兼用してもかまいません。その場合は下記の両方の権限を付与します。
 
-**Required Permissions**:
+## 必要な権限
 
-```yaml
-# Cloud Tasks (to trigger notifications)
-- cloudtasks.queues.get
-- cloudtasks.tasks.create
-- cloudtasks.tasks.get
+### 1. CI/CD（`GC_SA_CICD`）
 
-# Basic Cloud Run service info (for health checks only)
-- run.services.get (on own service only)
-```
+GitHub Actions から Workload Identity Federation で利用します。
 
-**❌ NOT NEEDED**:
+| 操作                                  | ロール                                                       | スコープ                                                  |
+| ------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------- |
+| イメージの push と古いイメージの削除  | `roles/artifactregistry.repoAdmin`（push のみなら `writer`） | リポジトリ `urawa-support-hub`                            |
+| Cloud Run へのデプロイ                | `roles/run.developer`                                        | プロジェクト（初回デプロイ前はサービスが存在しないため）  |
+| デプロイ時に Cloud Run の SA を指定   | `roles/iam.serviceAccountUser`                               | `GC_SA_CLOUD_RUN`                                         |
+| Scheduler ジョブの作成・更新          | `roles/cloudscheduler.admin`                                 | プロジェクト                                              |
+| Scheduler ジョブに OIDC 用 SA を指定  | `roles/iam.serviceAccountUser`                               | `GC_SA_SCHEDULER`                                         |
+| Workload Identity Federation での借用 | `roles/iam.workloadIdentityUser`                             | `GC_SA_CICD` に対し、このリポジトリの principalSet へ付与 |
 
-- `storage.*` permissions - Data is stored in Supabase PostgreSQL, not Cloud Storage
-- `run.services.list` - Service only needs info about itself
-- `run.executions.*` - Not required for basic scraping operations
+### 2. Cloud Run サービス（`GC_SA_CLOUD_RUN`）
 
-**Recommended IAM Roles**:
+| 操作                                                                          | ロール                               | スコープ                                           |
+| ----------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------- |
+| 通知タスクの登録                                                              | `roles/cloudtasks.enqueuer`          | キュー `notifications`                             |
+| OIDC トークン付きタスクの登録（`CLOUD_TASKS_SERVICE_ACCOUNT` として振る舞う） | `roles/iam.serviceAccountUser`       | `CLOUD_TASKS_SERVICE_ACCOUNT` のサービスアカウント |
+| `SUPABASE_SERVICE_ROLE_KEY`・`LINE_CHANNEL_ACCESS_TOKEN` の読み取り           | `roles/secretmanager.secretAccessor` | 該当する 2 つのシークレット                        |
 
-- `roles/cloudtasks.enqueuer` (for creating notification tasks)
-- Custom role with minimal Cloud Run permissions (see implementation below)
+**不要**:
 
-**❌ NOT NEEDED**: `roles/run.invoker` - scraping service doesn't invoke other services
+- `roles/run.invoker`: Cloud Run サービス自身は他のサービスを呼び出さない（呼び出すのは Cloud Tasks）
+- `storage.*`: データは Supabase PostgreSQL に保存し、Cloud Storage は使わない
 
-### 2. Notification Service Account (for Edge Functions)
+### 3. Cloud Scheduler（`GC_SA_SCHEDULER`）
 
-**Purpose**: Send LINE/Discord notifications via Supabase Edge Functions **Resources**: Supabase
-Edge Function invocation
+| 操作                         | ロール              | スコープ                     |
+| ---------------------------- | ------------------- | ---------------------------- |
+| Cloud Run の呼び出し（OIDC） | `roles/run.invoker` | サービス `urawa-support-hub` |
 
-**Required Permissions**:
+### 4. Cloud Tasks の呼び出し元（`CLOUD_TASKS_SERVICE_ACCOUNT`）
 
-```yaml
-# Basic compute permissions for Edge Function execution
-- No specific GCP permissions required (handled by Supabase)
-```
+| 操作                                        | ロール              | スコープ                     |
+| ------------------------------------------- | ------------------- | ---------------------------- |
+| `/api/send-notification` の呼び出し（OIDC） | `roles/run.invoker` | サービス `urawa-support-hub` |
 
-**Environment Variables Required**:
+Cloud Run は `--no-allow-unauthenticated` でデプロイされるため、`roles/run.invoker` のない呼び出しは拒否されます。
 
-- `LINE_CHANNEL_ACCESS_TOKEN`
-- `DISCORD_WEBHOOK_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+## 設定コマンド
 
-### 3. Scheduler Service Account (for Cloud Scheduler)
-
-**Purpose**: Trigger daily scraping jobs **Resources**: Cloud Scheduler, Cloud Run invocation
-
-**Required Permissions**:
-
-```yaml
-# Cloud Run invocation (ONLY for specific scraping service)
-- run.services.get (on specific service only)
-- run.routes.invoke (on specific service only)
-
-# Cloud Scheduler management
-- cloudscheduler.jobs.get
-- cloudscheduler.jobs.run
-```
-
-**Recommended IAM Roles**:
-
-- `roles/run.invoker` (⚠️ ONLY on specific scraping service, NOT project-wide)
-- `roles/cloudscheduler.jobRunner`
-
-## Security Best Practices
-
-### 1. Principle of Least Privilege
-
-- Grant only the minimum permissions required for each service
-- Use predefined IAM roles when appropriate, prefer custom roles for fine-grained control
-- Avoid broad permissions like `roles/editor` or `roles/owner`
-- **Service-specific permissions**: Grant `roles/run.invoker` only on specific services, never
-  project-wide
-- **Custom roles**: Create custom roles when predefined roles grant excessive permissions
-
-### 2. Service Account Rotation
-
-- Rotate service account keys every 90 days
-- Use Workload Identity Federation when possible
-- Monitor service account usage via Cloud Audit Logs
-
-### 3. Environment-Specific Accounts
+`PROJECT_ID`・`REGION`・`RUN_SA_NAME`・`SCHEDULER_SA_NAME` は環境に合わせて置き換えます。
 
 ```bash
-# Development environment
-urawa-support-dev-scraper@project-dev.iam.gserviceaccount.com
+# サービスアカウントの作成
+gcloud iam service-accounts create RUN_SA_NAME --display-name="Cloud Run service"
+gcloud iam service-accounts create SCHEDULER_SA_NAME --display-name="Cloud Scheduler"
 
-# Production environment  
-urawa-support-prod-scraper@project-prod.iam.gserviceaccount.com
+CLOUD_RUN_SA=RUN_SA_NAME@PROJECT_ID.iam.gserviceaccount.com
+SCHEDULER_SA=SCHEDULER_SA_NAME@PROJECT_ID.iam.gserviceaccount.com
+
+# Cloud Run サービス: Cloud Tasks への登録
+gcloud tasks queues add-iam-policy-binding notifications \
+  --location=REGION \
+  --member="serviceAccount:${CLOUD_RUN_SA}" \
+  --role="roles/cloudtasks.enqueuer"
+
+# Cloud Run サービス: Secret Manager の読み取り
+for secret in SUPABASE_SERVICE_ROLE_KEY LINE_CHANNEL_ACCESS_TOKEN; do
+  gcloud secrets add-iam-policy-binding "$secret" \
+    --member="serviceAccount:${CLOUD_RUN_SA}" \
+    --role="roles/secretmanager.secretAccessor"
+done
+
+# Cloud Run サービスを CLOUD_TASKS_SERVICE_ACCOUNT として兼用する場合
+gcloud iam service-accounts add-iam-policy-binding "${CLOUD_RUN_SA}" \
+  --member="serviceAccount:${CLOUD_RUN_SA}" \
+  --role="roles/iam.serviceAccountUser"
+
+# Cloud Run の呼び出し権限（Scheduler と Cloud Tasks の呼び出し元）
+for sa in "${SCHEDULER_SA}" "${CLOUD_RUN_SA}"; do
+  gcloud run services add-iam-policy-binding urawa-support-hub \
+    --region=REGION \
+    --member="serviceAccount:${sa}" \
+    --role="roles/run.invoker"
+done
 ```
 
-### 4. Key Management
+## セキュリティベストプラクティス
 
-- Store service account keys as environment variables
-- Never commit keys to version control
-- Use Google Secret Manager for production secrets
+### 1. 最小権限の原則
 
-## Implementation Commands
+- 各サービスアカウントには上記の権限のみを付与する
+- `roles/run.invoker` はプロジェクト全体ではなくサービス `urawa-support-hub` に付与する
+- `roles/editor` や `roles/owner` などの広い権限を付与しない
 
-### Create Service Accounts
+### 2. キーを発行しない
 
-```bash
-# Scraping service account
-gcloud iam service-accounts create urawa-scraper \
-  --display-name="Urawa Support Scraper" \
-  --description="Service account for Playwright scraping operations"
+- GitHub Actions は Workload Identity Federation、Cloud Run はアタッチしたサービスアカウントで認証するため、サービスアカウントキー（JSON）は発行しない
+- 組織ポリシーでキー作成を禁止できる場合は禁止する
 
-# Scheduler service account
-gcloud iam service-accounts create urawa-scheduler \
-  --display-name="Urawa Support Scheduler" \
-  --description="Service account for Cloud Scheduler operations"
-```
+### 3. 監視と見直し
 
-### Grant Minimum Permissions
-
-```bash
-# 1. Create custom role for scraper with minimal permissions
-gcloud iam roles create urawaScrapingServiceRole \
-  --project=PROJECT_ID \
-  --title="Urawa Scraping Service Role" \
-  --description="Minimal permissions for Cloud Run scraping service" \
-  --permissions="run.services.get,cloudtasks.queues.get,cloudtasks.tasks.create,cloudtasks.tasks.get"
-
-# 2. Grant custom role to scraper (NO run.invoker needed)
-gcloud projects add-iam-policy-binding PROJECT_ID \
-  --member="serviceAccount:urawa-scraper@PROJECT_ID.iam.gserviceaccount.com" \
-  --role="projects/PROJECT_ID/roles/urawaScrapingServiceRole"
-
-# 3. Grant Cloud Scheduler job runner role to scheduler
-gcloud projects add-iam-policy-binding PROJECT_ID \
-  --member="serviceAccount:urawa-scheduler@PROJECT_ID.iam.gserviceaccount.com" \
-  --role="roles/cloudscheduler.jobRunner"
-
-# 4. Grant run.invoker role to scheduler ONLY on specific scraping service
-gcloud run services add-iam-policy-binding urawa-support-hub \
-  --member="serviceAccount:urawa-scheduler@PROJECT_ID.iam.gserviceaccount.com" \
-  --role="roles/run.invoker" \
-  --region=asia-northeast1
-```
-
-### Generate and Download Keys
-
-```bash
-# Generate key for scraper service account
-gcloud iam service-accounts keys create scraper-key.json \
-  --iam-account=urawa-scraper@PROJECT_ID.iam.gserviceaccount.com
-
-# Generate key for scheduler service account
-gcloud iam service-accounts keys create scheduler-key.json \
-  --iam-account=urawa-scheduler@PROJECT_ID.iam.gserviceaccount.com
-```
-
-## Monitoring and Auditing
-
-### 1. Enable Audit Logs
-
-```bash
-# Enable audit logs for service account usage
-gcloud logging sinks create service-account-audit \
-  bigquery.googleapis.com/projects/PROJECT_ID/datasets/security_audit \
-  --log-filter='protoPayload.serviceName="iam.googleapis.com"'
-```
-
-### 2. Regular Permission Reviews
-
-- Review service account permissions monthly
-- Remove unused permissions immediately
-- Document permission changes in this file
-
-## Environment Variable Security
-
-All service account keys and sensitive configuration should be stored as environment variables:
-
-```bash
-# GCP service account keys (base64 encoded JSON)
-GOOGLE_CLOUD_CREDENTIALS_SCRAPER="base64-encoded-key"
-GOOGLE_CLOUD_CREDENTIALS_SCHEDULER="base64-encoded-key"
-
-# Project configuration
-GOOGLE_CLOUD_PROJECT_ID="your-project-id"
-GOOGLE_CLOUD_REGION="asia-northeast1"
-```
+- Cloud Audit Logs でサービスアカウントの使用状況を確認する
+- IAM Recommender が提示する未使用権限を定期的に削除する
+- 権限を変更したらこのドキュメントを更新する

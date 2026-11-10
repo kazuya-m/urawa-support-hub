@@ -1,4 +1,8 @@
-## チケット情報取得までの遷移と流れ
+# スクレイピング対象サイト構造
+
+セレクタの正本はコード（`JLeagueConfig.ts`・`HiroshimaConfig.ts`）です。サイトの構造が変わったときは、コードとこのドキュメントを合わせて更新します。
+
+## Jリーグチケット
 
 ### 1. AWAYタブの構造
 
@@ -57,32 +61,27 @@
 
 ### 3. 個別試合のチケット一覧ページ
 
-- 発売前: `08/15(金)10:00〜` 形式
-- 発売後: `〜09/12(金)23:59` 形式
-- 対象: アウェイ席の「一般販売」発売日時
+試合情報と、席種ごとの発売スケジュールを取得します。セレクタは `src/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts` の `detailPage.selectors` で管理しています。
 
-```html
-<!-- チケット詳細構造（簡素化版） -->
-<dl>
-  <dt>
-    <div class="seat-select-list-txt">
-      <h4>ビジターＡ自由</h4>
-      <p>1750円/枚～4600円/枚</p>
-    </div>
-  </dt>
-  <dd>
-    <div class="list-items-cts-desc">
-      <h5>一般発売／ＱＲチケット（Ｊチケ）</h5>
-      <dl>
-        <dt>発売期間</dt>
-        <dd>〜09/07(日)21:00</dd>
-      </dl>
-    </div>
-  </dd>
-</dl>
-```
+| 取得する情報       | セレクタ                                      |
+| ------------------ | --------------------------------------------- |
+| 試合名・大会名     | `.game-info-ttl`                              |
+| 試合日時           | `.game-info-day` 内の `.day`・`.time`         |
+| 席種ごとのブロック | `.list-wrap`                                  |
+| 席種名             | `.list-wrap` 内の `.list-items-cts-desc h5`   |
+| 発売スケジュール   | `.list-wrap` 内の `.info-schedule-list .item` |
+| 販売区分           | `.item` 内の `.title`                         |
+| 発売日時           | `.item` 内の `.date`                          |
 
-**重要な抽出ポイント**:
+**抽出ルール**:
 
-- セレクタ: `.list-items-cts-desc h5` (一般販売判定)
-- 発売期間: `dt:contains("発売期間") + dd` (日時抽出)
+- 席種名にアウェイキーワード（`アウェイ`・`ビジター`・`ミックス` とその英字表記）を含む `.list-wrap` だけを対象にする
+- 販売区分（`.title`）が「一般発売」または「一般販売」の `.date` を発売日時とする（先行販売は除外）
+- 発売日時の形式（`JLeagueDataParser.ts` が解釈する）
+  - 発売前: `08/15(金)10:00〜`
+  - 発売後: `〜09/12(金)23:59`
+  - 期間: `08/15(金)10:00〜09/12(金)23:59`
+
+## サンフレッチェ広島公式サイト
+
+`https://www.sanfrecce.co.jp/tickets/schedule` の試合スケジュール表（`tr.cmn--btr` の行）から、浦和レッズ戦の行を取得します。列ごとのセレクタは `src/infrastructure/services/scraping/sources/hiroshima/HiroshimaConfig.ts` の `schedulePageConfig.selectors` で管理しています。
