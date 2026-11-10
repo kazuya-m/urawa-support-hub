@@ -20,6 +20,7 @@ export interface HiroshimaSchedulePageConfig {
 export interface HiroshimaScrapingConfig {
   baseUrl: string;
   ticketPurchaseUrl: string;
+  defaultVenue: string;
   schedulePageConfig: HiroshimaSchedulePageConfig;
   awayKeywords: string[];
   urawaKeywords: string[];
@@ -43,6 +44,9 @@ export interface HiroshimaScrapingConfig {
 export const HIROSHIMA_SCRAPING_CONFIG: HiroshimaScrapingConfig = {
   baseUrl: 'https://www.sanfrecce.co.jp/tickets/schedule',
   ticketPurchaseUrl: 'https://ticket.sanfrecce.co.jp/',
+  // 日程表の各試合の行に会場の記載がないため、ホームスタジアムを会場とする（2026-11-10 確認）
+  // 会場が変わる場合はここを変更する
+  defaultVenue: 'エディオンピースウイング広島',
 
   schedulePageConfig: {
     selectors: {
