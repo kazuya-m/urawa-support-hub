@@ -34,10 +34,11 @@ urawa-support-hub の環境変数と機密情報の管理方法です。変数�
 
 ```bash
 # シークレットの登録（名前は deploy.yml の --update-secrets と一致させる）
-printf '%s' 'VALUE' | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-file=-
+# 値はコマンドラインに書かず、表示されない入力で渡す（シェルの履歴に残さないため）。実行後に値を貼り付けて Enter
+read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-file=- && unset VALUE
 
 # 値の更新（新しいバージョンを追加。deploy.yml は :latest を参照する）
-printf '%s' 'NEW_VALUE' | gcloud secrets versions add LINE_CHANNEL_ACCESS_TOKEN --data-file=-
+read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets versions add LINE_CHANNEL_ACCESS_TOKEN --data-file=- && unset VALUE
 ```
 
 Cloud Run のサービスアカウント（`GC_SA_CLOUD_RUN`）には、この 2 つのシークレットに対する `roles/secretmanager.secretAccessor` が必要です（[GCP サービスアカウント権限](gcp-service-account-permissions.md)）。

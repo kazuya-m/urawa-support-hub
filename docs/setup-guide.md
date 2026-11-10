@@ -158,8 +158,9 @@ gcloud artifacts repositories create urawa-support-hub \
 gcloud tasks queues create notifications --location=GC_REGION --max-attempts=3
 
 # Secret Manager（deploy.yml の --update-secrets が参照する名前）
-printf '%s' 'SERVICE_ROLE_KEY' | gcloud secrets create SUPABASE_SERVICE_ROLE_KEY --data-file=-
-printf '%s' 'LINE_TOKEN' | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-file=-
+# 値はコマンドラインに書かず、表示されない入力で渡す（シェルの履歴に残さないため）。実行後に値を貼り付けて Enter
+read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create SUPABASE_SERVICE_ROLE_KEY --data-file=- && unset VALUE
+read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-file=- && unset VALUE
 ```
 
 Cloud Tasks のキューは、タスクの実行先（`/api/send-notification`）がエラー（5xx）を返すとリトライします。
