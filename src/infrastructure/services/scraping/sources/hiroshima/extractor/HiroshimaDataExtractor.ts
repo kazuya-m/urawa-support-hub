@@ -32,9 +32,28 @@ export class HiroshimaDataExtractor {
         return tickets;
       }
 
+      // 販売日の列（4〜7 列目）は、グループの先頭行から後続行へ rowspan で共有される
+      let sharedSaleDate: { value: string | undefined; remainingRows: number } = {
+        value: undefined,
+        remainingRows: 0,
+      };
+
       // 各行からチケット情報を抽出（浦和レッズ戦のみ）
       for (const rowElement of rowElements) {
         try {
+          // 販売日は rowspan を追跡するため、浦和戦以外の行でも読む
+          const ownSaleDate = await this.extractSaleDate(rowElement);
+          let saleDate: string | undefined;
+          if (ownSaleDate) {
+            saleDate = ownSaleDate.value;
+            sharedSaleDate = { value: ownSaleDate.value, remainingRows: ownSaleDate.rowspan - 1 };
+          } else if (sharedSaleDate.remainingRows > 0) {
+            saleDate = sharedSaleDate.value;
+            sharedSaleDate = { ...sharedSaleDate, remainingRows: sharedSaleDate.remainingRows - 1 };
+          } else {
+            saleDate = undefined;
+          }
+
           // まず対戦相手だけを確認
           const opponent = await this.extractOpponent(rowElement);
           if (!opponent || !this.isUrawaMatch(opponent)) {
@@ -43,7 +62,7 @@ export class HiroshimaDataExtractor {
           }
 
           // 浦和戦の場合のみ詳細データを抽出
-          const rowData = await this.extractRowData(rowElement);
+          const rowData = await this.extractRowData(rowElement, saleDate);
           if (rowData) {
             tickets.push(rowData);
           }
@@ -96,7 +115,10 @@ export class HiroshimaDataExtractor {
     return [];
   }
 
-  private async extractRowData(rowElement: ElementHandle): Promise<HiroshimaRawTicketData | null> {
+  private async extractRowData(
+    rowElement: ElementHandle,
+    saleDate: string | undefined,
+  ): Promise<HiroshimaRawTicketData | null> {
     try {
       // 1番目のtdから試合情報を取得
       const matchInfo = await this.extractMatchInfo(rowElement);
@@ -121,9 +143,6 @@ export class HiroshimaDataExtractor {
         this.addWarning('Sale status not found');
         return null;
       }
-
-      // 一般販売日を取得（6番目のtd）
-      const saleDate = await this.extractSaleDate(rowElement);
 
       return {
         matchDate: matchInfo.date!, // 既に null チェック済み
@@ -240,24 +259,25 @@ export class HiroshimaDataExtractor {
   }
 
   /**
-   * 6番目のtdから一般販売日を取得
+   * 7番目のtd（一般販売）から販売日と rowspan を取得
+   * 4〜6番目のtdは会員向けの先行販売日なので使わない
    * HTML例: "10/10(金)<br>12:00～"
+   * rowspan の後続行（td が 4 つ）には 7 番目の td がないので null を返す
    */
-  private async extractSaleDate(rowElement: ElementHandle): Promise<string | undefined> {
+  private async extractSaleDate(
+    rowElement: ElementHandle,
+  ): Promise<{ value: string | undefined; rowspan: number } | null> {
     try {
-      const saleTd = await rowElement.$('td:nth-child(6)');
+      const saleTd = await rowElement.$('td:nth-child(7)');
       if (!saleTd) {
-        return undefined;
+        return null;
       }
 
-      const saleText = await saleTd.textContent();
-      if (!saleText?.trim()) {
-        return undefined;
-      }
-
-      return saleText.trim();
+      const rowspan = Number(await saleTd.getAttribute('rowspan')) || 1;
+      const saleText = (await saleTd.textContent())?.trim();
+      return { value: saleText || undefined, rowspan };
     } catch {
-      return undefined;
+      return null;
     }
   }
 
