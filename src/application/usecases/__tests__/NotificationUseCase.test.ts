@@ -68,3 +68,35 @@ Deno.test('NotificationUseCase should return successful result with execution ti
   assert(typeof result.executionDurationMs === 'number');
   assert(result.executionDurationMs >= 0);
 });
+
+Deno.test('NotificationUseCase - 失敗時のログ', async () => {
+  const { service } = createNotificationServiceStub(new Error('NotificationService failed'));
+  const useCase = new NotificationUseCase(service);
+
+  // CloudLogger の出力（console.log の JSON）を捕まえる。stack を出さないよう production にする
+  const lines: string[] = [];
+  const originalLog = console.log;
+  const originalNodeEnv = Deno.env.get('NODE_ENV');
+  console.log = (line: string) => lines.push(line);
+  Deno.env.set('NODE_ENV', 'production');
+  try {
+    await useCase.execute({
+      ticketId: 'test-ticket-123',
+      notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
+    });
+  } finally {
+    console.log = originalLog;
+    if (originalNodeEnv === undefined) Deno.env.delete('NODE_ENV');
+    else Deno.env.set('NODE_ENV', originalNodeEnv);
+  }
+
+  assertEquals(lines.map((line) => JSON.parse(line)), [{
+    severity: 'ERROR',
+    message: 'Scheduled notification failed',
+    jsonPayload: {
+      category: 'NOTIFICATION',
+      context: { ticketId: 'test-ticket-123', processingStage: 'day_before' },
+      error: { message: 'NotificationService failed', recoverable: true },
+    },
+  }]);
+});
