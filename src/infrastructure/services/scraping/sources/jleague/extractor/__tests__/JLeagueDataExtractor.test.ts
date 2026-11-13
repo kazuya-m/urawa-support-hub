@@ -1,21 +1,12 @@
 import { assertEquals } from 'std/assert/mod.ts';
 import { JLeagueDataExtractor } from '../JLeagueDataExtractor.ts';
-import { MockPlaywrightClient } from '@/shared/testing/mocks/MockPlaywrightClient.ts';
 import { J_LEAGUE_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts';
 
-Deno.test('JLeagueDataExtractor - MockPageでのPlaywright非依存テスト', async () => {
-  // MockPlaywrightClientでMockPageを作成
-  const mockClient = new MockPlaywrightClient();
-
-  // モックデータを設定
-  mockClient.setMockPageData({
-    '.match-title': '浦和レッズ vs FC東京',
-    '.venue': 'さいたまスタジアム',
-    'a[href]': 'https://example.com/ticket',
-  });
-
-  await mockClient.launch();
-  const mockPage = await mockClient.createPage();
+Deno.test('JLeagueDataExtractor - チケット要素のない page では空配列を返し、警告も出さない', async () => {
+  // チケット要素のない page のスタブ（$$ は空配列）
+  const mockPage = {
+    $$: () => Promise.resolve([]),
+  } as unknown as Parameters<JLeagueDataExtractor['extractTickets']>[0];
 
   // JLeagueDataExtractorをテスト（Playwrightを起動せず）
   const extractor = new JLeagueDataExtractor(
@@ -23,15 +14,12 @@ Deno.test('JLeagueDataExtractor - MockPageでのPlaywright非依存テスト', a
     J_LEAGUE_SCRAPING_CONFIG.detailBaseUrl,
   );
 
-  // IPage型でextractTicketsを呼び出し
   // 実際のPlaywrightは起動しない
   const result = await extractor.extractTickets(mockPage);
 
-  // 基本的な動作確認（実際のデータ抽出はモックデータに依存）
-  assertEquals(Array.isArray(result), true);
-  assertEquals(extractor.getAndClearWarnings().length >= 0, true);
-
-  await mockClient.close();
+  // チケット要素がないので空配列
+  assertEquals(result, []);
+  assertEquals(extractor.getAndClearWarnings(), []);
 });
 
 Deno.test('JLeagueDataExtractor - 警告機能のテスト', () => {

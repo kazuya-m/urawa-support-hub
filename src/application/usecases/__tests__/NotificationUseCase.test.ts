@@ -1,12 +1,26 @@
 import { assert, assertEquals } from 'std/assert/mod.ts';
-import { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
+import type { NotificationExecutionInput } from '@/application/usecases/results.ts';
 import { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
 import { NOTIFICATION_TYPES } from '@/domain/config/NotificationConfig.ts';
-import { MockNotificationService } from '@/shared/testing/mocks/MockNotificationService.ts';
+import type { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
+
+/**
+ * sendScheduledNotification の呼び出しを記録する NotificationService のスタブ
+ */
+function createNotificationServiceStub(error?: Error) {
+  const calls: NotificationExecutionInput[] = [];
+  const stub = {
+    sendScheduledNotification: (input: NotificationExecutionInput) => {
+      calls.push(input);
+      return error ? Promise.reject(error) : Promise.resolve();
+    },
+  } satisfies Partial<NotificationService>;
+  return { service: stub as unknown as NotificationService, calls };
+}
 
 Deno.test('NotificationUseCase should call NotificationService.processScheduledNotification with correct input', async () => {
-  const mockNotificationService = new MockNotificationService();
-  const useCase = new NotificationUseCase(mockNotificationService);
+  const { service, calls } = createNotificationServiceStub();
+  const useCase = new NotificationUseCase(service);
 
   const input: NotificationExecutionInput = {
     ticketId: 'test-ticket-123',
@@ -15,16 +29,14 @@ Deno.test('NotificationUseCase should call NotificationService.processScheduledN
 
   await useCase.execute(input);
 
-  // Mock が正しく呼び出されたことを検証
-  const processedNotifications = mockNotificationService.getProcessedNotifications();
-  assertEquals(processedNotifications.length, 1);
-  assertEquals(processedNotifications[0].input, input);
+  // スタブが正しく呼び出されたことを検証
+  assertEquals(calls.length, 1);
+  assertEquals(calls[0], input);
 });
 
 Deno.test('NotificationUseCase should handle NotificationService errors properly', async () => {
-  const mockNotificationService = new MockNotificationService();
-  mockNotificationService.setShouldThrowError(true, 'NotificationService failed');
-  const useCase = new NotificationUseCase(mockNotificationService);
+  const { service } = createNotificationServiceStub(new Error('NotificationService failed'));
+  const useCase = new NotificationUseCase(service);
 
   const input: NotificationExecutionInput = {
     ticketId: 'test-ticket-123',
@@ -39,8 +51,8 @@ Deno.test('NotificationUseCase should handle NotificationService errors properly
 });
 
 Deno.test('NotificationUseCase should return successful result with execution time', async () => {
-  const mockNotificationService = new MockNotificationService();
-  const useCase = new NotificationUseCase(mockNotificationService);
+  const { service } = createNotificationServiceStub();
+  const useCase = new NotificationUseCase(service);
 
   const input: NotificationExecutionInput = {
     ticketId: 'test-ticket-123',

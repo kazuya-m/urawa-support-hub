@@ -1,15 +1,14 @@
-import { ITicketSummaryUseCase } from '@/application/interfaces/usecases/ITicketSummaryUseCase.ts';
-import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
-import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
+import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import type { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 
-export class SendTicketSummaryUseCase implements ITicketSummaryUseCase {
+export class SendTicketSummaryUseCase {
   constructor(
-    private readonly ticketRepository: ITicketRepository,
-    private readonly notificationService: INotificationService,
+    private readonly ticketRepository: TicketRepository,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async execute(): Promise<void> {

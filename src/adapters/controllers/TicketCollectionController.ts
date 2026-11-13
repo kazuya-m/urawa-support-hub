@@ -1,9 +1,9 @@
-import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
+import type { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
 
 export class TicketCollectionController {
   constructor(
-    private readonly ticketCollectionUseCase: ITicketCollectionUseCase,
+    private readonly ticketCollectionUseCase: TicketCollectionUseCase,
   ) {}
 
   async handleCollectTickets(_req: Request): Promise<Response> {

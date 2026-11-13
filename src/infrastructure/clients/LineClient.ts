@@ -7,15 +7,11 @@ export interface LineMessage {
   [key: string]: unknown;
 }
 
-export interface ILineClient {
-  broadcast(message: LineMessage): Promise<void>;
-}
-
 /**
  * LINE Messaging API クライアント
  * LINE Bot API を使用してメッセージ送信を行う
  */
-export class LineClient implements ILineClient {
+export class LineClient {
   constructor(private readonly config: LineClientConfig) {
     if (!config.channelAccessToken) {
       throw new Error('LINE Channel Access Token is required');

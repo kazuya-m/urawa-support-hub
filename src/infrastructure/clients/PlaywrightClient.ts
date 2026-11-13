@@ -1,5 +1,19 @@
-import { Browser, chromium, Page } from 'playwright';
-import { IPage, IPlaywrightClient } from '@/application/interfaces/clients/IPlaywrightClient.ts';
+import { Browser, chromium, type ElementHandle, Page } from 'playwright';
+
+/**
+ * Playwrightページの抽象化インターフェース
+ * Playwrightの型を直接利用して、不要な型の増殖を防ぐ
+ * #212 で Playwright の Page を直接使う形にして廃止する
+ */
+export interface IPage {
+  $eval<R>(selector: string, pageFunction: (element: Element) => R): Promise<R>;
+  $(selector: string): Promise<ElementHandle | null>;
+  $$(selector: string): Promise<ElementHandle[]>;
+  setExtraHTTPHeaders(headers: Record<string, string>): Promise<void>;
+  setViewportSize(size: { width: number; height: number }): Promise<void>;
+  waitForTimeout(ms: number): Promise<void>;
+  waitForSelector(selector: string, options?: { timeout?: number }): Promise<ElementHandle | null>;
+}
 
 /**
  * Playwrightページのラッパー実装
@@ -39,7 +53,7 @@ class PlaywrightPage implements IPage {
 /**
  * Playwright具象実装クライアント
  */
-export class PlaywrightClient implements IPlaywrightClient {
+export class PlaywrightClient {
   private browser: Browser | null = null;
 
   async launch(timeout = 30000): Promise<void> {

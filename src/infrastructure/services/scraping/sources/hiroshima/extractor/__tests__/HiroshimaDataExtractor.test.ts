@@ -1,7 +1,6 @@
 import { assertEquals } from 'std/assert/mod.ts';
 import { HiroshimaDataExtractor } from '../HiroshimaDataExtractor.ts';
 import { HIROSHIMA_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/sources/hiroshima/HiroshimaConfig.ts';
-import { MockPlaywrightClient } from '@/shared/testing/mocks/MockPlaywrightClient.ts';
 
 Deno.test('HiroshimaDataExtractor', async (t) => {
   const extractor = new HiroshimaDataExtractor(
@@ -10,9 +9,8 @@ Deno.test('HiroshimaDataExtractor', async (t) => {
   );
 
   await t.step('extractTickets メソッドが呼び出し可能', async () => {
-    const mockClient = new MockPlaywrightClient();
-    await mockClient.launch();
-    const mockPage = await mockClient.createPage();
+    // 試合行のない page（$$ が空配列を返す）
+    const mockPage = pageStub([]);
 
     // Empty data case - should return empty array without errors
     const tickets = await extractor.extractTickets(mockPage);
@@ -29,9 +27,8 @@ Deno.test('HiroshimaDataExtractor', async (t) => {
   });
 
   await t.step('getAndClearWarnings が動作する', async () => {
-    const mockClient = new MockPlaywrightClient();
-    await mockClient.launch();
-    const mockPage = await mockClient.createPage();
+    // 試合行のない page（$$ が空配列を返す）
+    const mockPage = pageStub([]);
 
     await extractor.extractTickets(mockPage);
     const warnings = extractor.getAndClearWarnings();

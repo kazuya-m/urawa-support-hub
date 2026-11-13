@@ -1,20 +1,19 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { Notification } from '@/domain/entities/Notification.ts';
 import { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
-import {
+import type {
+  CloudTasksClient,
   EnqueueTaskParams,
-  ICloudTasksClient,
-} from '@/application/interfaces/clients/ICloudTasksClient.ts';
-import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
-import { INotificationSchedulerService } from '@/application/interfaces/services/INotificationSchedulerService.ts';
+} from '@/infrastructure/clients/CloudTasksClient.ts';
+import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
-export class NotificationSchedulerService implements INotificationSchedulerService {
+export class NotificationSchedulerService {
   constructor(
-    private readonly cloudTasksClient: ICloudTasksClient,
-    private readonly notificationRepository: INotificationRepository,
+    private readonly cloudTasksClient: CloudTasksClient,
+    private readonly notificationRepository: NotificationRepository,
   ) {}
 
   async scheduleNotifications(ticket: Ticket, scheduledTimes: NotificationTiming[]): Promise<void> {
