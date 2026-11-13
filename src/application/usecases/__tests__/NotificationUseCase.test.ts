@@ -95,7 +95,8 @@ Deno.test('NotificationUseCase - 失敗時のログ', async () => {
     message: 'Scheduled notification failed',
     jsonPayload: {
       category: 'NOTIFICATION',
-      context: { ticketId: 'test-ticket-123', processingStage: 'day_before' },
+      context: { ticketId: 'test-ticket-123', stage: 'usecase_error' },
+      metadata: { notificationTypeKey: 'day_before' },
       error: { message: 'NotificationService failed', recoverable: true },
     },
   }]);
