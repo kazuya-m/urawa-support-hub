@@ -73,12 +73,16 @@ Deno.test('NotificationUseCase - 失敗時のログ', async () => {
   const { service } = createNotificationServiceStub(new Error('NotificationService failed'));
   const useCase = new NotificationUseCase(service);
 
-  // CloudLogger の出力（console.log の JSON）を捕まえる。stack を出さないよう production にする
+  // CloudLogger の出力（console.log の JSON）を捕まえる
+  // stack を出さないよう production にし、Cloud Run のラベルが付かないよう K_SERVICE を消す
   const lines: string[] = [];
   const originalLog = console.log;
-  const originalNodeEnv = Deno.env.get('NODE_ENV');
+  const envKeys = ['NODE_ENV', 'K_SERVICE', 'K_REVISION'];
+  const originalEnv = envKeys.map((key) => [key, Deno.env.get(key)] as const);
   console.log = (line: string) => lines.push(line);
   Deno.env.set('NODE_ENV', 'production');
+  Deno.env.delete('K_SERVICE');
+  Deno.env.delete('K_REVISION');
   try {
     await useCase.execute({
       ticketId: 'test-ticket-123',
@@ -86,8 +90,10 @@ Deno.test('NotificationUseCase - 失敗時のログ', async () => {
     });
   } finally {
     console.log = originalLog;
-    if (originalNodeEnv === undefined) Deno.env.delete('NODE_ENV');
-    else Deno.env.set('NODE_ENV', originalNodeEnv);
+    for (const [key, value] of originalEnv) {
+      if (value === undefined) Deno.env.delete(key);
+      else Deno.env.set(key, value);
+    }
   }
 
   assertEquals(lines.map((line) => JSON.parse(line)), [{
