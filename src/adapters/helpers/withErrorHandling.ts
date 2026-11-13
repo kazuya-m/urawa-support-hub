@@ -1,7 +1,7 @@
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
 import { AppError } from '@/shared/errors/index.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
-import type { LogCategory } from '@/shared/logging/types.ts';
+import type { LogCategory, LogContext } from '@/shared/logging/types.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 /**
@@ -15,7 +15,7 @@ export interface ErrorHandlingOptions {
   /** 想定外のエラーのログの severity（AppError は常に error） */
   severity?: 'error' | 'critical';
   /** ログに付けるコンテキスト */
-  context?: Record<string, unknown>;
+  context?: LogContext;
   /** 想定外のエラーのときの応答（エラーメッセージ → [error, details]） */
   unexpectedResponse: (errorMessage: string) => [string, unknown];
 }
