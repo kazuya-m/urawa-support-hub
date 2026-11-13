@@ -1,4 +1,4 @@
-import { IPage } from '@/application/interfaces/clients/IPlaywrightClient.ts';
+import type { IPage } from '@/infrastructure/clients/PlaywrightClient.ts';
 import {
   HIROSHIMA_SCRAPING_CONFIG,
   HiroshimaSchedulePageConfig,

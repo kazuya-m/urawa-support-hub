@@ -1,10 +1,10 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { ISiteScrapingService } from '@/infrastructure/services/scraping/shared/interfaces/index.ts';
-import { IPage } from '@/application/interfaces/clients/IPlaywrightClient.ts';
+import type { IPage } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { HIROSHIMA_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/sources/hiroshima/HiroshimaConfig.ts';
 import { HiroshimaDataExtractor } from './extractor/HiroshimaDataExtractor.ts';
 import { HiroshimaDataParser } from './parser/HiroshimaDataParser.ts';
-import { IBrowserManager } from '@/application/interfaces/clients/IBrowserManager.ts';
+import type { BrowserManager } from '@/infrastructure/services/scraping/shared/BrowserManager.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 
@@ -17,9 +17,9 @@ export class HiroshimaScrapingService implements ISiteScrapingService {
 
   private readonly dataExtractor: HiroshimaDataExtractor;
   private readonly dataParser: HiroshimaDataParser;
-  private readonly browserManager: IBrowserManager;
+  private readonly browserManager: BrowserManager;
 
-  constructor(browserManager: IBrowserManager) {
+  constructor(browserManager: BrowserManager) {
     this.dataExtractor = new HiroshimaDataExtractor(
       HIROSHIMA_SCRAPING_CONFIG.schedulePageConfig,
       HIROSHIMA_SCRAPING_CONFIG.urawaKeywords,

@@ -1,16 +1,15 @@
-import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
-import { NotificationResult } from '@/application/usecases/results.ts';
-import {
-  INotificationUseCase,
+import type { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
+import type {
   NotificationExecutionInput,
-} from '@/application/interfaces/usecases/INotificationUseCase.ts';
+  NotificationResult,
+} from '@/application/usecases/results.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
-export class NotificationUseCase implements INotificationUseCase {
+export class NotificationUseCase {
   constructor(
-    private readonly notificationService: INotificationService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async execute(input: NotificationExecutionInput): Promise<NotificationResult> {

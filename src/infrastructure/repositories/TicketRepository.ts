@@ -3,9 +3,8 @@ import { Ticket } from '@/domain/entities/Ticket.ts';
 import { TicketConverter } from './converters/TicketConverter.ts';
 import { isNotFoundError, throwDatabaseError } from '../utils/database-error-handler.ts';
 import { TicketRow } from '../types/database.ts';
-import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
 
-export class TicketRepository implements ITicketRepository {
+export class TicketRepository {
   constructor(
     private readonly client: SupabaseClient,
   ) {}

@@ -1,4 +1,4 @@
-import { IPage } from '@/application/interfaces/clients/IPlaywrightClient.ts';
+import type { IPage } from '@/infrastructure/clients/PlaywrightClient.ts';
 
 /**
  * サイト固有データ抽出のインターフェース

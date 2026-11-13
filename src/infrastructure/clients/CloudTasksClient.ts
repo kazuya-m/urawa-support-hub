@@ -1,16 +1,17 @@
 import { CloudTasksClient as GoogleCloudTasksClient } from '@google-cloud/tasks';
-import {
-  EnqueueTaskParams,
-  ICloudTasksClient,
-  Task,
-} from '@/application/interfaces/clients/ICloudTasksClient.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
-// Re-export types for test files
-export type { EnqueueTaskParams, Task };
+export interface EnqueueTaskParams {
+  taskId?: string;
+  payload: unknown;
+  scheduledTime: Date;
+  targetUrl: string;
+  httpMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  headers?: Record<string, string>;
+}
 
 export interface CloudTasksConfig {
   projectId: string;
@@ -25,7 +26,7 @@ export interface CloudTasksConfig {
  * Google Cloud Tasks APIを使用してタスクの管理を行う
  * gRPC接続問題を回避するためREST fallbackを使用
  */
-export class CloudTasksClient implements ICloudTasksClient {
+export class CloudTasksClient {
   private client: GoogleCloudTasksClient;
   private readonly config: CloudTasksConfig;
 
