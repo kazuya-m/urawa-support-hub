@@ -150,4 +150,8 @@ Deno.test('CloudLogger - NODE_ENV による DEBUG の抑制', async (t) => {
   await t.step('development では DEBUG も出す', () => {
     assertEquals(severities({ NODE_ENV: 'development' }), ['DEBUG', 'CRITICAL']);
   });
+
+  await t.step('production 以外の値（staging など）でも DEBUG を出す', () => {
+    assertEquals(severities({ NODE_ENV: 'staging' }), ['DEBUG', 'CRITICAL']);
+  });
 });
