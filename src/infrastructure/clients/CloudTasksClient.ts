@@ -279,7 +279,7 @@ export class CloudTasksClient {
       );
 
       if (!response.ok) {
-        CloudLogger.warn('Cloud Tasks: Metadata server access failed', {
+        CloudLogger.warning('Cloud Tasks: Metadata server access failed', {
           category: LogCategory.CLOUD_TASKS,
           context: {
             processingStage: 'metadata_failure',

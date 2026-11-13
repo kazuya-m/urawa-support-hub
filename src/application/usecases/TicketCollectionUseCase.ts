@@ -179,7 +179,7 @@ export class TicketCollectionUseCase {
         }
       } catch (error) {
         // 一括upsert失敗時は個別処理にフォールバック
-        CloudLogger.warn('Bulk upsert failed, falling back to individual upserts', {
+        CloudLogger.warning('Bulk upsert failed, falling back to individual upserts', {
           category: LogCategory.TICKET_COLLECTION,
           error: toErrorInfo(error, undefined, true),
           metadata: {
