@@ -84,13 +84,6 @@ export class CloudLogger {
   }
 
   /**
-   * WARNINGレベルログのエイリアス
-   */
-  static warn(message: string, payload?: LogPayload): void {
-    this.warning(message, payload);
-  }
-
-  /**
    * ERRORレベルログ（エラー、個別処理失敗）
    */
   static error(message: string, payload?: LogPayload): void {

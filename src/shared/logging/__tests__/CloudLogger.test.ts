@@ -120,7 +120,6 @@ Deno.test('CloudLogger - メソッドと severity', () => {
   const lines = captureOutput({ NODE_ENV: 'development' }, () => {
     CloudLogger.debug('m');
     CloudLogger.info('m');
-    CloudLogger.warn('m');
     CloudLogger.warning('m');
     CloudLogger.error('m');
     CloudLogger.critical('m');
@@ -128,7 +127,7 @@ Deno.test('CloudLogger - メソッドと severity', () => {
 
   assertEquals(
     lines.map((line) => JSON.parse(line).severity),
-    ['DEBUG', 'INFO', 'WARNING', 'WARNING', 'ERROR', 'CRITICAL'],
+    ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
   );
 });
 
