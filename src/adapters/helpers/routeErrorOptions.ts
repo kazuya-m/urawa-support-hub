@@ -25,7 +25,7 @@ export const NOTIFICATION_ERROR_OPTIONS: ErrorHandlingOptions = {
 export const TICKET_SUMMARY_ERROR_OPTIONS: ErrorHandlingOptions = {
   logMessage: 'Unexpected error in ticket summary processing',
   category: LogCategory.NOTIFICATION,
-  context: { processingStage: 'TicketSummaryController' },
+  context: { stage: 'TicketSummaryController' },
   unexpectedResponse: (errorMessage) => [
     'Internal server error during ticket summary processing',
     { errorType: 'UnknownError', errorMessage },

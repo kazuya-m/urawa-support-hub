@@ -52,7 +52,7 @@ export class CloudTasksClient {
       CloudLogger.info('CloudTasks client using emulator', {
         category: LogCategory.CLOUD_TASKS,
         context: {
-          processingStage: 'initialization',
+          stage: 'initialization',
         },
         metadata: {
           emulatorHost,
@@ -72,7 +72,7 @@ export class CloudTasksClient {
       CloudLogger.debug('CloudTasks client initialized', {
         category: LogCategory.CLOUD_TASKS,
         context: {
-          processingStage: 'initialization',
+          stage: 'initialization',
         },
         metadata: {
           queueName: this.config.queueName,
@@ -143,7 +143,7 @@ export class CloudTasksClient {
         category: LogCategory.CLOUD_TASKS,
         context: {
           taskId: createdTaskId,
-          processingStage: 'enqueue_success',
+          stage: 'enqueue_success',
         },
         metadata: {
           targetUrl,
@@ -176,7 +176,7 @@ export class CloudTasksClient {
         category: LogCategory.CLOUD_TASKS,
         context: {
           taskId: actualTaskId,
-          processingStage: 'enqueue_error',
+          stage: 'enqueue_error',
         },
         metadata: {
           targetUrl,
@@ -207,7 +207,7 @@ export class CloudTasksClient {
         category: LogCategory.CLOUD_TASKS,
         context: {
           taskId,
-          processingStage: 'dequeue_start',
+          stage: 'dequeue_start',
         },
         metadata: {
           queueName: this.config.queueName,
@@ -222,7 +222,7 @@ export class CloudTasksClient {
         category: LogCategory.CLOUD_TASKS,
         context: {
           taskId,
-          processingStage: 'dequeue_error',
+          stage: 'dequeue_error',
         },
         metadata: {
           queueName: this.config.queueName,
@@ -254,7 +254,7 @@ export class CloudTasksClient {
       CloudLogger.error('Cloud Tasks: Authentication test failed', {
         category: LogCategory.CLOUD_TASKS,
         context: {
-          processingStage: 'auth_failure',
+          stage: 'auth_failure',
         },
         metadata: {
           projectId: this.config.projectId.substring(0, 8) + '***',
@@ -282,7 +282,7 @@ export class CloudTasksClient {
         CloudLogger.warning('Cloud Tasks: Metadata server access failed', {
           category: LogCategory.CLOUD_TASKS,
           context: {
-            processingStage: 'metadata_failure',
+            stage: 'metadata_failure',
           },
           data: {
             response: {
@@ -296,7 +296,7 @@ export class CloudTasksClient {
       CloudLogger.error('Cloud Tasks: Metadata server test error', {
         category: LogCategory.CLOUD_TASKS,
         context: {
-          processingStage: 'metadata_error',
+          stage: 'metadata_error',
         },
         error: toErrorInfo(error),
       });

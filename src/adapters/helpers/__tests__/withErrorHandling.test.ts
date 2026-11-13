@@ -183,7 +183,7 @@ Deno.test('ticket-summary: UseCase の想定外エラー', async () => {
   assertEquals(logs[0].message, 'Unexpected error in ticket summary processing');
   assertEquals(logs[0].jsonPayload, {
     category: 'NOTIFICATION',
-    context: { processingStage: 'TicketSummaryController' },
+    context: { stage: 'TicketSummaryController' },
     error: { message: 'summary failed', recoverable: false },
   });
 });

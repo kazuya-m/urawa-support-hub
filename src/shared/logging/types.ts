@@ -28,7 +28,6 @@ export interface LogContext {
   sessionId?: string; // 収集処理1回ごとのID
   notificationId?: string;
   stage?: string; // 処理段階（例: 'parsing', 'upsert', 'enqueue_error'）
-  processingStage?: string; // 旧フィールド名（stage に統一予定）
 }
 
 /**
