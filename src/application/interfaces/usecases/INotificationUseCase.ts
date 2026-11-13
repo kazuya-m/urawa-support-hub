@@ -1,10 +1,9 @@
-import { NotificationResult } from '@/application/interfaces/results/UseCaseResults.ts';
-import { NotificationType } from '@/domain/config/NotificationConfig.ts';
+import type {
+  NotificationExecutionInput,
+  NotificationResult,
+} from '@/application/usecases/results.ts';
 
-export interface NotificationExecutionInput {
-  ticketId: string;
-  notificationType: NotificationType;
-}
+export type { NotificationExecutionInput };
 
 export interface INotificationUseCase {
   execute(input: NotificationExecutionInput): Promise<NotificationResult>;

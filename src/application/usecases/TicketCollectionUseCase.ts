@@ -5,10 +5,7 @@ import { INotificationSchedulerService } from '@/application/interfaces/services
 import { INotificationSchedulingService } from '@/application/interfaces/services/INotificationSchedulingService.ts';
 import { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import {
-  TicketCollectionResult,
-  TicketUpsertResult,
-} from '@/application/interfaces/results/UseCaseResults.ts';
+import { TicketCollectionResult, TicketUpsertResult } from '@/application/usecases/results.ts';
 import { CancellationReason } from '@/domain/entities/Notification.ts';
 import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';

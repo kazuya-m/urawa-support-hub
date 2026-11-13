@@ -2,7 +2,7 @@ import {
   INotificationUseCase,
   NotificationExecutionInput,
 } from '@/application/interfaces/usecases/INotificationUseCase.ts';
-import { NotificationResult } from '@/application/interfaces/results/UseCaseResults.ts';
+import { NotificationResult } from '@/application/usecases/results.ts';
 
 export class MockNotificationUseCase implements INotificationUseCase {
   private mockResults: NotificationResult[] = [];

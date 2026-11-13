@@ -1,5 +1,5 @@
 import { assert, assertEquals } from 'std/assert/mod.ts';
-import { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
+import type { NotificationExecutionInput } from '@/application/usecases/results.ts';
 import { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
 import { NOTIFICATION_TYPES } from '@/domain/config/NotificationConfig.ts';
 import { MockNotificationService } from '@/shared/testing/mocks/MockNotificationService.ts';

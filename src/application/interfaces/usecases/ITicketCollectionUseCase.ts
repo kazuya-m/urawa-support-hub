@@ -1,4 +1,4 @@
-import { TicketCollectionResult } from '@/application/interfaces/results/UseCaseResults.ts';
+import { TicketCollectionResult } from '@/application/usecases/results.ts';
 
 export interface ITicketCollectionUseCase {
   execute(): Promise<TicketCollectionResult>;

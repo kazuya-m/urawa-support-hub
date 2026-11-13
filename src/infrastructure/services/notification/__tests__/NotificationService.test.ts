@@ -3,7 +3,7 @@ import { NotificationService } from '../NotificationService.ts';
 import { Notification } from '@/domain/entities/Notification.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { NOTIFICATION_TYPES } from '@/domain/config/NotificationConfig.ts';
-import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
+import type { NotificationExecutionInput } from '@/application/usecases/results.ts';
 import { MockNotificationRepository } from '@/shared/testing/mocks/MockNotificationRepository.ts';
 import { MockTicketRepository } from '@/shared/testing/mocks/MockTicketRepository.ts';
 import { MockLineClient } from '@/shared/testing/mocks/MockLineClient.ts';

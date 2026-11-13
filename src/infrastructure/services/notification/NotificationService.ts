@@ -5,7 +5,7 @@ import { ITicketRepository } from '@/application/interfaces/repositories/ITicket
 import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
 import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
 import { formatMatchName } from '@/shared/utils/match.ts';
-import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
+import type { NotificationExecutionInput } from '@/application/usecases/results.ts';
 import { ILineClient } from '@/infrastructure/clients/LineClient.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';

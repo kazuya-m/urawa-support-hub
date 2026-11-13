@@ -1,5 +1,5 @@
 import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
-import { NotificationResult } from '@/application/interfaces/results/UseCaseResults.ts';
+import { NotificationResult } from '@/application/usecases/results.ts';
 import {
   INotificationUseCase,
   NotificationExecutionInput,

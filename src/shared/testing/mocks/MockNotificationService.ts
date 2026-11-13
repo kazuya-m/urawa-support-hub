@@ -1,7 +1,7 @@
 import { Notification } from '@/domain/entities/Notification.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
-import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
+import type { NotificationExecutionInput } from '@/application/usecases/results.ts';
 
 export class MockNotificationService implements INotificationService {
   private processedNotifications: Array<{
