@@ -68,7 +68,7 @@ export class HiroshimaDataExtractor {
           }
         } catch (error) {
           this.addWarning(`Failed to extract data from row: ${error}`);
-          CloudLogger.warn('Failed to extract ticket data', {
+          CloudLogger.warning('Failed to extract ticket data', {
             category: LogCategory.TICKET_COLLECTION,
             context: {
               stage: 'data_extraction',
@@ -306,7 +306,7 @@ export class HiroshimaDataExtractor {
 
   private addWarning(message: string): void {
     this.warnings.push(message);
-    CloudLogger.warn('Hiroshima data extraction warning', {
+    CloudLogger.warning('Hiroshima data extraction warning', {
       category: LogCategory.TICKET_COLLECTION,
       context: {
         stage: 'data_extraction',

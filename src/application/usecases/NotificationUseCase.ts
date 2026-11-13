@@ -32,7 +32,11 @@ export class NotificationUseCase {
         category: LogCategory.NOTIFICATION,
         context: {
           ticketId: input.ticketId,
-          processingStage: input.notificationType,
+          stage: 'usecase_error',
+        },
+        metadata: {
+          // NotificationService の metadata.notificationType は表示名なので、別のキーにする
+          notificationTypeKey: input.notificationType,
         },
         error: toErrorInfo(error, undefined, true),
       });

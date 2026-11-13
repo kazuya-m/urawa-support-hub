@@ -68,3 +68,42 @@ Deno.test('NotificationUseCase should return successful result with execution ti
   assert(typeof result.executionDurationMs === 'number');
   assert(result.executionDurationMs >= 0);
 });
+
+Deno.test('NotificationUseCase - 失敗時のログ', async () => {
+  const { service } = createNotificationServiceStub(new Error('NotificationService failed'));
+  const useCase = new NotificationUseCase(service);
+
+  // CloudLogger の出力（console.log の JSON）を捕まえる
+  // stack を出さないよう production にし、Cloud Run のラベルが付かないよう K_SERVICE を消す
+  const lines: string[] = [];
+  const originalLog = console.log;
+  const envKeys = ['NODE_ENV', 'K_SERVICE', 'K_REVISION'];
+  const originalEnv = envKeys.map((key) => [key, Deno.env.get(key)] as const);
+  console.log = (line: string) => lines.push(line);
+  Deno.env.set('NODE_ENV', 'production');
+  Deno.env.delete('K_SERVICE');
+  Deno.env.delete('K_REVISION');
+  try {
+    await useCase.execute({
+      ticketId: 'test-ticket-123',
+      notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
+    });
+  } finally {
+    console.log = originalLog;
+    for (const [key, value] of originalEnv) {
+      if (value === undefined) Deno.env.delete(key);
+      else Deno.env.set(key, value);
+    }
+  }
+
+  assertEquals(lines.map((line) => JSON.parse(line)), [{
+    severity: 'ERROR',
+    message: 'Scheduled notification failed',
+    jsonPayload: {
+      category: 'NOTIFICATION',
+      context: { ticketId: 'test-ticket-123', stage: 'usecase_error' },
+      metadata: { notificationTypeKey: 'day_before' },
+      error: { message: 'NotificationService failed', recoverable: true },
+    },
+  }]);
+});
