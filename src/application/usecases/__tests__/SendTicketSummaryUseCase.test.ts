@@ -1,25 +1,69 @@
 import { assertEquals } from 'std/assert/mod.ts';
-import { afterEach, beforeEach, describe, it } from 'std/testing/bdd.ts';
+import { beforeEach, describe, it } from 'std/testing/bdd.ts';
 import { SendTicketSummaryUseCase } from '../SendTicketSummaryUseCase.ts';
-import { MockTicketRepository } from '@/shared/testing/mocks/MockTicketRepository.ts';
-import { MockNotificationService } from '@/shared/testing/mocks/MockNotificationService.ts';
-import { createTestTicket } from '@/shared/testing/TestDataGenerator.ts';
+import { Ticket } from '@/domain/entities/Ticket.ts';
+import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import type { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
+
+/**
+ * テスト用のチケットを作る（指定しない項目は固定値）
+ */
+function createTestTicket(
+  overrides: { id: string; matchName: string; matchDate: Date },
+): Ticket {
+  return Ticket.fromExisting({
+    homeTeam: '浦和レッズ',
+    awayTeam: 'FC東京',
+    competition: 'J1リーグ',
+    venue: 'さいたまスタジアム2002',
+    saleStartDate: new Date('2025-09-25T10:00:00+09:00'),
+    saleEndDate: new Date('2025-10-01T12:00:00+09:00'),
+    saleStatus: 'on_sale',
+    ticketTypes: ['一般', 'ホームゲート指定席'],
+    ticketUrl: 'https://example.com/tickets/test-ticket-1',
+    notificationScheduled: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    scrapedAt: new Date(),
+    ...overrides,
+  });
+}
 
 describe('SendTicketSummaryUseCase', () => {
   let useCase: SendTicketSummaryUseCase;
-  let mockTicketRepository: MockTicketRepository;
-  let mockNotificationService: MockNotificationService;
+  /** findByStatusIn が返すチケット。Error を設定すると reject する */
+  let findByStatusInResult: Ticket[] | Error;
+  let findByStatusInCalls: string[][];
+  /** sendTicketSummary を失敗させるエラー */
+  let sendError: Error | null;
+  let sentSummaries: Ticket[][];
 
   beforeEach(() => {
-    mockTicketRepository = new MockTicketRepository();
-    mockNotificationService = new MockNotificationService();
-    useCase = new SendTicketSummaryUseCase(mockTicketRepository, mockNotificationService);
-  });
+    findByStatusInResult = [];
+    findByStatusInCalls = [];
+    sendError = null;
+    sentSummaries = [];
 
-  afterEach(() => {
-    // テスト後のクリーンアップ
-    mockTicketRepository.resetMocks();
-    mockNotificationService.clear();
+    const ticketRepository = {
+      findByStatusIn: (statuses: string[]) => {
+        findByStatusInCalls.push(statuses);
+        return findByStatusInResult instanceof Error
+          ? Promise.reject(findByStatusInResult)
+          : Promise.resolve(findByStatusInResult);
+      },
+    } satisfies Partial<TicketRepository>;
+
+    const notificationService = {
+      sendTicketSummary: (tickets: Ticket[]) => {
+        sentSummaries.push(tickets);
+        return sendError ? Promise.reject(sendError) : Promise.resolve();
+      },
+    } satisfies Partial<NotificationService>;
+
+    useCase = new SendTicketSummaryUseCase(
+      ticketRepository as unknown as TicketRepository,
+      notificationService as unknown as NotificationService,
+    );
   });
 
   it('should send ticket summary when tickets exist', async () => {
@@ -39,18 +83,18 @@ describe('SendTicketSummaryUseCase', () => {
     });
 
     // モックの設定
-    mockTicketRepository.mockFindByStatusIn([ticket1, ticket2]);
+    findByStatusInResult = [ticket1, ticket2];
 
     // 実行
     await useCase.execute();
 
     // 検証
-    assertEquals(mockTicketRepository.findByStatusInCallCount, 1);
-    assertEquals(mockTicketRepository.lastFindByStatusInArgs, ['on_sale', 'before_sale']);
+    assertEquals(findByStatusInCalls.length, 1);
+    assertEquals(findByStatusInCalls[0], ['on_sale', 'before_sale']);
 
-    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 1);
+    assertEquals(sentSummaries.length, 1);
 
-    const sentTickets = mockNotificationService.getLastSentTickets();
+    const sentTickets = sentSummaries.at(-1);
     assertEquals(sentTickets?.length, 2);
     assertEquals(sentTickets?.[0].id, 'ticket-1');
     assertEquals(sentTickets?.[1].id, 'ticket-2');
@@ -75,14 +119,14 @@ describe('SendTicketSummaryUseCase', () => {
     });
 
     // モックの設定: 過去と未来のチケット両方を返す
-    mockTicketRepository.mockFindByStatusIn([pastTicket, futureTicket]);
+    findByStatusInResult = [pastTicket, futureTicket];
 
     // 実行
     await useCase.execute();
 
     // 検証: 未来のチケットのみが送信される
-    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 1);
-    const sentTickets = mockNotificationService.getLastSentTickets();
+    assertEquals(sentSummaries.length, 1);
+    const sentTickets = sentSummaries.at(-1);
     assertEquals(sentTickets?.length, 1);
     assertEquals(sentTickets?.[0].id, 'future-ticket');
   });
@@ -106,29 +150,29 @@ describe('SendTicketSummaryUseCase', () => {
     });
 
     // モックの設定: 過去のチケットのみを返す
-    mockTicketRepository.mockFindByStatusIn([pastTicket1, pastTicket2]);
+    findByStatusInResult = [pastTicket1, pastTicket2];
 
     // 実行
     await useCase.execute();
 
     // 検証: 過去のチケットのみの場合は送信しない
-    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 0);
+    assertEquals(sentSummaries.length, 0);
   });
 
   it('should not send message when no tickets exist', async () => {
     // モックの設定: 空の配列を返す
-    mockTicketRepository.mockFindByStatusIn([]);
+    findByStatusInResult = [];
 
     // 実行
     await useCase.execute();
 
     // 検証: チケットが0件の場合は送信しない
-    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 0);
+    assertEquals(sentSummaries.length, 0);
   });
 
   it('should handle repository errors', async () => {
     // モックの設定: エラーを投げる
-    mockTicketRepository.setFindByStatusInError(new Error('Database error'));
+    findByStatusInResult = new Error('Database error');
 
     // 実行
     let thrownError: Error | undefined;
@@ -140,7 +184,7 @@ describe('SendTicketSummaryUseCase', () => {
 
     // 検証
     assertEquals(thrownError?.message, 'Ticket summary notification failed: Database error');
-    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 0);
+    assertEquals(sentSummaries.length, 0);
   });
 
   it('should handle notification service errors', async () => {
@@ -148,14 +192,14 @@ describe('SendTicketSummaryUseCase', () => {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + 7);
 
-    mockTicketRepository.mockFindByStatusIn([
+    findByStatusInResult = [
       createTestTicket({
         id: 'ticket-1',
         matchName: '浦和レッズ vs FC東京',
         matchDate: futureDate,
       }),
-    ]);
-    mockNotificationService.setShouldThrowError(true, 'Notification service error');
+    ];
+    sendError = new Error('Notification service error');
 
     // 実行
     let thrownError: Error | undefined;
@@ -170,6 +214,6 @@ describe('SendTicketSummaryUseCase', () => {
       thrownError?.message,
       'Ticket summary notification failed: Notification service error',
     );
-    assertEquals(mockNotificationService.getSendTicketSummaryCallCount(), 1);
+    assertEquals(sentSummaries.length, 1);
   });
 });

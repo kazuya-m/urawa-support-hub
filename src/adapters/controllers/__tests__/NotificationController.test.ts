@@ -1,7 +1,32 @@
 import { assertEquals } from 'std/assert/mod.ts';
 import { NotificationController } from '../NotificationController.ts';
 import { NOTIFICATION_TYPES } from '@/domain/config/NotificationConfig.ts';
-import { MockNotificationUseCase } from '@/shared/testing/mocks/MockNotificationUseCase.ts';
+import type { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
+import type {
+  NotificationExecutionInput,
+  NotificationResult,
+} from '@/application/usecases/results.ts';
+
+/**
+ * execute の入力を記録し、指定した結果を返す NotificationUseCase のスタブ
+ */
+function createUseCaseStub(result?: NotificationResult) {
+  const executedInputs: NotificationExecutionInput[] = [];
+  const stub = {
+    execute: (input: NotificationExecutionInput) => {
+      executedInputs.push(input);
+      return Promise.resolve(
+        result ?? {
+          status: 'success' as const,
+          ticketId: input.ticketId,
+          notificationType: input.notificationType,
+          executionDurationMs: 100,
+        },
+      );
+    },
+  } satisfies Partial<NotificationUseCase>;
+  return { useCase: stub as unknown as NotificationUseCase, executedInputs };
+}
 
 Deno.test('NotificationController', async (t) => {
   const originalEnv = {
@@ -17,15 +42,14 @@ Deno.test('NotificationController', async (t) => {
   Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');
 
   await t.step('should handle valid send notification request', async () => {
-    const mockUseCase = new MockNotificationUseCase();
-    mockUseCase.setMockResults([{
+    const { useCase, executedInputs } = createUseCaseStub({
       status: 'success' as const,
       ticketId: 'test-ticket-123',
       notificationType: 'day_before',
       executionDurationMs: 100,
-    }]);
+    });
 
-    const controller = new NotificationController(mockUseCase);
+    const controller = new NotificationController(useCase);
 
     const requestBody = {
       ticketId: 'test-ticket-123',
@@ -45,8 +69,10 @@ Deno.test('NotificationController', async (t) => {
 
     assertEquals(response.status, 200);
 
-    const executedInputs = mockUseCase.getExecutedInputs();
-    assertEquals(executedInputs.length, 1);
+    assertEquals(executedInputs, [{
+      ticketId: 'test-ticket-123',
+      notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
+    }]);
 
     const responseBody = await response.json();
     assertEquals(responseBody.status, 'success');
@@ -54,8 +80,8 @@ Deno.test('NotificationController', async (t) => {
   });
 
   await t.step('should reject invalid request body', async () => {
-    const mockUseCase = new MockNotificationUseCase();
-    const controller = new NotificationController(mockUseCase);
+    const { useCase, executedInputs } = createUseCaseStub();
+    const controller = new NotificationController(useCase);
 
     const invalidRequestBody = {
       ticketId: '', // 空のID
@@ -76,11 +102,12 @@ Deno.test('NotificationController', async (t) => {
     assertEquals(response.status, 400);
     const responseBody = await response.json();
     assertEquals(responseBody.error, 'Bad Request');
+    assertEquals(executedInputs.length, 0);
   });
 
   await t.step('should validate notification type', async () => {
-    const mockUseCase = new MockNotificationUseCase();
-    const controller = new NotificationController(mockUseCase);
+    const { useCase, executedInputs } = createUseCaseStub();
+    const controller = new NotificationController(useCase);
 
     const requestBody = {
       ticketId: 'test-ticket-123',
@@ -105,6 +132,7 @@ Deno.test('NotificationController', async (t) => {
       responseBody.details,
       'Invalid notificationType: invalid_notification_type',
     );
+    assertEquals(executedInputs.length, 0);
   });
 
   Object.entries(originalEnv).forEach(([key, value]) => {

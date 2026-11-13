@@ -4,8 +4,82 @@ import { NotificationSchedulerService } from '../NotificationSchedulerService.ts
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { NOTIFICATION_TYPES } from '@/domain/config/NotificationConfig.ts';
 import { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
-import { createMockCloudTasksClient } from './test-utils/CloudTasksMock.ts';
-import { createMockNotificationRepository } from './test-utils/NotificationRepositoryMock.ts';
+import type {
+  CloudTasksClient,
+  EnqueueTaskParams,
+} from '@/infrastructure/clients/CloudTasksClient.ts';
+import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
+import type { Notification } from '@/domain/entities/Notification.ts';
+
+/** 登録済みタスク（本番の CloudTasksClient には無い、確認用の形） */
+type Task = {
+  name: string;
+  scheduleTime: Date;
+  payload: unknown;
+  httpRequest: { url: string; httpMethod: string };
+};
+
+/**
+ * 登録したタスクを listTasks で確認できる CloudTasksClient のスタブ
+ */
+function createMockCloudTasksClient(
+  options: { shouldError?: boolean; errorMessage?: string; taskId?: string } = {},
+) {
+  const {
+    shouldError = false,
+    errorMessage = 'Mock Cloud Tasks error',
+    taskId = 'mock-task-id',
+  } = options;
+  const scheduledTasks = new Map<string, EnqueueTaskParams>();
+
+  const stub = {
+    enqueueTask(params: EnqueueTaskParams): Promise<string> {
+      if (shouldError) return Promise.reject(new Error(errorMessage));
+      const actualTaskId = params.taskId || taskId;
+      scheduledTasks.set(actualTaskId, params);
+      return Promise.resolve(actualTaskId);
+    },
+    dequeueTask(taskId: string): Promise<void> {
+      if (shouldError) return Promise.reject(new Error(errorMessage));
+      scheduledTasks.delete(taskId);
+      return Promise.resolve();
+    },
+  } satisfies Partial<CloudTasksClient>;
+
+  const listTasks = (): Promise<Task[]> =>
+    Promise.resolve(
+      Array.from(scheduledTasks.entries()).map(([id, params]) => ({
+        name: id,
+        scheduleTime: params.scheduledTime,
+        payload: params.payload,
+        httpRequest: { url: params.targetUrl, httpMethod: params.httpMethod || 'POST' },
+      })),
+    );
+
+  return Object.assign(stub as unknown as CloudTasksClient, { listTasks });
+}
+
+/**
+ * 保存した通知をメモリに持つ NotificationRepository のスタブ
+ */
+function createMockNotificationRepository(): NotificationRepository {
+  const notifications: Notification[] = [];
+  const stub = {
+    findById: (id: string) => Promise.resolve(notifications.find((n) => n.id === id) || null),
+    findByTicketId: (ticketId: string) =>
+      Promise.resolve(notifications.filter((n) => n.ticketId === ticketId)),
+    save: (notification: Notification) => {
+      notifications.push(notification);
+      return Promise.resolve();
+    },
+    update: (notification: Notification) => {
+      const index = notifications.findIndex((n) => n.id === notification.id);
+      if (index >= 0) notifications[index] = notification;
+      return Promise.resolve();
+    },
+  } satisfies Partial<NotificationRepository>;
+  return stub as unknown as NotificationRepository;
+}
 
 // Set required environment variables for initialization
 Deno.env.set('GOOGLE_CLOUD_PROJECT', 'test-project');
