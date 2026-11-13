@@ -50,6 +50,7 @@ function createService(options: StubOptions = {}) {
   const saved: Notification[] = [];
   const updated: Notification[] = [];
   const broadcasts: LineMessage[] = [];
+  const delays: number[] = [];
 
   const ticketRepository = {
     findById: (id: string) => {
@@ -88,10 +89,14 @@ function createService(options: StubOptions = {}) {
     ticketRepository as unknown as TicketRepository,
     lineClient as unknown as LineClient,
   );
-  // リトライ間の待ち（1 秒・2 秒）を省く。#247 でプロセス内のリトライが廃止されるまでの措置
-  (service as unknown as { delay: (ms: number) => Promise<void> }).delay = () => Promise.resolve();
+  // リトライ間の待ちを実際には待たずに記録する（private の delay への依存）
+  // #247 でプロセス内のリトライが廃止されるまでの措置
+  (service as unknown as { delay: (ms: number) => Promise<void> }).delay = (ms) => {
+    delays.push(ms);
+    return Promise.resolve();
+  };
 
-  return { service, calls, saved, updated, broadcasts };
+  return { service, calls, saved, updated, broadcasts, delays };
 }
 
 function createNotification(status: 'scheduled' | 'sent'): Notification {
@@ -167,7 +172,7 @@ Deno.test('NotificationService.sendScheduledNotification', async (t) => {
   });
 
   await t.step('broadcast が 3 回失敗したら failed に更新し、例外は投げない', async () => {
-    const { service, calls, updated } = createService({
+    const { service, calls, updated, delays } = createService({
       broadcastError: new Error('LINE down'),
     });
 
@@ -183,6 +188,8 @@ Deno.test('NotificationService.sendScheduledNotification', async (t) => {
       'update:failed',
     ]);
     assertEquals(updated[0].errorMessage, 'LINE down');
+    // 1 秒・2 秒の指数バックオフで待つ（3 回目の失敗の後は待たない）
+    assertEquals(delays, [1000, 2000]);
   });
 });
 

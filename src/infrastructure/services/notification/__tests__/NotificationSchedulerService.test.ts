@@ -22,7 +22,7 @@ type Task = {
 /**
  * 登録したタスクを listTasks で確認できる CloudTasksClient のスタブ
  */
-function createMockCloudTasksClient(
+function createCloudTasksClientStub(
   options: { shouldError?: boolean; errorMessage?: string; taskId?: string } = {},
 ) {
   const {
@@ -62,7 +62,7 @@ function createMockCloudTasksClient(
 /**
  * 保存した通知をメモリに持つ NotificationRepository のスタブ
  */
-function createMockNotificationRepository(): NotificationRepository {
+function createNotificationRepositoryStub(): NotificationRepository {
   const notifications: Notification[] = [];
   const stub = {
     findById: (id: string) => Promise.resolve(notifications.find((n) => n.id === id) || null),
@@ -87,8 +87,8 @@ Deno.env.set('SUPABASE_URL', 'http://test.supabase.co');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-key');
 
 Deno.test('NotificationSchedulerService - Basic functionality test', () => {
-  const mockCloudTasksClient = createMockCloudTasksClient({ taskId: 'test-task-id' });
-  const mockNotificationRepository = createMockNotificationRepository();
+  const mockCloudTasksClient = createCloudTasksClientStub({ taskId: 'test-task-id' });
+  const mockNotificationRepository = createNotificationRepositoryStub();
   const service = new NotificationSchedulerService(
     mockCloudTasksClient,
     mockNotificationRepository,
@@ -99,8 +99,8 @@ Deno.test('NotificationSchedulerService - Basic functionality test', () => {
 
 Deno.test('NotificationSchedulerService - scheduleNotifications should call CloudTasksClient and NotificationRepository', async () => {
   // Create mock instances
-  const mockCloudTasksClient = createMockCloudTasksClient({ taskId: 'test-task-id' });
-  const mockNotificationRepository = createMockNotificationRepository();
+  const mockCloudTasksClient = createCloudTasksClientStub({ taskId: 'test-task-id' });
+  const mockNotificationRepository = createNotificationRepositoryStub();
 
   // Create service with injected dependencies
   const service = new NotificationSchedulerService(
@@ -170,11 +170,11 @@ Deno.test('NotificationSchedulerService - scheduleNotifications should call Clou
 
 Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors', async () => {
   // Create mock that throws error
-  const mockCloudTasksClient = createMockCloudTasksClient({
+  const mockCloudTasksClient = createCloudTasksClientStub({
     shouldError: true,
     errorMessage: 'Cloud Tasks operation failed',
   });
-  const mockNotificationRepository = createMockNotificationRepository();
+  const mockNotificationRepository = createNotificationRepositoryStub();
 
   // Create service with injected dependencies
   const service = new NotificationSchedulerService(
@@ -243,8 +243,8 @@ Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors'
 
 Deno.test('NotificationSchedulerService - cancelNotification should call CloudTasksClient.dequeueTask', async () => {
   // Create mock instance
-  const mockCloudTasksClient = createMockCloudTasksClient();
-  const mockNotificationRepository = createMockNotificationRepository();
+  const mockCloudTasksClient = createCloudTasksClientStub();
+  const mockNotificationRepository = createNotificationRepositoryStub();
 
   // Create service with injected dependencies
   const service = new NotificationSchedulerService(

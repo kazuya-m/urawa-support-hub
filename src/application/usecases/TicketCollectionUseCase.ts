@@ -7,7 +7,7 @@ import type {
   NotificationTiming,
 } from '@/domain/services/NotificationSchedulingService.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { TicketCollectionResult, TicketUpsertResult } from '@/application/usecases/results.ts';
+import type { TicketCollectionResult, TicketUpsertResult } from '@/application/usecases/results.ts';
 import { CancellationReason } from '@/domain/entities/Notification.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';

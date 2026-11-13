@@ -2,11 +2,10 @@ import { assertEquals } from 'std/assert/mod.ts';
 import { JLeagueDataExtractor } from '../JLeagueDataExtractor.ts';
 import { J_LEAGUE_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts';
 
-Deno.test('JLeagueDataExtractor - MockPageでのPlaywright非依存テスト', async () => {
-  // チケット要素のない page のスタブ（$$ は空配列、$eval は値なし）
+Deno.test('JLeagueDataExtractor - チケット要素のない page では空配列を返し、警告も出さない', async () => {
+  // チケット要素のない page のスタブ（$$ は空配列）
   const mockPage = {
     $$: () => Promise.resolve([]),
-    $eval: () => Promise.resolve(null),
   } as unknown as Parameters<JLeagueDataExtractor['extractTickets']>[0];
 
   // JLeagueDataExtractorをテスト（Playwrightを起動せず）
@@ -20,7 +19,7 @@ Deno.test('JLeagueDataExtractor - MockPageでのPlaywright非依存テスト', a
 
   // チケット要素がないので空配列
   assertEquals(result, []);
-  assertEquals(extractor.getAndClearWarnings().length >= 0, true);
+  assertEquals(extractor.getAndClearWarnings(), []);
 });
 
 Deno.test('JLeagueDataExtractor - 警告機能のテスト', () => {
