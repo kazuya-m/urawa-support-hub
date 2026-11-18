@@ -1,7 +1,7 @@
 import { load } from '@std/dotenv';
 import type { NotificationController } from '@/adapters/controllers/NotificationController.ts';
 import type { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
-import type { TicketSummaryController } from '@/adapters/controllers/TicketSummaryController.ts';
+import { createSendSummaryDeps, sendSummary, type SendSummaryDeps } from '@/jobs/sendSummary.ts';
 import { handleHealthCheck } from '@/middleware/health.ts';
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
 import { AppError } from '@/shared/errors/index.ts';
@@ -106,17 +106,17 @@ export const TICKET_SUMMARY_ERROR_OPTIONS: ErrorHandlingOptions = {
 export interface RouteFactories {
   collectTickets: () => Promise<Pick<TicketCollectionController, 'handleCollectTickets'>>;
   sendNotification: () => Promise<Pick<NotificationController, 'handleSendNotification'>>;
-  ticketSummary: () => Promise<Pick<TicketSummaryController, 'handleTicketSummary'>>;
+  ticketSummary: () => SendSummaryDeps;
 }
 
 /**
- * di.ts は Playwright を読み込み、読み込み時に sys の権限を要する
+ * di.ts は Playwright を読み込み、読み込み時に sys の権限を要する（通知系の job は読み込まない）
  * テストが main.ts を import できるよう、動的 import で初回のリクエスト時に読み込む
  */
 const defaultRouteFactories: RouteFactories = {
   collectTickets: async () => (await import('@/config/di.ts')).createTicketCollectionController(),
   sendNotification: async () => (await import('@/config/di.ts')).createNotificationController(),
-  ticketSummary: async () => (await import('@/config/di.ts')).createTicketSummaryController(),
+  ticketSummary: createSendSummaryDeps,
 };
 
 export async function handleRequest(
@@ -142,11 +142,14 @@ export async function handleRequest(
   }
 
   if (url.pathname === '/api/ticket-summary' && req.method === 'POST') {
-    const ticketSummaryController = await factories.ticketSummary();
-    return await withErrorHandling(
-      () => ticketSummaryController.handleTicketSummary(req),
-      TICKET_SUMMARY_ERROR_OPTIONS,
-    );
+    const deps = factories.ticketSummary();
+    return await withErrorHandling(async () => {
+      await sendSummary(deps);
+      return HttpResponseBuilder.success({
+        message: 'Ticket summary processed successfully',
+        timestamp: new Date().toISOString(),
+      });
+    }, TICKET_SUMMARY_ERROR_OPTIONS);
   }
 
   if (url.pathname === '/health' && req.method === 'GET') {

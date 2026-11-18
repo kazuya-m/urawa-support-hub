@@ -192,23 +192,3 @@ Deno.test('NotificationService.sendScheduledNotification', async (t) => {
     assertEquals(delays, [1000, 2000]);
   });
 });
-
-Deno.test('NotificationService.sendTicketSummary', async (t) => {
-  await t.step('サマリーを 1 回 broadcast する', async () => {
-    const { service, broadcasts } = createService();
-
-    await service.sendTicketSummary([ticket]);
-
-    assertEquals(broadcasts.length, 1);
-  });
-
-  await t.step('broadcast が失敗したら包み直して投げる', async () => {
-    const { service } = createService({ broadcastError: new Error('LINE down') });
-
-    await assertRejects(
-      () => service.sendTicketSummary([ticket]),
-      Error,
-      'Ticket summary notification failed: LINE down',
-    );
-  });
-});

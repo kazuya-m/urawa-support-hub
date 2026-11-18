@@ -21,11 +21,9 @@ import { NotificationSchedulingService } from '@/domain/services/NotificationSch
 
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 import { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
-import { SendTicketSummaryUseCase } from '@/application/usecases/SendTicketSummaryUseCase.ts';
 
 import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
 import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
-import { TicketSummaryController } from '@/adapters/controllers/TicketSummaryController.ts';
 
 /**
  * 依存関係を作成するファクトリー関数
@@ -96,14 +94,6 @@ export const createNotificationUseCase = (): NotificationUseCase => {
   );
 };
 
-export const createTicketSummaryUseCase = (): SendTicketSummaryUseCase => {
-  const deps = createDependencies();
-  return new SendTicketSummaryUseCase(
-    deps.ticketRepository,
-    deps.notificationService,
-  );
-};
-
 export const createNotificationController = (): NotificationController => {
   const notificationUseCase = createNotificationUseCase();
   return new NotificationController(
@@ -115,12 +105,5 @@ export const createTicketCollectionController = (): TicketCollectionController =
   const ticketCollectionUseCase = createTicketCollectionUseCase();
   return new TicketCollectionController(
     ticketCollectionUseCase,
-  );
-};
-
-export const createTicketSummaryController = (): TicketSummaryController => {
-  const ticketSummaryUseCase = createTicketSummaryUseCase();
-  return new TicketSummaryController(
-    ticketSummaryUseCase,
   );
 };

@@ -1,5 +1,4 @@
 import { Notification } from '@/domain/entities/Notification.ts';
-import { Ticket } from '@/domain/entities/Ticket.ts';
 import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
 import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
@@ -7,7 +6,7 @@ import { formatMatchName } from '@/shared/utils/match.ts';
 import type { NotificationExecutionInput } from '@/application/usecases/results.ts';
 import type { LineClient } from '@/infrastructure/clients/LineClient.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
-import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
+import { toErrorInfo } from '@/shared/utils/errorUtils.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
@@ -125,29 +124,6 @@ export class NotificationService {
         maxRetries: 3,
       },
     });
-  }
-
-  async sendTicketSummary(tickets: Ticket[]): Promise<void> {
-    const message = LINE_MESSAGE_TEMPLATES.ticketSummary(tickets);
-
-    try {
-      await this.lineClient.broadcast(message);
-
-      CloudLogger.info('Ticket summary notification sent successfully', {
-        category: LogCategory.NOTIFICATION,
-        context: { stage: 'ticket_summary_sent' },
-        metadata: {
-          ticketCount: tickets.length,
-        },
-      });
-    } catch (error) {
-      CloudLogger.error('Ticket summary notification failed', {
-        category: LogCategory.NOTIFICATION,
-        context: { stage: 'ticket_summary_error' },
-        error: toErrorInfo(error, ErrorCodes.TICKET_SUMMARY_ERROR, false),
-      });
-      throw new Error(`Ticket summary notification failed: ${getErrorMessage(error)}`);
-    }
   }
 
   private delay(ms: number): Promise<void> {
