@@ -72,7 +72,7 @@ const collectDeps = (
     upsert: (ticket) => Promise.resolve(ticket),
   },
   notificationRepository: {
-    findByTicketId: () => Promise.resolve([] as Notification[]),
+    findByTicketId: () => Promise.resolve<Notification[]>([]),
     update: () => Promise.resolve(),
   },
   notificationSchedulerService: {

@@ -25,6 +25,10 @@ export interface SupabaseConfig {
 }
 
 export interface AppConfig {
+  /**
+   * NODE_ENV の生の値（未設定なら undefined）
+   * cloudTasks.nodeEnv は未設定を 'development' とみなすので、既定値が異なる（どちらも移行前の判定を保つため）
+   */
   nodeEnv?: string;
   cloudTasks: CloudTasksConfig;
   line: LineClientConfig;

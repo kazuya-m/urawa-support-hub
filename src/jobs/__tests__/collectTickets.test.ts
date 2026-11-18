@@ -58,7 +58,7 @@ function createDeps(options: StubOptions = {}) {
     notificationRepository: {
       findByTicketId: (ticketId) => {
         calls.findByTicketId.push(ticketId);
-        return Promise.resolve([] as Notification[]);
+        return Promise.resolve<Notification[]>([]);
       },
       update: () => Promise.resolve(),
     },
@@ -390,4 +390,115 @@ Deno.test('collectTickets - 集計とエラーの握りつぶし', async (t) => 
       assertEquals(calls.scheduleNotifications.length, 0);
     },
   );
+});
+
+/**
+ * 処理中の CloudLogger の出力（console.log の JSON）を捕まえる
+ * stack を出さないよう production にし、Cloud Run のラベルが付かないよう K_SERVICE を消す
+ */
+async function captureLogs(fn: () => Promise<unknown>): Promise<Record<string, unknown>[]> {
+  const lines: string[] = [];
+  const originalLog = console.log;
+  const envKeys = ['NODE_ENV', 'K_SERVICE', 'K_REVISION'];
+  const originalEnv = envKeys.map((key) => [key, Deno.env.get(key)] as const);
+  console.log = (line: string) => lines.push(line);
+  Deno.env.set('NODE_ENV', 'production');
+  Deno.env.delete('K_SERVICE');
+  Deno.env.delete('K_REVISION');
+  try {
+    await fn();
+  } finally {
+    console.log = originalLog;
+    for (const [key, value] of originalEnv) {
+      if (value === undefined) Deno.env.delete(key);
+      else Deno.env.set(key, value);
+    }
+  }
+  return lines.map((line) => JSON.parse(line));
+}
+
+Deno.test('collectTickets - ログ', async (t) => {
+  const pastTicket = Ticket.fromExisting({
+    id: 'log-ticket-1',
+    matchName: 'Log Match',
+    matchDate: new Date('2024-12-01T10:00:00Z'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
+    venue: null,
+    ticketTypes: [],
+    ticketUrl: null,
+    saleStartDate: null,
+    saleEndDate: null,
+    saleStatus: 'before_sale',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    scrapedAt: new Date(),
+    notificationScheduled: false,
+  });
+
+  await t.step('新規チケットの INFO と集計の INFO を出す', async () => {
+    const { deps } = createDeps({ collected: [pastTicket] });
+
+    const logs = await captureLogs(() => collectTickets(deps));
+
+    assertEquals(logs.map((log) => [log.severity, log.message]), [
+      ['INFO', 'Ticket created: Log Match'],
+      ['INFO', 'Ticket collection completed: 1 new, 0 updated, 0 unchanged, 0 failed'],
+    ]);
+    assertEquals(logs[0].jsonPayload, {
+      category: 'TICKET_COLLECTION',
+      context: { ticketId: 'log-ticket-1', matchName: 'Log Match', stage: 'upsert' },
+      data: {
+        updated: {
+          id: 'log-ticket-1',
+          matchName: 'Log Match',
+          saleStatus: 'before_sale',
+          ticketTypes: [],
+        },
+      },
+      metadata: { operation: 'created', hasChanges: true },
+    });
+    const summary = logs[1].jsonPayload as {
+      category: string;
+      metrics: Record<string, number>;
+      context: Record<string, string>;
+    };
+    assertEquals(summary.category, 'TICKET_COLLECTION');
+    assertEquals(Object.keys(summary.context), ['sessionId']);
+    assertEquals(
+      Object.keys(summary.metrics),
+      [
+        'totalProcessed',
+        'successCount',
+        'failureCount',
+        'unknownPatterns',
+        'processingTimeMs',
+        'successRate',
+      ],
+    );
+    assertEquals(summary.metrics.totalProcessed, 1);
+    assertEquals(summary.metrics.successCount, 1);
+    assertEquals(summary.metrics.failureCount, 0);
+    assertEquals(summary.metrics.successRate, 1);
+  });
+
+  await t.step('一括 upsert の失敗は WARNING を出してフォールバックする', async () => {
+    const { deps } = createDeps({
+      collected: [pastTicket],
+      upsertManyError: new Error('bulk failed'),
+    });
+
+    const logs = await captureLogs(() => collectTickets(deps));
+
+    assertEquals(logs[0], {
+      severity: 'WARNING',
+      message: 'Bulk upsert failed, falling back to individual upserts',
+      jsonPayload: {
+        category: 'TICKET_COLLECTION',
+        error: { message: 'bulk failed', recoverable: true },
+        metadata: { ticketCount: 1, fallbackReason: 'bulk_upsert_failed' },
+      },
+    });
+  });
 });

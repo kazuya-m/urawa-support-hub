@@ -243,3 +243,39 @@ Deno.test('CloudTasksClient - should dequeue task without throwing error', async
     tearDown(originalEnv);
   }
 });
+
+Deno.test('CloudTasksClient - enqueueTask は config の serviceAccountEmail を OIDC トークンに使う', async () => {
+  const client = new CloudTasksClient({
+    projectId: 'test-project',
+    location: 'asia-northeast1',
+    queueName: 'notifications',
+    enableDebugLogs: false,
+    nodeEnv: 'test',
+    serviceAccountEmail: 'tasks@test-project.iam.gserviceaccount.com',
+  });
+
+  // Google のクライアントの createTask だけを差し替え、送られるタスクを記録する
+  const requests: Parameters<typeof client['client']['createTask']>[0][] = [];
+  const createTaskStub = stub(client['client'], 'createTask', (request) => {
+    requests.push(request);
+    return Promise.resolve([{ name: `${request?.parent}/tasks/task-1` }, undefined, undefined]);
+  });
+
+  try {
+    const taskId = await client.enqueueTask({
+      taskId: 'task-1',
+      payload: { ticketId: 't-1' },
+      scheduledTime: new Date(Date.now() + 60 * 60 * 1000),
+      targetUrl: 'https://example.run.app/api/send-notification',
+    });
+
+    assertEquals(taskId, 'task-1');
+    assertEquals(requests.length, 1);
+    assertEquals(requests[0]?.task?.httpRequest?.oidcToken, {
+      serviceAccountEmail: 'tasks@test-project.iam.gserviceaccount.com',
+      audience: 'https://example.run.app',
+    });
+  } finally {
+    createTaskStub.restore();
+  }
+});
