@@ -7,9 +7,7 @@ import { TicketRepository } from '@/infrastructure/repositories/TicketRepository
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
 import { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
 import { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
-import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
 import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
-import { LineClient } from '@/infrastructure/clients/LineClient.ts';
 import { JLeagueScrapingService } from '@/infrastructure/services/scraping/sources/jleague/JLeagueScrapingService.ts';
 import { HiroshimaScrapingService } from '@/infrastructure/services/scraping/sources/hiroshima/HiroshimaScrapingService.ts';
 import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
@@ -20,9 +18,7 @@ import { getAppConfig } from '@/config/app-config.ts';
 import { NotificationSchedulingService } from '@/domain/services/NotificationSchedulingService.ts';
 
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
-import { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
 
-import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
 import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
 
 /**
@@ -34,7 +30,6 @@ export const createDependencies = () => {
 
   const supabaseClient = getSupabaseAdminClient();
   const cloudTasksClient = new CloudTasksClient(config.cloudTasks);
-  const lineClient = new LineClient(config.line);
 
   const ticketRepository = new TicketRepository(supabaseClient);
   const notificationRepository = new NotificationRepository(supabaseClient);
@@ -57,21 +52,14 @@ export const createDependencies = () => {
     cloudTasksClient,
     notificationRepository,
   );
-  const notificationService = new NotificationService(
-    notificationRepository,
-    ticketRepository,
-    lineClient,
-  );
 
   return {
     supabaseClient,
     cloudTasksClient,
-    lineClient,
     ticketRepository,
     notificationRepository,
     ticketCollectionService,
     notificationSchedulerService,
-    notificationService,
     notificationSchedulingService,
   };
 };
@@ -84,20 +72,6 @@ export const createTicketCollectionUseCase = (): TicketCollectionUseCase => {
     deps.notificationRepository,
     deps.notificationSchedulingService,
     deps.notificationSchedulerService,
-  );
-};
-
-export const createNotificationUseCase = (): NotificationUseCase => {
-  const deps = createDependencies();
-  return new NotificationUseCase(
-    deps.notificationService,
-  );
-};
-
-export const createNotificationController = (): NotificationController => {
-  const notificationUseCase = createNotificationUseCase();
-  return new NotificationController(
-    notificationUseCase,
   );
 };
 

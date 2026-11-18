@@ -1,12 +1,21 @@
 import { load } from '@std/dotenv';
-import type { NotificationController } from '@/adapters/controllers/NotificationController.ts';
 import type { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
+import {
+  createSendNotificationDeps,
+  type NotificationExecutionInput,
+  sendNotification,
+  type SendNotificationDeps,
+} from '@/jobs/sendNotification.ts';
 import { createSendSummaryDeps, sendSummary, type SendSummaryDeps } from '@/jobs/sendSummary.ts';
 import { handleHealthCheck } from '@/middleware/health.ts';
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
 import { AppError } from '@/shared/errors/index.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory, type LogContext } from '@/shared/logging/types.ts';
+import {
+  isValidNotificationType,
+  type NotificationType,
+} from '@/domain/config/NotificationConfig.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
 // ---------------------------------------------------------------------------
@@ -96,6 +105,56 @@ export const TICKET_SUMMARY_ERROR_OPTIONS: ErrorHandlingOptions = {
 };
 
 // ---------------------------------------------------------------------------
+// 入力検証
+// ---------------------------------------------------------------------------
+
+export interface ValidationResult<T> {
+  isValid: boolean;
+  data?: T;
+  error?: string;
+}
+
+/**
+ * /api/send-notification の body を検証する
+ * notificationType に細工したオブジェクト（{ toString: 1 } など）が来ると例外を投げる
+ */
+export function validateNotificationRequest(
+  body: unknown,
+): ValidationResult<NotificationExecutionInput> {
+  if (!body || typeof body !== 'object' || body === null) {
+    return {
+      isValid: false,
+      error: 'Invalid request body format',
+    };
+  }
+
+  const requestBody = body as Record<string, unknown>;
+  const { ticketId, notificationType } = requestBody;
+
+  if (!ticketId || typeof ticketId !== 'string') {
+    return {
+      isValid: false,
+      error: 'ticketId is required and must be a string',
+    };
+  }
+
+  if (!isValidNotificationType(notificationType as string)) {
+    return {
+      isValid: false,
+      error: `Invalid notificationType: ${String(notificationType)}`,
+    };
+  }
+
+  return {
+    isValid: true,
+    data: {
+      ticketId,
+      notificationType: notificationType as NotificationType,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // ルーティング
 // ---------------------------------------------------------------------------
 
@@ -105,7 +164,7 @@ export const TICKET_SUMMARY_ERROR_OPTIONS: ErrorHandlingOptions = {
  */
 export interface RouteFactories {
   collectTickets: () => Promise<Pick<TicketCollectionController, 'handleCollectTickets'>>;
-  sendNotification: () => Promise<Pick<NotificationController, 'handleSendNotification'>>;
+  sendNotification: () => SendNotificationDeps;
   ticketSummary: () => SendSummaryDeps;
 }
 
@@ -115,7 +174,7 @@ export interface RouteFactories {
  */
 const defaultRouteFactories: RouteFactories = {
   collectTickets: async () => (await import('@/config/di.ts')).createTicketCollectionController(),
-  sendNotification: async () => (await import('@/config/di.ts')).createNotificationController(),
+  sendNotification: createSendNotificationDeps,
   ticketSummary: createSendSummaryDeps,
 };
 
@@ -134,11 +193,34 @@ export async function handleRequest(
   }
 
   if (url.pathname === '/api/send-notification' && req.method === 'POST') {
-    const notificationController = await factories.sendNotification();
-    return await withErrorHandling(
-      () => notificationController.handleSendNotification(req),
-      NOTIFICATION_ERROR_OPTIONS,
-    );
+    const deps = factories.sendNotification();
+    return await withErrorHandling(async () => {
+      // 読み取りと検証も withErrorHandling の中で行う（検証中の例外は CRITICAL で記録する）
+      const body = await req.json().catch(() => null);
+      const validation = validateNotificationRequest(body);
+
+      if (!validation.isValid) {
+        return HttpResponseBuilder.badRequest(validation.error!);
+      }
+
+      const result = await sendNotification(deps, validation.data!);
+
+      if (result.status === 'error') {
+        return HttpResponseBuilder.error('Notification processing failed', {
+          ticketId: result.ticketId,
+          notificationType: result.notificationType,
+          errorMessage: result.errorMessage,
+          executionTimeMs: result.executionDurationMs,
+        });
+      }
+
+      return HttpResponseBuilder.success({
+        message: 'Notification sent successfully',
+        ticketId: result.ticketId,
+        notificationType: result.notificationType,
+        executionTimeMs: result.executionDurationMs,
+      });
+    }, NOTIFICATION_ERROR_OPTIONS);
   }
 
   if (url.pathname === '/api/ticket-summary' && req.method === 'POST') {

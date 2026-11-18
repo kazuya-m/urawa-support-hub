@@ -1,5 +1,4 @@
 import type { Ticket } from '@/domain/entities/Ticket.ts';
-import type { NotificationType } from '@/domain/config/NotificationConfig.ts';
 
 export interface TicketUpsertResult {
   ticket: Ticket;
@@ -21,17 +20,4 @@ export interface TicketCollectionResult {
     stack?: string;
   };
   sourceResults?: unknown;
-}
-
-export interface NotificationResult {
-  status: 'success' | 'error';
-  ticketId: string;
-  notificationType: string;
-  executionDurationMs: number;
-  errorMessage?: string;
-}
-
-export interface NotificationExecutionInput {
-  ticketId: string;
-  notificationType: NotificationType;
 }
