@@ -1,11 +1,11 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { ISiteScrapingService } from '@/infrastructure/services/scraping/shared/interfaces/index.ts';
 import { JLeagueRawTicketData } from './types/JLeagueTypes.ts';
-import { IPage } from '@/application/interfaces/clients/IPlaywrightClient.ts';
+import type { IPage } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { J_LEAGUE_SCRAPING_CONFIG } from '@/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts';
 import { JLeagueDataExtractor } from './extractor/JLeagueDataExtractor.ts';
 import { JLeagueDataParser } from './parser/JLeagueDataParser.ts';
-import { IBrowserManager } from '@/application/interfaces/clients/IBrowserManager.ts';
+import type { BrowserManager } from '@/infrastructure/services/scraping/shared/BrowserManager.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 
@@ -17,9 +17,9 @@ export class JLeagueScrapingService implements ISiteScrapingService {
 
   private readonly dataExtractor: JLeagueDataExtractor;
   private readonly dataParser: JLeagueDataParser;
-  private readonly browserManager: IBrowserManager;
+  private readonly browserManager: BrowserManager;
 
-  constructor(browserManager: IBrowserManager) {
+  constructor(browserManager: BrowserManager) {
     this.dataExtractor = new JLeagueDataExtractor(
       J_LEAGUE_SCRAPING_CONFIG.listPage,
       J_LEAGUE_SCRAPING_CONFIG.detailBaseUrl,

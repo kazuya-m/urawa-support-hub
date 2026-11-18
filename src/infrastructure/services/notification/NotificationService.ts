@@ -1,23 +1,22 @@
 import { Notification } from '@/domain/entities/Notification.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
-import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
-import { INotificationService } from '@/application/interfaces/services/INotificationService.ts';
+import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
+import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
 import { formatMatchName } from '@/shared/utils/match.ts';
-import type { NotificationExecutionInput } from '@/application/interfaces/usecases/INotificationUseCase.ts';
-import { ILineClient } from '@/infrastructure/clients/LineClient.ts';
+import type { NotificationExecutionInput } from '@/application/usecases/results.ts';
+import type { LineClient } from '@/infrastructure/clients/LineClient.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 
-export class NotificationService implements INotificationService {
+export class NotificationService {
   constructor(
-    private readonly notificationRepository: INotificationRepository,
-    private readonly ticketRepository: ITicketRepository,
-    private readonly lineClient: ILineClient,
+    private readonly notificationRepository: NotificationRepository,
+    private readonly ticketRepository: TicketRepository,
+    private readonly lineClient: LineClient,
   ) {}
 
   async sendScheduledNotification(input: NotificationExecutionInput): Promise<void> {

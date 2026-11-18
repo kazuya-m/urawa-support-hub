@@ -1,29 +1,27 @@
-import { ITicketCollectionService } from '@/application/interfaces/services/ITicketCollectionService.ts';
-import { ITicketRepository } from '@/application/interfaces/repositories/ITicketRepository.ts';
-import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
-import { INotificationSchedulerService } from '@/application/interfaces/services/INotificationSchedulerService.ts';
-import { INotificationSchedulingService } from '@/application/interfaces/services/INotificationSchedulingService.ts';
-import { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
+import type { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
+import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
+import type { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
+import type {
+  NotificationSchedulingService,
+  NotificationTiming,
+} from '@/domain/services/NotificationSchedulingService.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import {
-  TicketCollectionResult,
-  TicketUpsertResult,
-} from '@/application/interfaces/results/UseCaseResults.ts';
+import type { TicketCollectionResult, TicketUpsertResult } from '@/application/usecases/results.ts';
 import { CancellationReason } from '@/domain/entities/Notification.ts';
-import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { AppError, DatabaseError } from '@/shared/errors/index.ts';
 import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
-export class TicketCollectionUseCase implements ITicketCollectionUseCase {
+export class TicketCollectionUseCase {
   constructor(
-    private readonly ticketCollectionService: ITicketCollectionService,
-    private readonly ticketRepository: ITicketRepository,
-    private readonly notificationRepository: INotificationRepository,
-    private readonly notificationSchedulingService: INotificationSchedulingService,
-    private readonly notificationSchedulerService: INotificationSchedulerService,
+    private readonly ticketCollectionService: TicketCollectionService,
+    private readonly ticketRepository: TicketRepository,
+    private readonly notificationRepository: NotificationRepository,
+    private readonly notificationSchedulingService: NotificationSchedulingService,
+    private readonly notificationSchedulerService: NotificationSchedulerService,
   ) {}
 
   async execute(): Promise<TicketCollectionResult> {

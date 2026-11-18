@@ -27,10 +27,6 @@ import { getAppConfig } from '@/config/app-config.ts';
 
 import { NotificationSchedulingService } from '@/domain/services/NotificationSchedulingService.ts';
 
-import { ITicketCollectionUseCase } from '@/application/interfaces/usecases/ITicketCollectionUseCase.ts';
-import { INotificationUseCase } from '@/application/interfaces/usecases/INotificationUseCase.ts';
-import { ITicketSummaryUseCase } from '@/application/interfaces/usecases/ITicketSummaryUseCase.ts';
-
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
 import { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
 import { SendTicketSummaryUseCase } from '@/application/usecases/SendTicketSummaryUseCase.ts';
@@ -90,7 +86,7 @@ export const createDependencies = () => {
   };
 };
 
-export const createTicketCollectionUseCase = (): ITicketCollectionUseCase => {
+export const createTicketCollectionUseCase = (): TicketCollectionUseCase => {
   const deps = createDependencies();
   return new TicketCollectionUseCase(
     deps.ticketCollectionService,
@@ -101,14 +97,14 @@ export const createTicketCollectionUseCase = (): ITicketCollectionUseCase => {
   );
 };
 
-export const createNotificationUseCase = (): INotificationUseCase => {
+export const createNotificationUseCase = (): NotificationUseCase => {
   const deps = createDependencies();
   return new NotificationUseCase(
     deps.notificationService,
   );
 };
 
-export const createTicketSummaryUseCase = (): ITicketSummaryUseCase => {
+export const createTicketSummaryUseCase = (): SendTicketSummaryUseCase => {
   const deps = createDependencies();
   return new SendTicketSummaryUseCase(
     deps.ticketRepository,

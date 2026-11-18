@@ -1,10 +1,10 @@
-import { INotificationUseCase } from '@/application/interfaces/usecases/INotificationUseCase.ts';
+import type { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
 import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
 import { validateNotificationRequest } from '@/adapters/validators/NotificationRequestValidator.ts';
 
 export class NotificationController {
   constructor(
-    private readonly notificationUseCase: INotificationUseCase,
+    private readonly notificationUseCase: NotificationUseCase,
   ) {}
 
   async handleSendNotification(req: Request): Promise<Response> {

@@ -1,5 +1,4 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { ITicketCollectionService } from '@/application/interfaces/services/ITicketCollectionService.ts';
 import type { ISiteScrapingService } from './shared/interfaces/index.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
@@ -10,7 +9,7 @@ import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
  * チケット収集サービス（DI対応リファクタリング版）
  * 複数のサイト固有スクレイピングサービスを統合
  */
-export class TicketCollectionService implements ITicketCollectionService {
+export class TicketCollectionService {
   constructor(
     private readonly scrapingServices: ISiteScrapingService[],
   ) {}

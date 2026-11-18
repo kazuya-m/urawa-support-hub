@@ -1,16 +1,14 @@
-import { IPage, IPlaywrightClient } from '@/application/interfaces/clients/IPlaywrightClient.ts';
-import { IBrowserManager } from '@/application/interfaces/clients/IBrowserManager.ts';
-import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
+import { type IPage, PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { toErrorInfo } from '@/shared/utils/errorUtils.ts';
 import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 
-export class BrowserManager implements IBrowserManager {
-  private playwrightClient: IPlaywrightClient;
+export class BrowserManager {
+  private playwrightClient: PlaywrightClient;
   private isLaunched = false;
 
-  constructor(playwrightClient?: IPlaywrightClient) {
+  constructor(playwrightClient?: PlaywrightClient) {
     this.playwrightClient = playwrightClient ?? new PlaywrightClient();
   }
 

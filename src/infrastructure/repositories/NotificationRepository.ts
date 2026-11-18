@@ -2,9 +2,8 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { Notification } from '@/domain/entities/Notification.ts';
 import { NotificationConverter } from './converters/NotificationConverter.ts';
 import { isNotFoundError, throwDatabaseError } from '../utils/database-error-handler.ts';
-import { INotificationRepository } from '@/application/interfaces/repositories/INotificationRepository.ts';
 
-export class NotificationRepository implements INotificationRepository {
+export class NotificationRepository {
   constructor(
     private readonly client: SupabaseClient,
   ) {}

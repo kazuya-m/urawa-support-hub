@@ -7,6 +7,7 @@ import {
   createUpsertMockSupabaseClient,
 } from './test-utils/SupabaseMock.ts';
 import { DatabaseError } from '@/shared/errors/index.ts';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 Deno.test('SupabaseTicketRepository - findById with null handling', async () => {
   const mockTicketRow: TicketRow = {
@@ -359,4 +360,98 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
   assertEquals(result.ticketTypes.includes('ビジター席'), true);
   assertEquals(result.ticketTypes.includes('ホーム席'), true);
   assertEquals(result.ticketTypes.length, 2);
+});
+
+/**
+ * findByStatusIn 用: from().select().in().order() の呼び出しを記録し、指定の結果を返す Supabase クライアントのスタブ
+ */
+function createFindByStatusInClient(
+  result: { data: TicketRow[] | null; error: { message: string; code?: string } | null },
+) {
+  const calls: unknown[][] = [];
+  const query = {
+    select: (...args: unknown[]) => {
+      calls.push(['select', ...args]);
+      return query;
+    },
+    in: (...args: unknown[]) => {
+      calls.push(['in', ...args]);
+      return query;
+    },
+    order: (...args: unknown[]) => {
+      calls.push(['order', ...args]);
+      return Promise.resolve(result);
+    },
+  };
+  const client = {
+    from: (table: string) => {
+      calls.push(['from', table]);
+      return query;
+    },
+  };
+  return { client: client as unknown as SupabaseClient, calls };
+}
+
+function createTicketRow(id: string, saleStatus: TicketRow['sale_status']): TicketRow {
+  return {
+    id,
+    match_name: `試合 ${id}`,
+    match_date: '2025-03-15T19:30:00+09:00',
+    home_team: null,
+    away_team: null,
+    competition: null,
+    sale_start_date: '2025-03-01T01:00:00.000Z',
+    sale_end_date: null,
+    venue: null,
+    ticket_types: [],
+    ticket_url: null,
+    created_at: '2025-01-01T00:00:00Z',
+    updated_at: '2025-01-01T00:00:00Z',
+    scraped_at: '2025-01-01T00:00:00Z',
+    sale_status: saleStatus,
+    notification_scheduled: false,
+  };
+}
+
+Deno.test('TicketRepository - findByStatusIn', async (t) => {
+  await t.step('指定した販売状態で絞り込み、試合日の昇順で取得する', async () => {
+    const { client, calls } = createFindByStatusInClient({
+      data: [createTicketRow('t-1', 'on_sale'), createTicketRow('t-2', 'before_sale')],
+      error: null,
+    });
+    const repository = new TicketRepository(client);
+
+    const result = await repository.findByStatusIn(['on_sale', 'before_sale']);
+
+    assertEquals(calls, [
+      ['from', 'tickets'],
+      ['select', '*'],
+      ['in', 'sale_status', ['on_sale', 'before_sale']],
+      ['order', 'match_date', { ascending: true }],
+    ]);
+    // DB が返した順序のまま Ticket に変換する
+    assertEquals(result.map((ticket) => ticket.id), ['t-1', 't-2']);
+    assertEquals(result.map((ticket) => ticket.saleStatus), ['on_sale', 'before_sale']);
+  });
+
+  await t.step('該当がなければ空配列を返す', async () => {
+    const { client } = createFindByStatusInClient({ data: [], error: null });
+    const repository = new TicketRepository(client);
+
+    assertEquals(await repository.findByStatusIn(['on_sale']), []);
+  });
+
+  await t.step('Supabase がエラーを返したら DatabaseError を投げる', async () => {
+    const { client } = createFindByStatusInClient({
+      data: null,
+      error: { message: 'connection refused', code: 'PGRST000' },
+    });
+    const repository = new TicketRepository(client);
+
+    const error = await assertRejects(
+      () => repository.findByStatusIn(['on_sale']),
+      DatabaseError,
+    );
+    assertEquals(error.message, '[TicketRepository.findByStatusIn] connection refused');
+  });
 });

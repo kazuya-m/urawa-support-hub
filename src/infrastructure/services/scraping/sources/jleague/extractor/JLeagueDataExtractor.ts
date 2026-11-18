@@ -1,4 +1,4 @@
-import { IPage } from '@/application/interfaces/clients/IPlaywrightClient.ts';
+import type { IPage } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { IDataExtractor } from '@/infrastructure/services/scraping/shared/interfaces/IDataExtractor.ts';
 import { JLeagueRawTicketData } from '../types/JLeagueTypes.ts';
 import { JLeagueListPageConfig } from '@/infrastructure/services/scraping/sources/jleague/JLeagueConfig.ts';

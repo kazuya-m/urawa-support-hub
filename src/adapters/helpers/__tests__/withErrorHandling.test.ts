@@ -10,7 +10,9 @@ import { NotificationController } from '@/adapters/controllers/NotificationContr
 import { TicketSummaryController } from '@/adapters/controllers/TicketSummaryController.ts';
 import { AppError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
-import type { INotificationUseCase } from '@/application/interfaces/usecases/INotificationUseCase.ts';
+import type { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
+import type { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
+import type { SendTicketSummaryUseCase } from '@/application/usecases/SendTicketSummaryUseCase.ts';
 
 type LogEntry = {
   severity: string;
@@ -41,25 +43,30 @@ async function captureLogs<T>(fn: () => Promise<T>): Promise<{ result: T; logs: 
 const post = (path: string, body?: string) =>
   new Request(`http://localhost:8080${path}`, { method: 'POST', body });
 
-const respondCollect = (useCase: ConstructorParameters<typeof TicketCollectionController>[0]) =>
+const respondCollect = (useCase: Pick<TicketCollectionUseCase, 'execute'>) =>
   withErrorHandling(
     () =>
-      new TicketCollectionController(useCase).handleCollectTickets(post('/api/collect-tickets')),
+      new TicketCollectionController(useCase as TicketCollectionUseCase).handleCollectTickets(
+        post('/api/collect-tickets'),
+      ),
     TICKET_COLLECTION_ERROR_OPTIONS,
   );
 
-const respondNotification = (useCase: INotificationUseCase, body: string) =>
+const respondNotification = (useCase: Pick<NotificationUseCase, 'execute'>, body: string) =>
   withErrorHandling(
     () =>
-      new NotificationController(useCase).handleSendNotification(
+      new NotificationController(useCase as NotificationUseCase).handleSendNotification(
         post('/api/send-notification', body),
       ),
     NOTIFICATION_ERROR_OPTIONS,
   );
 
-const respondSummary = (useCase: ConstructorParameters<typeof TicketSummaryController>[0]) =>
+const respondSummary = (useCase: Pick<SendTicketSummaryUseCase, 'execute'>) =>
   withErrorHandling(
-    () => new TicketSummaryController(useCase).handleTicketSummary(post('/api/ticket-summary')),
+    () =>
+      new TicketSummaryController(useCase as SendTicketSummaryUseCase).handleTicketSummary(
+        post('/api/ticket-summary'),
+      ),
     TICKET_SUMMARY_ERROR_OPTIONS,
   );
 
@@ -110,7 +117,7 @@ Deno.test('collect-tickets: 想定外エラーの応答', async () => {
 });
 
 Deno.test('send-notification: 検証中の想定外エラー（細工した body）', async () => {
-  const useCase: INotificationUseCase = {
+  const useCase: Pick<NotificationUseCase, 'execute'> = {
     execute: () => Promise.reject(new Error('should not be called')),
   };
   const { result: response, logs } = await captureLogs(() =>
@@ -135,7 +142,7 @@ Deno.test('send-notification: 検証中の想定外エラー（細工した body
 });
 
 Deno.test('send-notification: UseCase がエラー結果を返したときの応答', async () => {
-  const useCase: INotificationUseCase = {
+  const useCase: Pick<NotificationUseCase, 'execute'> = {
     execute: () =>
       Promise.resolve({
         status: 'error' as const,
