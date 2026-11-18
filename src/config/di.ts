@@ -3,14 +3,6 @@
  * 一般的なファクトリー関数パターンで実装
  */
 
-import { load } from '@std/dotenv';
-
-try {
-  await load({ export: true });
-} catch {
-  // Ignore .env loading errors in production
-}
-
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
 import { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';

@@ -1,10 +1,13 @@
-import { assertEquals } from 'std/assert/mod.ts';
-import { type ErrorHandlingOptions, withErrorHandling } from '../withErrorHandling.ts';
+import { assertEquals, assertRejects } from 'std/assert/mod.ts';
 import {
+  type ErrorHandlingOptions,
+  handleRequest,
   NOTIFICATION_ERROR_OPTIONS,
+  type RouteFactories,
   TICKET_COLLECTION_ERROR_OPTIONS,
   TICKET_SUMMARY_ERROR_OPTIONS,
-} from '../routeErrorOptions.ts';
+  withErrorHandling,
+} from '../main.ts';
 import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
 import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
 import { TicketSummaryController } from '@/adapters/controllers/TicketSummaryController.ts';
@@ -235,5 +238,75 @@ Deno.test('withErrorHandling - 汎用の挙動', async (t) => {
     assertEquals(body.error, 'Unexpected');
     assertEquals(body.details, { errorMessage: 'boom' });
     assertEquals(logs[0].severity, 'ERROR');
+  });
+});
+
+/**
+ * 呼ばれたら失敗する RouteFactories（ルーティングだけを確かめるとき用）
+ */
+const unusedFactories: RouteFactories = {
+  collectTickets: () => {
+    throw new Error('collectTickets should not be created');
+  },
+  sendNotification: () => {
+    throw new Error('sendNotification should not be created');
+  },
+  ticketSummary: () => {
+    throw new Error('ticketSummary should not be created');
+  },
+};
+
+Deno.test('handleRequest - ルーティング', async (t) => {
+  await t.step('未知のパスは 404', async () => {
+    const response = await handleRequest(
+      new Request('http://localhost:8080/api/unknown', { method: 'GET' }),
+      unusedFactories,
+    );
+    const body = await response.json();
+
+    assertEquals(response.status, 404);
+    assertEquals(body.error, 'Not Found');
+    assertEquals(body.message, 'GET /api/unknown is not supported');
+  });
+
+  await t.step('メソッドが違えば 404', async () => {
+    const response = await handleRequest(
+      new Request('http://localhost:8080/api/collect-tickets', { method: 'GET' }),
+      unusedFactories,
+    );
+
+    assertEquals(response.status, 404);
+    await response.body?.cancel();
+  });
+
+  await t.step('/health は handleHealthCheck の応答を返す', async () => {
+    const keys = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+    const original = keys.map((key) => [key, Deno.env.get(key)] as const);
+    for (const key of keys) Deno.env.set(key, 'x');
+    try {
+      const response = await handleRequest(
+        new Request('http://localhost:8080/health', { method: 'GET' }),
+        unusedFactories,
+      );
+      const body = await response.json();
+
+      assertEquals(response.status, 200);
+      assertEquals(body.status, 'healthy');
+    } finally {
+      for (const [key, value] of original) {
+        if (value === undefined) Deno.env.delete(key);
+        else Deno.env.set(key, value);
+      }
+    }
+  });
+
+  await t.step('依存の生成で投げた例外は withErrorHandling で包まずにそのまま投げる', async () => {
+    for (const path of ['/api/collect-tickets', '/api/send-notification', '/api/ticket-summary']) {
+      await assertRejects(
+        () => handleRequest(post(path), unusedFactories),
+        Error,
+        'should not be created',
+      );
+    }
   });
 });
