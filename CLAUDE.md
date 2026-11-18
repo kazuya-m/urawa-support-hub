@@ -14,10 +14,10 @@
 
 ### 移行中であることの注記
 
-- コードは #204 の最終形（`src/jobs/`・`src/domain/`・`src/infra/`）へ移行中で、旧構成の `src/adapters/`・`src/application/`・`src/infrastructure/`・`src/middleware/` などが残っている（リポジトリ直下の `infrastructure/` は Cloud Scheduler の設定で、移行の対象ではない）
+- コードは #204 の最終形（`src/jobs/`・`src/domain/`・`src/infra/`）へ移行中で、`src/jobs/` は移行済み。旧構成の `src/infrastructure/`・`src/middleware/` などが残っている（リポジトリ直下の `infrastructure/` は Cloud Scheduler の設定で、移行の対象ではない）
 - **新しく書くコードは下記の 3 ルールに従う**。既存コードのルール違反や `src/shared/testing/mocks` の Mock クラスに合わせない
 - ディレクトリの移動は、各サブ Issue が担当範囲でのみ行う
-- それ以外の作業では既存ファイルを現在の場所で変更し、新しいディレクトリ（`src/jobs/` など）は作らない
+- それ以外の作業では既存ファイルを現在の場所で変更し、新しいディレクトリ（`src/infra/` など）は作らない
 - 構成図・移行計画と、削除・移動の前に確認する「残すもの」「方針決定事項」は #204 を参照
 
 ## アーキテクチャの 3 ルール
