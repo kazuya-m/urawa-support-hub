@@ -14,7 +14,7 @@ import { JLeagueScrapingService } from '@/infrastructure/services/scraping/sourc
 import { HiroshimaScrapingService } from '@/infrastructure/services/scraping/sources/hiroshima/HiroshimaScrapingService.ts';
 import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { BrowserManager } from '@/infrastructure/services/scraping/shared/BrowserManager.ts';
-import { createSupabaseAdminClient } from '@/config/supabase.ts';
+import { getSupabaseAdminClient } from '@/config/supabase.ts';
 import { getAppConfig } from '@/config/app-config.ts';
 
 import { NotificationSchedulingService } from '@/domain/services/NotificationSchedulingService.ts';
@@ -34,7 +34,7 @@ import { TicketSummaryController } from '@/adapters/controllers/TicketSummaryCon
 export const createDependencies = () => {
   const config = getAppConfig();
 
-  const supabaseClient = createSupabaseAdminClient();
+  const supabaseClient = getSupabaseAdminClient();
   const cloudTasksClient = new CloudTasksClient(config.cloudTasks);
   const lineClient = new LineClient(config.line);
 
