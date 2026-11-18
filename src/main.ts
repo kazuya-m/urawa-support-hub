@@ -1,5 +1,9 @@
 import { load } from '@std/dotenv';
-import type { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
+import {
+  collectTickets,
+  type CollectTicketsDeps,
+  createCollectTicketsDeps,
+} from '@/jobs/collectTickets.ts';
 import {
   createSendNotificationDeps,
   type NotificationExecutionInput,
@@ -8,7 +12,7 @@ import {
 } from '@/jobs/sendNotification.ts';
 import { createSendSummaryDeps, sendSummary, type SendSummaryDeps } from '@/jobs/sendSummary.ts';
 import { handleHealthCheck } from '@/middleware/health.ts';
-import { HttpResponseBuilder } from '@/adapters/helpers/HttpResponseBuilder.ts';
+import { type HttpStatusCode, HttpStatusCodes } from '@/shared/constants/HttpStatusCodes.ts';
 import { AppError } from '@/shared/errors/index.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory, type LogContext } from '@/shared/logging/types.ts';
@@ -17,6 +21,44 @@ import {
   type NotificationType,
 } from '@/domain/config/NotificationConfig.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
+
+class HttpResponseBuilder {
+  static json(data: Record<string, unknown>, status: HttpStatusCode): Response {
+    return new Response(
+      JSON.stringify({
+        ...data,
+        timestamp: new Date().toISOString(),
+      }),
+      {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+  }
+
+  static success(data: Record<string, unknown>): Response {
+    return this.json({
+      status: 'success',
+      ...data,
+    }, HttpStatusCodes.OK);
+  }
+
+  static error(
+    message: string,
+    details?: unknown,
+    status: HttpStatusCode = HttpStatusCodes.INTERNAL_SERVER_ERROR,
+  ): Response {
+    const data: Record<string, unknown> = { error: message };
+    if (details !== undefined) {
+      data.details = details;
+    }
+    return this.json(data, status);
+  }
+
+  static badRequest(details: string): Response {
+    return this.error('Bad Request', details, HttpStatusCodes.BAD_REQUEST);
+  }
+}
 
 export interface ErrorHandlingOptions {
   logMessage: string;
@@ -121,13 +163,13 @@ export function validateNotificationRequest(
 }
 
 export interface RouteFactories {
-  collectTickets: () => Promise<Pick<TicketCollectionController, 'handleCollectTickets'>>;
+  collectTickets: () => Promise<CollectTicketsDeps>;
   sendNotification: () => SendNotificationDeps;
   ticketSummary: () => SendSummaryDeps;
 }
 
 const defaultRouteFactories: RouteFactories = {
-  collectTickets: async () => (await import('@/config/di.ts')).createTicketCollectionController(),
+  collectTickets: createCollectTicketsDeps,
   sendNotification: createSendNotificationDeps,
   ticketSummary: createSendSummaryDeps,
 };
@@ -139,11 +181,18 @@ export async function handleRequest(
   const url = new URL(req.url);
 
   if (url.pathname === '/api/collect-tickets' && req.method === 'POST') {
-    const ticketController = await factories.collectTickets();
-    return await withErrorHandling(
-      () => ticketController.handleCollectTickets(req),
-      TICKET_COLLECTION_ERROR_OPTIONS,
-    );
+    const deps = await factories.collectTickets();
+    return await withErrorHandling(async () => {
+      const result = await collectTickets(deps);
+
+      return HttpResponseBuilder.success({
+        message: 'Ticket collection completed successfully',
+        ticketsFound: result.ticketsFound,
+        newTickets: result.newTickets,
+        updatedTickets: result.updatedTickets,
+        executionTimeMs: result.executionDurationMs,
+      });
+    }, TICKET_COLLECTION_ERROR_OPTIONS);
   }
 
   if (url.pathname === '/api/send-notification' && req.method === 'POST') {

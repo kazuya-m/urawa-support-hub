@@ -1,15 +1,8 @@
 import { assert, assertEquals, assertRejects } from 'std/assert/mod.ts';
+import { collectTickets, type CollectTicketsDeps } from '../collectTickets.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import type { Notification } from '@/domain/entities/Notification.ts';
-import {
-  NotificationSchedulingService,
-  type NotificationTiming,
-} from '@/domain/services/NotificationSchedulingService.ts';
-import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
-import type { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
-import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
-import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import type { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
+import type { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
 import { AppError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 
 type StubOptions = {
@@ -22,10 +15,10 @@ type StubOptions = {
 };
 
 /**
- * TicketCollectionUseCase の依存をすべてインラインスタブで用意し、呼び出しを記録する
- * 本番コードはスケジューリングや upsert の例外を握りつぶすため、経路上のメソッドは全部書いておく
+ * collectTickets の依存をインラインスタブで用意し、呼び出しを記録する
+ * 本番コードはスケジューリングや upsert の例外を握りつぶすため、経路上のメソッドは型どおり全部書く
  */
-function createUseCase(options: StubOptions = {}) {
+function createDeps(options: StubOptions = {}) {
   const calls = {
     findByIds: [] as string[][],
     upsertMany: [] as Ticket[][],
@@ -35,66 +28,56 @@ function createUseCase(options: StubOptions = {}) {
     cancelNotifications: [] as string[][],
   };
 
-  const ticketCollectionService = {
-    collectAllTickets: () =>
-      options.collected instanceof Error
-        ? Promise.reject(options.collected)
-        : Promise.resolve(options.collected ?? []),
-  } satisfies Partial<TicketCollectionService>;
+  const deps: CollectTicketsDeps = {
+    ticketCollectionService: {
+      collectAllTickets: () =>
+        options.collected instanceof Error
+          ? Promise.reject(options.collected)
+          : Promise.resolve(options.collected ?? []),
+    },
+    ticketRepository: {
+      findByIds: (ids) => {
+        calls.findByIds.push(ids);
+        if (options.existing instanceof Error) return Promise.reject(options.existing);
+        const map = new Map<string, Ticket>();
+        for (const [id, ticket] of options.existing ?? []) {
+          if (ids.includes(id)) map.set(id, ticket);
+        }
+        return Promise.resolve(map);
+      },
+      upsertMany: (tickets) => {
+        calls.upsertMany.push(tickets);
+        if (options.upsertManyError) return Promise.reject(options.upsertManyError);
+        return Promise.resolve(tickets);
+      },
+      upsert: (ticket) => {
+        calls.upsert.push(ticket);
+        return Promise.resolve(ticket);
+      },
+    },
+    notificationRepository: {
+      findByTicketId: (ticketId) => {
+        calls.findByTicketId.push(ticketId);
+        return Promise.resolve([] as Notification[]);
+      },
+      update: () => Promise.resolve(),
+    },
+    notificationSchedulerService: {
+      scheduleNotifications: (ticket, times) => {
+        calls.scheduleNotifications.push({ ticket, times });
+        return Promise.resolve();
+      },
+      cancelNotifications: (taskIds) => {
+        calls.cancelNotifications.push(taskIds);
+        return Promise.resolve();
+      },
+    },
+  };
 
-  const ticketRepository = {
-    findByIds: (ids: string[]) => {
-      calls.findByIds.push(ids);
-      if (options.existing instanceof Error) return Promise.reject(options.existing);
-      const map = new Map<string, Ticket>();
-      for (const [id, ticket] of options.existing ?? []) {
-        if (ids.includes(id)) map.set(id, ticket);
-      }
-      return Promise.resolve(map);
-    },
-    upsertMany: (tickets: Ticket[]) => {
-      calls.upsertMany.push(tickets);
-      if (options.upsertManyError) return Promise.reject(options.upsertManyError);
-      return Promise.resolve(tickets);
-    },
-    upsert: (ticket: Ticket) => {
-      calls.upsert.push(ticket);
-      return Promise.resolve(ticket);
-    },
-  } satisfies Partial<TicketRepository>;
-
-  const notificationRepository = {
-    findByTicketId: (ticketId: string) => {
-      calls.findByTicketId.push(ticketId);
-      return Promise.resolve([] as Notification[]);
-    },
-    update: () => Promise.resolve(),
-  } satisfies Partial<NotificationRepository>;
-
-  const notificationSchedulerService = {
-    scheduleNotifications: (ticket: Ticket, times: NotificationTiming[]) => {
-      calls.scheduleNotifications.push({ ticket, times });
-      return Promise.resolve();
-    },
-    cancelNotifications: (taskIds: string[]) => {
-      calls.cancelNotifications.push(taskIds);
-      return Promise.resolve();
-    },
-  } satisfies Partial<NotificationSchedulerService>;
-
-  const useCase = new TicketCollectionUseCase(
-    ticketCollectionService as unknown as TicketCollectionService,
-    ticketRepository as unknown as TicketRepository,
-    notificationRepository as unknown as NotificationRepository,
-    new NotificationSchedulingService(),
-    notificationSchedulerService as unknown as NotificationSchedulerService,
-  );
-
-  return { useCase, calls };
+  return { deps, calls };
 }
 
-// TicketCollectionUseCaseの完全分離テスト（外部依存なし）
-Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
+Deno.test('collectTickets', async (t) => {
   await t.step('should execute successfully with mock tickets', async () => {
     const mockTicket = Ticket.fromExisting({
       id: 'test-ticket-1',
@@ -115,8 +98,8 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
       notificationScheduled: false,
     });
 
-    const { useCase, calls } = createUseCase({ collected: [mockTicket] });
-    const result = await useCase.execute();
+    const { deps, calls } = createDeps({ collected: [mockTicket] });
+    const result = await collectTickets(deps);
 
     assertEquals(result.status, 'success');
     assertEquals(result.ticketsFound, 1);
@@ -171,11 +154,11 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
       });
 
       // 既存チケットが存在することを設定（findByIds は scrapedTicket.id に existingTicket を返す）
-      const { useCase, calls } = createUseCase({
+      const { deps, calls } = createDeps({
         collected: [scrapedTicket],
         existing: new Map([[scrapedTicket.id, existingTicket]]),
       });
-      const result = await useCase.execute();
+      const result = await collectTickets(deps);
 
       // 実行成功確認
       assertEquals(result.status, 'success');
@@ -213,8 +196,8 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
         notificationScheduled: false,
       });
 
-      const { useCase, calls } = createUseCase({ collected: [ticket] });
-      const result = await useCase.execute();
+      const { deps, calls } = createDeps({ collected: [ticket] });
+      const result = await collectTickets(deps);
 
       assertEquals(result.status, 'success');
       assertEquals(result.newTickets, 1);
@@ -254,11 +237,11 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
       notificationScheduled: false,
     });
 
-    const { useCase, calls } = createUseCase({
+    const { deps, calls } = createDeps({
       collected: [ticket],
       upsertManyError: new Error('bulk failed'),
     });
-    const result = await useCase.execute();
+    const result = await collectTickets(deps);
 
     assertEquals(result.status, 'success');
     assertEquals(result.newTickets, 1);
@@ -267,18 +250,18 @@ Deno.test('TicketCollectionUseCase - Complete Isolation Tests', async (t) => {
   });
 
   await t.step('should handle collection service errors gracefully', async () => {
-    const { useCase } = createUseCase({ collected: new Error('Mock collection error') });
+    const { deps } = createDeps({ collected: new Error('Mock collection error') });
 
     // エラー時は例外が投げられることを検証
     await assertRejects(
-      () => useCase.execute(),
+      () => collectTickets(deps),
       Error,
       'Mock collection error',
     );
   });
 });
 
-Deno.test('TicketCollectionUseCase - エラーの包み直し', async (t) => {
+Deno.test('collectTickets - エラーの包み直し', async (t) => {
   const ticket = Ticket.fromExisting({
     id: 'test-ticket-error',
     matchName: 'Test Match',
@@ -305,9 +288,9 @@ Deno.test('TicketCollectionUseCase - エラーの包み直し', async (t) => {
       'connection refused',
       ErrorCodes.DB_FETCH_ERROR,
     );
-    const { useCase } = createUseCase({ collected: [ticket], existing: dbError });
+    const { deps } = createDeps({ collected: [ticket], existing: dbError });
 
-    const error = await assertRejects(() => useCase.execute(), AppError);
+    const error = await assertRejects(() => collectTickets(deps), AppError);
 
     assertEquals(error.code, 'TICKET_COLLECTION_FAILED');
     assertEquals(
@@ -319,9 +302,9 @@ Deno.test('TicketCollectionUseCase - エラーの包み直し', async (t) => {
   });
 
   await t.step('その他のエラーは USECASE_EXECUTION_FAILED で包み直す', async () => {
-    const { useCase } = createUseCase({ collected: new Error('Mock collection error') });
+    const { deps } = createDeps({ collected: new Error('Mock collection error') });
 
-    const error = await assertRejects(() => useCase.execute(), AppError);
+    const error = await assertRejects(() => collectTickets(deps), AppError);
 
     assertEquals(error.code, 'USECASE_EXECUTION_FAILED');
     assertEquals(
@@ -332,4 +315,79 @@ Deno.test('TicketCollectionUseCase - エラーの包み直し', async (t) => {
     assertEquals(error.cause?.message, 'Mock collection error');
     assertEquals(Object.keys(error.context ?? {}).sort(), ['executionDurationMs', 'sessionId']);
   });
+});
+
+Deno.test('collectTickets - 集計とエラーの握りつぶし', async (t) => {
+  const day = 24 * 60 * 60 * 1000;
+  const futureTicket = () =>
+    Ticket.createNew({
+      matchName: 'Future Match',
+      matchDate: new Date(Date.now() + 30 * day),
+      homeTeam: null,
+      awayTeam: null,
+      competition: null,
+      venue: null,
+      ticketTypes: [],
+      ticketUrl: null,
+      saleStartDate: new Date(Date.now() + 10 * day),
+      saleEndDate: null,
+      saleStatus: 'before_sale',
+      scrapedAt: new Date(),
+      notificationScheduled: false,
+    });
+
+  await t.step('通知のスケジュールが失敗しても成功として結果を返す', async () => {
+    const ticket = await futureTicket();
+    const { deps, calls } = createDeps({ collected: [ticket] });
+    deps.notificationSchedulerService.scheduleNotifications = () =>
+      Promise.reject(new Error('Cloud Tasks down'));
+
+    const result = await collectTickets(deps);
+
+    assertEquals(result.status, 'success');
+    assertEquals(result.newTickets, 1);
+    // スケジュールに失敗したので notificationScheduled=true の保存はしない
+    assertEquals(calls.upsert.length, 0);
+  });
+
+  await t.step('変更のない既存チケットは unchanged として数え、upsert しない', async () => {
+    const ticket = await futureTicket();
+    const { deps, calls } = createDeps({
+      collected: [ticket],
+      existing: new Map([[ticket.id, ticket]]),
+    });
+
+    const result = await collectTickets(deps);
+
+    assertEquals(result.ticketsFound, 1);
+    assertEquals(result.newTickets, 0);
+    assertEquals(result.updatedTickets, 0);
+    assertEquals(result.unchangedTickets, 1);
+    assertEquals(result.failedTickets, 0);
+    assertEquals(calls.upsertMany.length, 0);
+    assertEquals(calls.scheduleNotifications.length, 0);
+  });
+
+  await t.step(
+    '一括 upsert の後の個別 upsert が失敗したチケットは failed として数える',
+    async () => {
+      const ticket = await futureTicket();
+      const { deps, calls } = createDeps({
+        collected: [ticket],
+        upsertManyError: new Error('bulk failed'),
+      });
+      deps.ticketRepository.upsert = (failed) => {
+        calls.upsert.push(failed);
+        return Promise.reject(new Error('single failed'));
+      };
+
+      const result = await collectTickets(deps);
+
+      assertEquals(result.status, 'success');
+      assertEquals(result.newTickets, 0);
+      assertEquals(result.failedTickets, 1);
+      // 失敗したチケットは通知のスケジュール対象にしない
+      assertEquals(calls.scheduleNotifications.length, 0);
+    },
+  );
 });

@@ -6,10 +6,9 @@ import {
   TICKET_COLLECTION_ERROR_OPTIONS,
   withErrorHandling,
 } from '../main.ts';
-import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
-import { AppError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
+import { DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
-import type { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
+import type { CollectTicketsDeps } from '@/jobs/collectTickets.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import type { SendSummaryDeps } from '@/jobs/sendSummary.ts';
 import type { SendNotificationDeps } from '@/jobs/sendNotification.ts';
@@ -57,28 +56,81 @@ const factoriesWith = (overrides: Partial<RouteFactories>): RouteFactories => ({
   ...overrides,
 });
 
-const respondCollect = (useCase: Pick<TicketCollectionUseCase, 'execute'>) =>
-  withErrorHandling(
-    () =>
-      new TicketCollectionController(useCase as TicketCollectionUseCase).handleCollectTickets(
-        post('/api/collect-tickets'),
-      ),
-    TICKET_COLLECTION_ERROR_OPTIONS,
+/**
+ * collectTickets の依存のスタブ（収集結果か収集のエラーを指定する）
+ */
+const collectDeps = (
+  options: { collected?: Ticket[]; error?: Error } = {},
+): CollectTicketsDeps => ({
+  ticketCollectionService: {
+    collectAllTickets: () =>
+      options.error ? Promise.reject(options.error) : Promise.resolve(options.collected ?? []),
+  },
+  ticketRepository: {
+    findByIds: () => Promise.resolve(new Map<string, Ticket>()),
+    upsertMany: (tickets) => Promise.resolve(tickets),
+    upsert: (ticket) => Promise.resolve(ticket),
+  },
+  notificationRepository: {
+    findByTicketId: () => Promise.resolve([] as Notification[]),
+    update: () => Promise.resolve(),
+  },
+  notificationSchedulerService: {
+    scheduleNotifications: () => Promise.resolve(),
+    cancelNotifications: () => Promise.resolve(),
+  },
+});
+
+const respondCollect = (deps: CollectTicketsDeps) =>
+  handleRequest(
+    post('/api/collect-tickets'),
+    factoriesWith({ collectTickets: () => Promise.resolve(deps) }),
   );
 
-Deno.test('collect-tickets: UseCase の AppError', async () => {
+Deno.test('collect-tickets: 成功時は 200 と件数', async () => {
+  const ticket = Ticket.fromExisting({
+    id: 'collected-1',
+    matchName: 'Test Match',
+    matchDate: new Date('2024-12-01'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
+    venue: null,
+    ticketTypes: [],
+    ticketUrl: null,
+    saleStartDate: null,
+    saleEndDate: null,
+    saleStatus: 'before_sale',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    scrapedAt: new Date(),
+    notificationScheduled: false,
+  });
+  const { result: response } = await captureLogs(() =>
+    respondCollect(collectDeps({ collected: [ticket] }))
+  );
+  const body = await response.json();
+
+  assertEquals(response.status, 200);
+  assertEquals(Object.keys(body), [
+    'status',
+    'message',
+    'ticketsFound',
+    'newTickets',
+    'updatedTickets',
+    'executionTimeMs',
+    'timestamp',
+  ]);
+  assertEquals(body.status, 'success');
+  assertEquals(body.message, 'Ticket collection completed successfully');
+  assertEquals(body.ticketsFound, 1);
+  assertEquals(body.newTickets, 1);
+  assertEquals(body.updatedTickets, 0);
+});
+
+Deno.test('collect-tickets: 収集の失敗は AppError（USECASE_EXECUTION_FAILED）として 500', async () => {
   const { result: response, logs } = await captureLogs(() =>
-    respondCollect({
-      execute: () =>
-        Promise.reject(
-          new AppError(
-            '[TicketCollectionUseCase] Ticket collection failed: boom',
-            ErrorCodes.USECASE_EXECUTION_FAILED,
-            undefined,
-            { sessionId: 's-1', executionDurationMs: 5 },
-          ),
-        ),
-    })
+    respondCollect(collectDeps({ error: new Error('boom') }))
   );
   const body = await response.json();
 
@@ -87,12 +139,15 @@ Deno.test('collect-tickets: UseCase の AppError', async () => {
     body.error,
     '[USECASE_EXECUTION_FAILED] [TicketCollectionUseCase] Ticket collection failed: boom',
   );
-  assertEquals(body.details, { sessionId: 's-1', executionDurationMs: 5 });
+  assertEquals(Object.keys(body.details).sort(), ['executionDurationMs', 'sessionId']);
 
-  assertEquals(logs.length, 1);
+  // job の 1 件の後に、共通エラーハンドラの 1 件
+  assertEquals(logs.length, 2);
   assertEquals(logs[0].severity, 'ERROR');
-  assertEquals(logs[0].message, 'UseCase error in ticket collection');
-  assertEquals(logs[0].jsonPayload, {
+  assertEquals(logs[0].message, 'Ticket collection failed');
+  assertEquals(logs[1].severity, 'ERROR');
+  assertEquals(logs[1].message, 'UseCase error in ticket collection');
+  assertEquals(logs[1].jsonPayload, {
     category: 'TICKET_COLLECTION',
     error: {
       details: '[TicketCollectionUseCase] Ticket collection failed: boom',
@@ -101,9 +156,32 @@ Deno.test('collect-tickets: UseCase の AppError', async () => {
   });
 });
 
+Deno.test('collect-tickets: DatabaseError は TICKET_COLLECTION_FAILED として 500', async () => {
+  const deps = collectDeps({ collected: [] });
+  deps.ticketCollectionService.collectAllTickets = () =>
+    Promise.reject(
+      new DatabaseError('TicketRepository', 'findByIds', 'down', ErrorCodes.DB_FETCH_ERROR),
+    );
+  const { result: response, logs } = await captureLogs(() => respondCollect(deps));
+  const body = await response.json();
+
+  assertEquals(response.status, 500);
+  assertEquals(
+    body.error,
+    '[TICKET_COLLECTION_FAILED] [TicketCollectionUseCase] Database operation failed: [TicketRepository.findByIds] down',
+  );
+  assertEquals(logs.map((log) => [log.severity, log.message]), [
+    ['ERROR', 'Ticket collection service error'],
+    ['ERROR', 'UseCase error in ticket collection'],
+  ]);
+});
+
 Deno.test('collect-tickets: 想定外エラーの応答', async () => {
   const { result: response } = await captureLogs(() =>
-    respondCollect({ execute: () => Promise.reject(new Error('unexpected')) })
+    withErrorHandling(
+      () => Promise.reject(new Error('unexpected')),
+      TICKET_COLLECTION_ERROR_OPTIONS,
+    )
   );
   const body = await response.json();
 

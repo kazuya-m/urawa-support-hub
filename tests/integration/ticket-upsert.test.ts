@@ -1,7 +1,7 @@
 import { assertEquals } from 'std/assert/mod.ts';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { TicketUpsertResult } from '@/application/usecases/results.ts';
+import type { TicketUpsertResult } from '@/jobs/collectTickets.ts';
 import {
   cleanupTestData,
   createTestSupabaseClient,
