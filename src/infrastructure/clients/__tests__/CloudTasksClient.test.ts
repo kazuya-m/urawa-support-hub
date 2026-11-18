@@ -91,12 +91,10 @@ Deno.test('CloudTasksClient - should accept custom parameters', () => {
   }
 });
 
-Deno.test('CloudTasksClient - should connect to emulator when CLOUD_TASKS_EMULATOR_HOST is set', () => {
+Deno.test('CloudTasksClient - should connect to emulator when emulatorHost is set', () => {
   const originalEnv = { ...Deno.env.toObject() };
 
   try {
-    // Set emulator environment variable
-    Deno.env.set('CLOUD_TASKS_EMULATOR_HOST', 'localhost:8123');
     Deno.env.set('GOOGLE_CLOUD_PROJECT', 'test-project');
 
     const config: CloudTasksConfig = {
@@ -105,6 +103,7 @@ Deno.test('CloudTasksClient - should connect to emulator when CLOUD_TASKS_EMULAT
       queueName: 'test-queue',
       enableDebugLogs: false,
       nodeEnv: 'development',
+      emulatorHost: 'localhost:8123',
     };
 
     const client = new CloudTasksClient(config);

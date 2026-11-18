@@ -31,7 +31,7 @@ export class CloudTasksClient {
     }
 
     // エミュレーター接続設定（開発環境のみ）
-    const emulatorHost = Deno.env.get('CLOUD_TASKS_EMULATOR_HOST');
+    const emulatorHost = this.config.emulatorHost;
     const isProduction = this.config.nodeEnv === 'production';
     const shouldUseEmulator = emulatorHost && !isProduction;
 
@@ -114,7 +114,7 @@ export class CloudTasksClient {
         },
         body: btoa(JSON.stringify(payload)),
         oidcToken: {
-          serviceAccountEmail: Deno.env.get('CLOUD_TASKS_SERVICE_ACCOUNT'),
+          serviceAccountEmail: this.config.serviceAccountEmail,
           audience: new URL(targetUrl).origin,
         },
       },

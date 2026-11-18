@@ -98,6 +98,7 @@ export async function createCollectTicketsDeps(): Promise<CollectTicketsDeps> {
     notificationSchedulerService: new NotificationSchedulerService(
       cloudTasksClient,
       notificationRepository,
+      config.notificationUrl,
     ),
   };
 }
