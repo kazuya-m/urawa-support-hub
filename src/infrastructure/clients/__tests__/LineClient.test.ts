@@ -1,6 +1,7 @@
 import { assertEquals, assertRejects, assertThrows } from 'std/assert/mod.ts';
 import { stub } from 'std/testing/mock.ts';
-import { LineClient, LineClientConfig, LineMessage } from '../LineClient.ts';
+import { LineClient, LineMessage } from '../LineClient.ts';
+import type { LineClientConfig } from '@/config/app-config.ts';
 
 Deno.test('LineClient', async (t) => {
   const mockConfig: LineClientConfig = {
