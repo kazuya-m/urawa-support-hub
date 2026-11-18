@@ -4,6 +4,10 @@ import { Ticket } from '@/domain/entities/Ticket.ts';
 import type { LineMessage } from '@/infrastructure/clients/LineClient.ts';
 
 const NOW = new Date('2025-10-01T00:00:00Z');
+
+/** broadcast したメッセージに試合名が含まれるか */
+const mentions = (message: LineMessage, matchName: string) =>
+  JSON.stringify(message).includes(matchName);
 const DAY = 24 * 60 * 60 * 1000;
 
 /**
@@ -12,9 +16,10 @@ const DAY = 24 * 60 * 60 * 1000;
 function createTestTicket(
   overrides: { id: string; matchName: string; matchDate: Date },
 ): Ticket {
+  // homeTeam・awayTeam があるとメッセージは「ホーム vs アウェイ」になるので、試合名を出すために null にする
   return Ticket.fromExisting({
-    homeTeam: '浦和レッズ',
-    awayTeam: 'FC東京',
+    homeTeam: null,
+    awayTeam: null,
     competition: 'J1リーグ',
     venue: 'さいたまスタジアム2002',
     saleStartDate: new Date('2025-09-25T10:00:00+09:00'),
@@ -111,6 +116,8 @@ Deno.test('sendSummary', async (t) => {
       broadcasts[0].altText,
       '🎫 チケット一覧 (販売中2件、販売予定0件)',
     );
+    assertEquals(mentions(broadcasts[0], '浦和レッズ vs FC東京'), true);
+    assertEquals(mentions(broadcasts[0], '浦和レッズ vs 横浜F・マリノス'), true);
   });
 
   await t.step('試合日が過去のチケットは除く（現在時刻ちょうどは含む）', async () => {
@@ -130,6 +137,8 @@ Deno.test('sendSummary', async (t) => {
 
     assertEquals(broadcasts.length, 1);
     assertEquals(broadcasts[0].altText, '🎫 チケット一覧 (販売中1件、販売予定0件)');
+    assertEquals(mentions(broadcasts[0], '浦和レッズ vs FC東京'), true);
+    assertEquals(mentions(broadcasts[0], '名古屋グランパス'), false);
   });
 
   await t.step('試合日がすべて過去なら送らない', async () => {

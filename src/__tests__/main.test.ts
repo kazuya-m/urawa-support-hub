@@ -13,7 +13,7 @@ import type { TicketCollectionUseCase } from '@/application/usecases/TicketColle
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import type { SendSummaryDeps } from '@/jobs/sendSummary.ts';
 import type { SendNotificationDeps } from '@/jobs/sendNotification.ts';
-import { Notification } from '@/domain/entities/Notification.ts';
+import type { Notification } from '@/domain/entities/Notification.ts';
 
 type LogEntry = {
   severity: string;
@@ -375,7 +375,7 @@ Deno.test('send-notification', async (t) => {
         },
       },
       notificationRepository: {
-        findByTicketId: () => Promise.resolve([] as Notification[]),
+        findByTicketId: () => Promise.resolve<Notification[]>([]),
         save: () => Promise.resolve(),
         update: (notification) => {
           calls.push(`update:${notification.status}`);
@@ -418,6 +418,7 @@ Deno.test('send-notification', async (t) => {
     assertEquals(body.message, 'Notification sent successfully');
     assertEquals(body.ticketId, 't-1');
     assertEquals(body.notificationType, 'day_before');
+    assertEquals(typeof body.executionTimeMs, 'number');
     assertEquals(calls, ['findById:t-1', 'broadcast', 'update:sent']);
   });
 
@@ -460,6 +461,7 @@ Deno.test('send-notification', async (t) => {
     assertEquals(body.details.ticketId, 't-1');
     assertEquals(body.details.notificationType, 'day_before');
     assertEquals(body.details.errorMessage, 'Ticket not found: t-1');
+    assertEquals(typeof body.details.executionTimeMs, 'number');
     assertEquals(logs.map((log) => [log.severity, log.message]), [
       ['ERROR', 'Scheduled notification processing failed'],
       ['ERROR', 'Scheduled notification failed'],
