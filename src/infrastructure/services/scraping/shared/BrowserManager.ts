@@ -63,7 +63,7 @@ export class BrowserManager {
       try {
         await this.playwrightClient.close();
       } catch (error) {
-        CloudLogger.warn('Failed to close browser', {
+        CloudLogger.warning('Failed to close browser', {
           category: LogCategory.SYSTEM,
           context: {
             stage: 'browser_cleanup',

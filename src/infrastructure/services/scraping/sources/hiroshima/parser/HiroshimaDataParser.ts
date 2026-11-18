@@ -49,7 +49,7 @@ export class HiroshimaDataParser {
       // 試合日時をパース（サンフレッチェ広島サイト固有のフォーマット）
       const matchDate = this.parseMatchDate(rawTicket.matchDate, rawTicket.matchTime);
       if (!matchDate) {
-        CloudLogger.warn('Failed to parse match date', {
+        CloudLogger.warning('Failed to parse match date', {
           category: LogCategory.TICKET_COLLECTION,
           context: {
             stage: 'data_parsing',

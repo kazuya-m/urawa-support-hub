@@ -3,7 +3,7 @@
  * GCP Cloud Loggingに対応した構造化ログ出力クラス
  */
 
-import type { CloudLoggingEntry, LogSeverity } from './types.ts';
+import type { CloudLoggingEntry, LogPayload, LogSeverity } from './types.ts';
 
 export class CloudLogger {
   /**
@@ -12,7 +12,7 @@ export class CloudLogger {
   private static formatEntry(
     severity: LogSeverity,
     message: string,
-    payload?: CloudLoggingEntry['jsonPayload'],
+    payload?: LogPayload,
   ): CloudLoggingEntry {
     const entry: CloudLoggingEntry = {
       severity,
@@ -52,7 +52,7 @@ export class CloudLogger {
   private static log(
     severity: LogSeverity,
     message: string,
-    payload?: CloudLoggingEntry['jsonPayload'],
+    payload?: LogPayload,
   ): void {
     if (!this.shouldLog(severity)) return;
 
@@ -65,42 +65,35 @@ export class CloudLogger {
   /**
    * DEBUGレベルログ（開発環境のみ）
    */
-  static debug(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
+  static debug(message: string, payload?: LogPayload): void {
     this.log('DEBUG', message, payload);
   }
 
   /**
    * INFOレベルログ（正常な処理完了）
    */
-  static info(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
+  static info(message: string, payload?: LogPayload): void {
     this.log('INFO', message, payload);
   }
 
   /**
    * WARNINGレベルログ（警告、処理は継続）
    */
-  static warning(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
+  static warning(message: string, payload?: LogPayload): void {
     this.log('WARNING', message, payload);
-  }
-
-  /**
-   * WARNINGレベルログのエイリアス
-   */
-  static warn(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
-    this.warning(message, payload);
   }
 
   /**
    * ERRORレベルログ（エラー、個別処理失敗）
    */
-  static error(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
+  static error(message: string, payload?: LogPayload): void {
     this.log('ERROR', message, payload);
   }
 
   /**
    * CRITICALレベルログ（重大エラー、システム全体影響）
    */
-  static critical(message: string, payload?: CloudLoggingEntry['jsonPayload']): void {
+  static critical(message: string, payload?: LogPayload): void {
     this.log('CRITICAL', message, payload);
   }
 }

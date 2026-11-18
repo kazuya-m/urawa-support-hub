@@ -28,7 +28,7 @@ export class JLeagueDataExtractor implements IDataExtractor<JLeagueRawTicketData
           tickets.push(ticketData);
         }
       } catch (error) {
-        CloudLogger.warn('Failed to extract ticket data', {
+        CloudLogger.warning('Failed to extract ticket data', {
           category: LogCategory.TICKET_COLLECTION,
           context: {
             stage: 'data_extraction',
