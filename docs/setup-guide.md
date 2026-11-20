@@ -157,7 +157,8 @@ gcloud artifacts repositories create urawa-support-hub \
 # Cloud Tasks キュー（名前はコードに固定）
 gcloud tasks queues create notifications --location=GC_REGION \
   --min-backoff=30s --max-backoff=300s --max-doublings=4 \
-  --max-attempts=-1 --max-retry-duration=43200s
+  --max-attempts=-1 --max-retry-duration=43200s \
+  --max-concurrent-dispatches=1
 
 # Secret Manager（deploy.yml の --update-secrets が参照する名前）
 # 値はコマンドラインに書かず、表示されない入力で渡す（シェルの履歴に残さないため）。実行後に値を貼り付けて Enter
@@ -165,35 +166,37 @@ read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create SUPABASE_SERVICE_
 read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-file=- && unset VALUE
 ```
 
-Cloud Tasks のキューは、タスクの実行先（`/api/send-notification`）が 2xx 以外を返すとリトライします。送信処理は再試行してよい失敗だけを 5xx にします。
+Cloud Tasks のキューは、タスクの実行先（`/api/send-notification`）が 2xx 以外を返すとリトライします。送信処理は再試行してよい失敗だけを 500 にします（503・429 はキュー全体の配信を絞る合図として扱われるため使わない）。
 
 | 状況                                                         | 応答 | 通知記録                   |
 | ------------------------------------------------------------ | ---- | -------------------------- |
 | 送信した（LINE が 200、または Retry-Key 受理済みの 409）     | 200  | `sent`                     |
 | 送信済み・チケットなし・送信時刻と合わない・販売開始を過ぎた | 200  | 変更しない                 |
 | LINE が 409 以外の 4xx（400、月間上限の 429 など）           | 200  | `failed`（再試行しない）   |
-| LINE が 5xx・タイムアウト                                    | 503  | `failed`（再試行で再確保） |
-| 他の実行が送信中（`sending`）                                | 503  | 変更しない                 |
+| LINE が 5xx・タイムアウト                                    | 500  | `failed`（再試行で再確保） |
+| 他の実行が送信中（`sending`）                                | 500  | 変更しない                 |
 | DB の読み書きの失敗                                          | 500  | 変更しない                 |
 
 同じ通知（チケット・通知タイプ・送信時刻）は DB の一意キーで 1 行に確保してから送り、LINE には `X-Line-Retry-Key`（確保した行の id）を付けます。再試行や重複したタスクで同じ通知が届いても、LINE への送信は重複しません。
 
 キューの再試行設定と理由:
 
-| 設定                   | 値                  | 理由                                                                                                                                                   |
-| ---------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--min-backoff`        | `30s`               | Cloud Run は `--max-instances 1 --concurrency 1` なので、収集（最大 300 秒）や月次サマリーと重なると 429 になる。既定の 0.1 秒では数秒で試行を使い切る |
-| `--max-backoff`        | `300s`              | 30・60・120・240・300 秒…の間隔で、約 7.5 分で収集の実行時間を越えられる                                                                               |
-| `--max-doublings`      | `4`                 | 30 秒から 4 回の倍化で上限の 300 秒に達する                                                                                                            |
-| `--max-retry-duration` | `43200s`（12 時間） | LINE の Retry-Key の管理期間（最初のリクエストから 24 時間）より短くし、再試行で重複送信しないようにする。販売開始を過ぎた再試行は 200 で終わる        |
-| `--max-attempts`       | `-1`（無制限）      | Cloud Tasks は経過時間と試行回数の両方が上限に達するまで再試行するので、試行回数では打ち切らず、経過時間だけで打ち切る                                 |
+| 設定                          | 値                  | 理由                                                                                                                                                                                                                      |
+| ----------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--min-backoff`               | `30s`               | Cloud Run は `--max-instances 1 --concurrency 1` なので、収集（最大 300 秒）や月次サマリーと重なると 429 になる。既定の 0.1 秒では数秒で試行を使い切る                                                                    |
+| `--max-backoff`               | `300s`              | 30・60・120・240・300 秒…の間隔で、約 7.5 分で収集の実行時間を越えられる                                                                                                                                                  |
+| `--max-doublings`             | `4`                 | 30 秒から 4 回の倍化で上限の 300 秒に達する                                                                                                                                                                               |
+| `--max-retry-duration`        | `43200s`（12 時間） | LINE の Retry-Key の管理期間（最初のリクエストから 24 時間）より短くし、再試行で重複送信しないようにする。販売開始を過ぎた再試行は 200 で終わるので、販売開始が通知時刻から 12 時間以内なら、この上限より先に打ち切られる |
+| `--max-attempts`              | `-1`（無制限）      | Cloud Tasks は経過時間と試行回数の両方が上限に達するまで再試行するので、試行回数では打ち切らず、経過時間だけで打ち切る                                                                                                    |
+| `--max-concurrent-dispatches` | `1`                 | Cloud Run は同時に 1 リクエストしか処理しないので、同時刻のタスクを同時に送ると 429 になる。1 件ずつ配信する                                                                                                              |
 
 既存のキューに適用する場合:
 
 ```bash
 gcloud tasks queues update notifications --location=GC_REGION \
   --min-backoff=30s --max-backoff=300s --max-doublings=4 \
-  --max-attempts=-1 --max-retry-duration=43200s
+  --max-attempts=-1 --max-retry-duration=43200s \
+  --max-concurrent-dispatches=1
 gcloud tasks queues describe notifications --location=GC_REGION
 ```
 
