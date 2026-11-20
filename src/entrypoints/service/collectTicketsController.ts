@@ -17,6 +17,7 @@ export function handleCollectTickets(deps: CollectTicketsDeps): Promise<Response
       ticketsFound: result.ticketsFound,
       newTickets: result.newTickets,
       updatedTickets: result.updatedTickets,
+      scheduledNotifications: result.scheduledNotifications,
       executionTimeMs: result.executionDurationMs,
     });
   }, TICKET_COLLECTION_ERROR_OPTIONS);

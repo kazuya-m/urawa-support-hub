@@ -156,7 +156,7 @@ export class CloudTasksClient {
       return 'created';
     } catch (error) {
       if (isAlreadyExistsError(error)) {
-        CloudLogger.info('Task already exists', {
+        CloudLogger.debug('Task already exists', {
           category: LogCategory.CLOUD_TASKS,
           context: { taskId: taskId, stage: 'enqueue_already_exists' },
           metadata: { queueName: this.config.queueName },
@@ -183,7 +183,7 @@ export class CloudTasksClient {
         }
       }
 
-      CloudLogger.error('Failed to enqueue task', {
+      CloudLogger.warning('Failed to enqueue task', {
         category: LogCategory.CLOUD_TASKS,
         context: {
           taskId: taskId,

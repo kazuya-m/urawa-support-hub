@@ -217,7 +217,7 @@ Deno.test('collectTickets', async (t) => {
 
     const error = await assertRejects(() => collectTickets(deps), AppError);
 
-    assertEquals(error.code, ErrorCodes.USECASE_EXECUTION_FAILED);
+    assertEquals(error.code, ErrorCodes.CLOUD_TASKS_ERROR);
     assertEquals(calls.schedule.length, 6);
   });
 
@@ -243,11 +243,18 @@ Deno.test('collectTickets', async (t) => {
       reads++;
       return reads === 1 ? Promise.reject(new Error('db blip')) : Promise.resolve([soon]);
     };
+    let collections = 0;
+    deps.ticketCollectionService.collectAllTickets = () => {
+      collections++;
+      return Promise.resolve([]);
+    };
 
     const result = await collectTickets(deps);
 
     assertEquals(result.status, 'success');
+    assertEquals(collections, 1);
     assertEquals(calls.schedule.length, 3);
+    assertEquals(reads, 2);
   });
 
   await t.step('スクレイピングが失敗しても登録してから AppError を投げる', async () => {

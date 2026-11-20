@@ -93,14 +93,6 @@ export async function collectTickets(
   if (!collected) {
     throw toCollectionError(collectionError, sessionId, startTime);
   }
-  if (scheduledNotifications.failed > 0) {
-    throw toCollectionError(
-      new Error(`${scheduledNotifications.failed} notifications failed to schedule`),
-      sessionId,
-      startTime,
-    );
-  }
-
   const { tickets, upsertResults } = collected;
   const executionDuration = Date.now() - startTime;
 
@@ -126,6 +118,21 @@ export async function collectTickets(
       sessionId,
     },
   });
+
+  if (scheduledNotifications.failed > 0) {
+    const appError = new AppError(
+      `[TicketCollectionUseCase] Notification scheduling failed: ${scheduledNotifications.failed} notifications`,
+      ErrorCodes.CLOUD_TASKS_ERROR,
+      undefined,
+      { sessionId, scheduledNotifications },
+    );
+    CloudLogger.error('Notification scheduling failed after ticket collection', {
+      category: LogCategory.NOTIFICATION,
+      context: { sessionId, stage: 'after_collection' },
+      error: { code: ErrorCodes.CLOUD_TASKS_ERROR, details: appError.message, recoverable: true },
+    });
+    throw appError;
+  }
 
   return {
     status: 'success',
@@ -284,13 +291,14 @@ async function scheduleUpcomingNotifications(
   const summary: NotificationSchedulingSummary = { created: 0, alreadyExists: 0, failed: 0 };
 
   for (const notification of upcoming) {
+    if (notification.notificationTime.getTime() <= deps.now().getTime()) continue;
     try {
       const result = await deps.notificationSchedulerService.scheduleNotification(notification);
       if (result === 'created') summary.created++;
       else summary.alreadyExists++;
     } catch (error) {
       summary.failed++;
-      CloudLogger.error('Failed to schedule notification', {
+      const payload = {
         category: LogCategory.NOTIFICATION,
         context: { ticketId: notification.ticketId, sessionId, stage },
         metadata: {
@@ -298,7 +306,12 @@ async function scheduleUpcomingNotifications(
           notificationTime: notification.notificationTime.toISOString(),
         },
         error: toErrorInfo(error, undefined, true),
-      });
+      };
+      if (stage === 'after_collection') {
+        CloudLogger.error('Failed to schedule notification', payload);
+      } else {
+        CloudLogger.warning('Failed to schedule notification', payload);
+      }
     }
   }
 

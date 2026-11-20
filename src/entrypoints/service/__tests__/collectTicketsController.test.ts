@@ -79,6 +79,7 @@ Deno.test('collect-tickets: 成功時は 200 と件数', async () => {
     'ticketsFound',
     'newTickets',
     'updatedTickets',
+    'scheduledNotifications',
     'executionTimeMs',
     'timestamp',
   ]);
@@ -87,6 +88,7 @@ Deno.test('collect-tickets: 成功時は 200 と件数', async () => {
   assertEquals(body.ticketsFound, 1);
   assertEquals(body.newTickets, 1);
   assertEquals(body.updatedTickets, 0);
+  assertEquals(body.scheduledNotifications, { created: 0, alreadyExists: 0, failed: 0 });
 });
 
 Deno.test('collect-tickets: 収集の失敗は AppError（USECASE_EXECUTION_FAILED）として 500', async () => {
