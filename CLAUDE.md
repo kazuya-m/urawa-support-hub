@@ -68,10 +68,18 @@ deno test src/ --allow-env --allow-net=127.0.0.1  # 単体テスト
 
 ### Stacked PR（依存関係のある作業）
 
-- 1 つの Issue を複数 PR に分ける場合や、依存関係のある Issue を続けて対応する場合に使う
-- 後続ブランチは先行ブランチから切り、PR の base も先行ブランチにする
-- 先行 PR がマージされたら、後続 PR の base を `main` に付け替えて rebase する
-- 各 PR は単独で CI が通る状態を保つ
+- 1 つの Issue を複数 PR に分ける場合や、依存関係のある Issue を続けて対応する場合は、GitHub の Stacked PR を `gh stack`（`gh extension install github/gh-stack`）で作る
+- 各層のブランチ名も上の命名規則に従う。各 PR は単独で CI が通る状態を保つ
+- 使うコマンド
+  - `gh stack init`: スタックを始める
+  - `gh stack add`: 上に層を足す
+  - `gh stack submit`: ブランチを push し、PR を作ってスタックにつなげる
+  - `gh stack link`: 既にある PR を下から順にスタックにつなげる
+  - `gh stack view`: 層・PR・状態を確かめる
+  - `gh stack sync`・`gh stack rebase`: 下の層の更新やマージに追従する
+  - `gh stack merge`: スタックの PR をマージする
+- base の付け替えや rebase を手で行わず、`gh stack` に任せる
+- `gh stack` を実行できない環境（クラウドセッションなど）では、下の層のブランチから切って push し、base を下の層のブランチにした PR を作るまでを行う。スタックへのつなぎ込み（`gh stack link`）は依頼する
 
 ## ドキュメント索引
 
