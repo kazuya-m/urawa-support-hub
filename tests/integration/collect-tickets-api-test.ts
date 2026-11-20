@@ -107,24 +107,13 @@ async function testDirectApiCall(): Promise<void> {
   const mockSetup = setupCloudTasksMock();
 
   try {
-    // 直接APIハンドラをimportして呼び出し
-    const { handleRequest } = await import('@/main.ts');
-
-    // テスト用のHTTP Requestを作成
-    const testRequest = new Request('http://localhost:8080/api/collect-tickets', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer dev-test-token',
-      },
-      body: JSON.stringify({
-        source: 'integration-test',
-        timestamp: new Date().toISOString(),
-      }),
-    });
+    const { handleCollectTickets } = await import(
+      '@/entrypoints/service/collectTicketsController.ts'
+    );
+    const { createCollectTicketsDeps } = await import('@/usecases/collectTickets.ts');
 
     console.log('📞 Calling API handler directly...');
-    const response = await handleRequest(testRequest);
+    const response = await handleCollectTickets(await createCollectTicketsDeps());
     const result: ApiResponse = await response.json();
 
     console.log('\n📋 API Response:');
