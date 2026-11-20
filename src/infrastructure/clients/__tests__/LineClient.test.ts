@@ -172,4 +172,11 @@ Deno.test('LineClient', async (t) => {
       { kind: 'retryable', detail: 'connection reset' },
     );
   });
+
+  await t.step('broadcastWithRetryKey: タイムアウトは再試行対象', async () => {
+    assertEquals(
+      await classify(() => Promise.reject(new DOMException('Signal timed out.', 'TimeoutError'))),
+      { kind: 'retryable', detail: 'Signal timed out.' },
+    );
+  });
 });
