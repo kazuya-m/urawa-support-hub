@@ -1,3 +1,5 @@
+LOCK TABLE public.notifications IN SHARE ROW EXCLUSIVE MODE;
+
 ALTER TABLE public.notifications
   DROP CONSTRAINT IF EXISTS notifications_status_check;
 
@@ -24,7 +26,7 @@ WHERE id IN (
             WHEN 'failed' THEN 2
             ELSE 3
           END,
-          updated_at DESC,
+          created_at DESC,
           id
       ) AS rank
     FROM public.notifications
@@ -53,10 +55,11 @@ AS $$
   ON CONFLICT (ticket_id, notification_type, notification_time) DO UPDATE
     SET status = 'sending',
         claimed_at = now(),
+        updated_at = now(),
         error_message = NULL,
         message = COALESCE(n.message, EXCLUDED.message)
     WHERE n.status IN ('scheduled', 'failed', 'cancelled')
-       OR (n.status = 'sending' AND n.claimed_at < now() - INTERVAL '10 minutes')
+       OR (n.status = 'sending' AND n.claimed_at < now() - INTERVAL '6 minutes')
   RETURNING n.id, n.message;
 $$;
 

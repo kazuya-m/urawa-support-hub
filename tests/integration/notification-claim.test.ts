@@ -1,4 +1,5 @@
 import { assertEquals, assertNotEquals } from 'std/assert/mod.ts';
+import { createClient } from '@supabase/supabase-js';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import {
   type NotificationKey,
@@ -122,7 +123,7 @@ Deno.test('claim_notification: 同時に確保しても 1 件だけ確保でき�
 Deno.test('claim_notification: 期限切れの sending は再確保でき、本文は初回のまま', async () => {
   await withTicket('claim-stale', async (key) => {
     const first = await notificationRepo.claim(key, firstMessage);
-    await setRow(first!.id, { claimed_at: new Date(Date.now() - 11 * 60 * 1000).toISOString() });
+    await setRow(first!.id, { claimed_at: new Date(Date.now() - 7 * 60 * 1000).toISOString() });
 
     const second = await notificationRepo.claim(key, secondMessage);
 
@@ -181,6 +182,32 @@ Deno.test('markSent・markFailed は sending 以外を上書きしない', async
     assertEquals(row.status, 'sent');
     assertEquals(row.error_message, null);
     assertNotEquals(row.sent_at, null);
+  });
+});
+
+Deno.test('markSent・markFailed は対象の行がなくてもエラーにしない', async () => {
+  const missingId = crypto.randomUUID();
+  await notificationRepo.markSent(missingId, new Date());
+  await notificationRepo.markFailed(missingId, 'no row');
+});
+
+Deno.test('claim_notification: anon キーからは呼べない', async () => {
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ||
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+  const anon = createClient(Deno.env.get('SUPABASE_URL') || 'http://127.0.0.1:54321', anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  await withTicket('claim-anon', async (key) => {
+    const { error } = await anon.rpc('claim_notification', {
+      p_ticket_id: key.ticketId,
+      p_notification_type: key.notificationType,
+      p_notification_time: key.notificationTime.toISOString(),
+      p_message: firstMessage,
+    });
+
+    assertNotEquals(error, null);
+    assertEquals(await notificationRepo.findStatusByKey(key), null);
   });
 });
 

@@ -97,7 +97,12 @@ export class NotificationRepository {
   async markSent(id: string, sentAt: Date): Promise<void> {
     const { error } = await this.client
       .from('notifications')
-      .update({ status: 'sent', sent_at: sentAt.toISOString(), error_message: null })
+      .update({
+        status: 'sent',
+        sent_at: sentAt.toISOString(),
+        error_message: null,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', id)
       .eq('status', 'sending');
 
@@ -107,7 +112,11 @@ export class NotificationRepository {
   async markFailed(id: string, errorMessage: string): Promise<void> {
     const { error } = await this.client
       .from('notifications')
-      .update({ status: 'failed', error_message: errorMessage })
+      .update({
+        status: 'failed',
+        error_message: errorMessage,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', id)
       .eq('status', 'sending');
 
