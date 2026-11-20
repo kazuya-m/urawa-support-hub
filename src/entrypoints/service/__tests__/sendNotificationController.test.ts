@@ -43,7 +43,6 @@ Deno.test('send-notification', async (t) => {
     saleStatus: 'before_sale',
     ticketTypes: [],
     ticketUrl: null,
-    notificationScheduled: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     scrapedAt: new Date(),
@@ -229,6 +228,57 @@ Deno.test('send-notification', async (t) => {
 
     assertEquals(response.status, 400);
     assertEquals(body.details, 'Invalid notificationType: "invalid_notification_type"');
+    assertEquals(calls, []);
+  });
+
+  await t.step('payload の notificationTime を照合に使う', async () => {
+    const { deps, calls } = notificationDeps();
+    const { result: response } = await captureLogs(() =>
+      handleSendNotification(
+        post(JSON.stringify({
+          ticketId: 't-1',
+          notificationType: 'day_before',
+          notificationTime: '2024-02-28T11:00:00.000Z',
+        })),
+        deps,
+      )
+    );
+    const body = await response.json();
+
+    assertEquals(response.status, 200);
+    assertEquals(body.outcome, { kind: 'skipped', reason: 'notification_time_mismatch' });
+    assertEquals(calls, ['findById:t-1']);
+  });
+
+  await t.step('notificationTime が一致すれば送る', async () => {
+    const { deps } = notificationDeps();
+    const { result: response } = await captureLogs(() =>
+      handleSendNotification(
+        post(JSON.stringify({
+          ticketId: 't-1',
+          notificationType: 'day_before',
+          notificationTime: '2024-02-29T11:00:00.000Z',
+        })),
+        deps,
+      )
+    );
+    const body = await response.json();
+
+    assertEquals(body.outcome, { kind: 'sent', notificationId: 'n-1' });
+  });
+
+  await t.step('notificationTime が日時でなければ 400', async () => {
+    const { deps, calls } = notificationDeps();
+    const response = await handleSendNotification(
+      post(
+        JSON.stringify({ ticketId: 't-1', notificationType: 'day_before', notificationTime: 1 }),
+      ),
+      deps,
+    );
+    const body = await response.json();
+
+    assertEquals(response.status, 400);
+    assertEquals(body.details, 'Invalid notificationTime: 1');
     assertEquals(calls, []);
   });
 

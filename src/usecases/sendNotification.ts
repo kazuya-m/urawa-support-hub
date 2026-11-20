@@ -19,12 +19,14 @@ import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 export interface NotificationExecutionInput {
   ticketId: string;
   notificationType: NotificationType;
+  notificationTime?: Date;
 }
 
 export type SkipReason =
   | 'ticket_not_found'
   | 'no_sale_start_date'
   | 'outside_send_window'
+  | 'notification_time_mismatch'
   | 'already_sent';
 
 export type RetryReason = 'claimed_by_another' | 'line_unavailable';
@@ -55,6 +57,16 @@ export async function sendNotification(
   if (!ticket) return skip(input, 'ticket_not_found');
   if (!ticket.saleStartDate) return skip(input, 'no_sale_start_date');
 
+  const notificationTime = calculateNotificationTime(notificationType, ticket.saleStartDate);
+  if (
+    input.notificationTime && input.notificationTime.getTime() !== notificationTime.getTime()
+  ) {
+    return skip(input, 'notification_time_mismatch', {
+      requestedNotificationTime: input.notificationTime.toISOString(),
+      notificationTime: notificationTime.toISOString(),
+    });
+  }
+
   const now = deps.now();
   if (!isWithinSendWindow(notificationType, ticket.saleStartDate, now)) {
     return skip(input, 'outside_send_window', {
@@ -63,11 +75,7 @@ export async function sendNotification(
     });
   }
 
-  const key: NotificationKey = {
-    ticketId,
-    notificationType,
-    notificationTime: calculateNotificationTime(notificationType, ticket.saleStartDate),
-  };
+  const key: NotificationKey = { ticketId, notificationType, notificationTime };
   const claimed = await deps.notificationRepository.claim(
     key,
     buildMessage(ticket, ticket.saleStartDate, notificationType),
