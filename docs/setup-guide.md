@@ -38,10 +38,10 @@ supabase status      # URL とキーを確認
 
 ### 2. 環境変数ファイル
 
-| ファイル     | 読み込む側                                                                                                                |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `.env`       | アプリ起動時に `src/config/di.ts` が `@std/dotenv` で読み込む（`deno task dev:local`）。`scripts/` 配下のスクリプトも同様 |
-| `.env.local` | `docker-compose.yml` の `env_file`（`deno task dev`）                                                                     |
+| ファイル     | 読み込む側                                                                                                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.env`       | アプリ起動時に入口（`src/entrypoints/service/main.ts`・`src/entrypoints/job/*.ts`）が `@std/dotenv` で読み込む（`deno task dev:local`）。`scripts/` 配下のスクリプトも同様 |
+| `.env.local` | `docker-compose.yml` の `env_file`（`deno task dev`）                                                                                                                      |
 
 どちらも `.gitignore` で除外されています。テンプレートは `.env.example` です。
 
