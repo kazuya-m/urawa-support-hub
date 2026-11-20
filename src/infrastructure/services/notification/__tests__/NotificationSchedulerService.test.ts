@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from 'std/assert/mod.ts';
+import { assertEquals, assertExists, assertRejects } from 'std/assert/mod.ts';
 import { stub } from 'std/testing/mock.ts';
 import { NotificationSchedulerService } from '../NotificationSchedulerService.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
@@ -82,6 +82,8 @@ function createNotificationRepositoryStub(): NotificationRepository {
 }
 
 // Set required environment variables for initialization
+const TARGET_URL = 'https://test.example.com/api/notify';
+
 Deno.env.set('GOOGLE_CLOUD_PROJECT', 'test-project');
 Deno.env.set('SUPABASE_URL', 'http://test.supabase.co');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-key');
@@ -92,6 +94,7 @@ Deno.test('NotificationSchedulerService - Basic functionality test', () => {
   const service = new NotificationSchedulerService(
     mockCloudTasksClient,
     mockNotificationRepository,
+    TARGET_URL,
   );
 
   assertExists(service);
@@ -106,14 +109,11 @@ Deno.test('NotificationSchedulerService - scheduleNotifications should call Clou
   const service = new NotificationSchedulerService(
     mockCloudTasksClient,
     mockNotificationRepository,
+    TARGET_URL,
   );
 
   // Mock console methods to suppress output
   const consoleLogStub = stub(console, 'log');
-
-  // Mock environment variable
-  const originalEnvVar = Deno.env.get('CLOUD_RUN_NOTIFICATION_URL');
-  Deno.env.set('CLOUD_RUN_NOTIFICATION_URL', 'https://test.example.com/api/notify');
 
   try {
     // Create test ticket
@@ -157,13 +157,6 @@ Deno.test('NotificationSchedulerService - scheduleNotifications should call Clou
     // 実装でのconsole.log呼び出しがないことを確認（エラー時のconsole.error/warnのみ許可）
     assertEquals(consoleLogStub.calls.length, 0);
   } finally {
-    // Restore environment variable
-    if (originalEnvVar === undefined) {
-      Deno.env.delete('CLOUD_RUN_NOTIFICATION_URL');
-    } else {
-      Deno.env.set('CLOUD_RUN_NOTIFICATION_URL', originalEnvVar);
-    }
-
     consoleLogStub.restore();
   }
 });
@@ -180,16 +173,13 @@ Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors'
   const service = new NotificationSchedulerService(
     mockCloudTasksClient,
     mockNotificationRepository,
+    TARGET_URL,
   );
 
   // Suppress console output during test
   const consoleLogStub = stub(console, 'log');
   const consoleErrorStub = stub(console, 'error');
   const consoleWarnStub = stub(console, 'warn');
-
-  // Mock environment variable
-  const originalEnvVar = Deno.env.get('CLOUD_RUN_NOTIFICATION_URL');
-  Deno.env.set('CLOUD_RUN_NOTIFICATION_URL', 'https://test.example.com/api/notify');
 
   try {
     const testTicket = await Ticket.createNew({
@@ -228,13 +218,6 @@ Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors'
     assertEquals(caughtError.message.includes('1 out of 1 notifications failed to schedule'), true);
     assertEquals(consoleErrorStub.calls.length, 0);
   } finally {
-    // Restore environment variable
-    if (originalEnvVar === undefined) {
-      Deno.env.delete('CLOUD_RUN_NOTIFICATION_URL');
-    } else {
-      Deno.env.set('CLOUD_RUN_NOTIFICATION_URL', originalEnvVar);
-    }
-
     consoleWarnStub.restore();
     consoleErrorStub.restore();
     consoleLogStub.restore();
@@ -250,6 +233,7 @@ Deno.test('NotificationSchedulerService - cancelNotification should call CloudTa
   const service = new NotificationSchedulerService(
     mockCloudTasksClient,
     mockNotificationRepository,
+    TARGET_URL,
   );
 
   // Suppress console output
@@ -263,4 +247,39 @@ Deno.test('NotificationSchedulerService - cancelNotification should call CloudTa
   } finally {
     consoleLogStub.restore();
   }
+});
+
+Deno.test('NotificationSchedulerService - 呼び出し先の URL が空なら登録せずに投げる', async () => {
+  const mockCloudTasksClient = createCloudTasksClientStub();
+  const service = new NotificationSchedulerService(
+    mockCloudTasksClient,
+    createNotificationRepositoryStub(),
+    '',
+  );
+  const testTicket = await Ticket.createNew({
+    matchName: 'Test Match',
+    matchDate: new Date('2024-12-25'),
+    homeTeam: null,
+    awayTeam: null,
+    competition: null,
+    saleStartDate: new Date(Date.now() + 60 * 60 * 1000),
+    saleEndDate: null,
+    venue: null,
+    ticketTypes: null,
+    ticketUrl: null,
+    scrapedAt: new Date(),
+    saleStatus: 'before_sale',
+    notificationScheduled: false,
+  });
+
+  await assertRejects(
+    () =>
+      service.scheduleNotifications(testTicket, [{
+        type: NOTIFICATION_TYPES.DAY_BEFORE,
+        scheduledTime: new Date(Date.now() + 30 * 60 * 1000),
+      }]),
+    Error,
+    'CLOUD_RUN_NOTIFICATION_URL environment variable is required',
+  );
+  assertEquals((await mockCloudTasksClient.listTasks()).length, 0);
 });

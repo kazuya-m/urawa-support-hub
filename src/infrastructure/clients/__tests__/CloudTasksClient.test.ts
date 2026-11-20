@@ -91,12 +91,10 @@ Deno.test('CloudTasksClient - should accept custom parameters', () => {
   }
 });
 
-Deno.test('CloudTasksClient - should connect to emulator when CLOUD_TASKS_EMULATOR_HOST is set', () => {
+Deno.test('CloudTasksClient - should connect to emulator when emulatorHost is set', () => {
   const originalEnv = { ...Deno.env.toObject() };
 
   try {
-    // Set emulator environment variable
-    Deno.env.set('CLOUD_TASKS_EMULATOR_HOST', 'localhost:8123');
     Deno.env.set('GOOGLE_CLOUD_PROJECT', 'test-project');
 
     const config: CloudTasksConfig = {
@@ -105,6 +103,7 @@ Deno.test('CloudTasksClient - should connect to emulator when CLOUD_TASKS_EMULAT
       queueName: 'test-queue',
       enableDebugLogs: false,
       nodeEnv: 'development',
+      emulatorHost: 'localhost:8123',
     };
 
     const client = new CloudTasksClient(config);
@@ -242,5 +241,40 @@ Deno.test('CloudTasksClient - should dequeue task without throwing error', async
   } finally {
     dequeueStub.restore();
     tearDown(originalEnv);
+  }
+});
+
+Deno.test('CloudTasksClient - enqueueTask は config の serviceAccountEmail を OIDC トークンに使う', async () => {
+  const client = new CloudTasksClient({
+    projectId: 'test-project',
+    location: 'asia-northeast1',
+    queueName: 'notifications',
+    enableDebugLogs: false,
+    nodeEnv: 'test',
+    serviceAccountEmail: 'tasks@test-project.iam.gserviceaccount.com',
+  });
+
+  const requests: Parameters<typeof client['client']['createTask']>[0][] = [];
+  const createTaskStub = stub(client['client'], 'createTask', (request) => {
+    requests.push(request);
+    return Promise.resolve([{ name: `${request?.parent}/tasks/task-1` }, undefined, undefined]);
+  });
+
+  try {
+    const taskId = await client.enqueueTask({
+      taskId: 'task-1',
+      payload: { ticketId: 't-1' },
+      scheduledTime: new Date(Date.now() + 60 * 60 * 1000),
+      targetUrl: 'https://example.run.app/api/send-notification',
+    });
+
+    assertEquals(taskId, 'task-1');
+    assertEquals(requests.length, 1);
+    assertEquals(requests[0]?.task?.httpRequest?.oidcToken, {
+      serviceAccountEmail: 'tasks@test-project.iam.gserviceaccount.com',
+      audience: 'https://example.run.app',
+    });
+  } finally {
+    createTaskStub.restore();
   }
 });

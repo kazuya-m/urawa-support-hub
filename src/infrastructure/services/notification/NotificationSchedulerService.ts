@@ -14,10 +14,11 @@ export class NotificationSchedulerService {
   constructor(
     private readonly cloudTasksClient: CloudTasksClient,
     private readonly notificationRepository: NotificationRepository,
+    private readonly targetUrl: string,
   ) {}
 
   async scheduleNotifications(ticket: Ticket, scheduledTimes: NotificationTiming[]): Promise<void> {
-    const targetUrl = Deno.env.get('CLOUD_RUN_NOTIFICATION_URL');
+    const targetUrl = this.targetUrl;
 
     if (!targetUrl) {
       throw new Error('CLOUD_RUN_NOTIFICATION_URL environment variable is required');

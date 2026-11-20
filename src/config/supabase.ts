@@ -1,8 +1,10 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getAppConfig } from '@/config/app-config.ts';
 
 export function createSupabaseAdminClient(): SupabaseClient {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const config = getAppConfig();
+  const supabaseUrl = config.supabase.url;
+  const supabaseServiceKey = config.supabase.serviceRoleKey;
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error(
@@ -10,7 +12,7 @@ export function createSupabaseAdminClient(): SupabaseClient {
     );
   }
 
-  if (Deno.env.get('NODE_ENV') !== 'production') {
+  if (config.nodeEnv !== 'production') {
     console.warn('WARNING: Using admin client with RLS bypass');
   }
 
