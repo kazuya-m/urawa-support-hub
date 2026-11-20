@@ -3,10 +3,8 @@ import {
   sendNotification,
   type SendNotificationDeps,
 } from '@/usecases/sendNotification.ts';
-import {
-  isValidNotificationType,
-  type NotificationType,
-} from '@/domain/config/NotificationConfig.ts';
+import { isValidNotificationType } from '@/domain/config/NotificationConfig.ts';
+import { HttpStatusCodes } from '@/shared/constants/HttpStatusCodes.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import {
   badRequestResponse,
@@ -49,10 +47,10 @@ function validateNotificationRequest(
     };
   }
 
-  if (!isValidNotificationType(notificationType as string)) {
+  if (!isValidNotificationType(notificationType)) {
     return {
       isValid: false,
-      error: `Invalid notificationType: ${String(notificationType)}`,
+      error: `Invalid notificationType: ${JSON.stringify(notificationType)}`,
     };
   }
 
@@ -60,7 +58,7 @@ function validateNotificationRequest(
     isValid: true,
     data: {
       ticketId,
-      notificationType: notificationType as NotificationType,
+      notificationType,
     },
   };
 }
@@ -77,22 +75,21 @@ export function handleSendNotification(
       return badRequestResponse(validation.error!);
     }
 
-    const result = await sendNotification(deps, validation.data!);
+    const input = validation.data!;
+    const outcome = await sendNotification(deps, input);
 
-    if (result.status === 'error') {
-      return errorResponse('Notification processing failed', {
-        ticketId: result.ticketId,
-        notificationType: result.notificationType,
-        errorMessage: result.errorMessage,
-        executionTimeMs: result.executionDurationMs,
-      });
+    if (outcome.kind === 'retry') {
+      return errorResponse('Notification will be retried', {
+        ticketId: input.ticketId,
+        notificationType: input.notificationType,
+        reason: outcome.reason,
+      }, HttpStatusCodes.SERVICE_UNAVAILABLE);
     }
 
     return successResponse({
-      message: 'Notification sent successfully',
-      ticketId: result.ticketId,
-      notificationType: result.notificationType,
-      executionTimeMs: result.executionDurationMs,
+      ticketId: input.ticketId,
+      notificationType: input.notificationType,
+      outcome,
     });
   }, NOTIFICATION_ERROR_OPTIONS);
 }

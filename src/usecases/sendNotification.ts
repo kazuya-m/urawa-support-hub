@@ -1,12 +1,16 @@
-import { Notification } from '@/domain/entities/Notification.ts';
 import type { NotificationType } from '@/domain/config/NotificationConfig.ts';
+import type { Ticket } from '@/domain/entities/Ticket.ts';
+import { calculateNotificationTime, isWithinSendWindow } from '@/domain/notification.ts';
 import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
-import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import type { LineClient } from '@/infrastructure/clients/LineClient.ts';
+import type {
+  NotificationKey,
+  NotificationRepository,
+} from '@/infrastructure/repositories/NotificationRepository.ts';
+import type { LineClient, LineMessage } from '@/infrastructure/clients/LineClient.ts';
 import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
 import { formatMatchName } from '@/shared/utils/match.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
-import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
+import { toErrorInfo } from '@/shared/utils/errorUtils.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
@@ -16,166 +20,149 @@ export interface NotificationExecutionInput {
   notificationType: NotificationType;
 }
 
-export interface NotificationResult {
-  status: 'success' | 'error';
-  ticketId: string;
-  notificationType: string;
-  executionDurationMs: number;
-  errorMessage?: string;
-}
+export type SkipReason =
+  | 'ticket_not_found'
+  | 'no_sale_start_date'
+  | 'outside_send_window'
+  | 'already_sent';
+
+export type RetryReason = 'claimed_by_another' | 'line_unavailable';
+
+export type SendNotificationOutcome =
+  | { kind: 'sent'; notificationId: string }
+  | { kind: 'skipped'; reason: SkipReason }
+  | { kind: 'rejected'; notificationId: string; status: number }
+  | { kind: 'retry'; reason: RetryReason };
 
 export interface SendNotificationDeps {
   ticketRepository: Pick<TicketRepository, 'findById'>;
-  notificationRepository: Pick<NotificationRepository, 'findByTicketId' | 'save' | 'update'>;
-  lineClient: Pick<LineClient, 'broadcast'>;
-  sleep: (ms: number) => Promise<void>;
+  notificationRepository: Pick<
+    NotificationRepository,
+    'claim' | 'findStatusByKey' | 'markSent' | 'markFailed'
+  >;
+  lineClient: Pick<LineClient, 'broadcastWithRetryKey'>;
+  now: () => Date;
 }
-
-const MAX_RETRIES = 3;
 
 export async function sendNotification(
   deps: SendNotificationDeps,
   input: NotificationExecutionInput,
-): Promise<NotificationResult> {
-  const startTime = Date.now();
-
-  try {
-    await deliverScheduledNotification(deps, input);
-
-    return {
-      status: 'success',
-      ticketId: input.ticketId,
-      notificationType: input.notificationType,
-      executionDurationMs: Date.now() - startTime,
-    };
-  } catch (error) {
-    CloudLogger.error('Scheduled notification failed', {
-      category: LogCategory.NOTIFICATION,
-      context: {
-        ticketId: input.ticketId,
-        stage: 'usecase_error',
-      },
-      metadata: {
-        notificationTypeKey: input.notificationType,
-      },
-      error: toErrorInfo(error, undefined, true),
-    });
-
-    return {
-      status: 'error',
-      ticketId: input.ticketId,
-      notificationType: input.notificationType,
-      executionDurationMs: Date.now() - startTime,
-      errorMessage: getErrorMessage(error),
-    };
-  }
-}
-
-async function deliverScheduledNotification(
-  deps: SendNotificationDeps,
-  input: NotificationExecutionInput,
-): Promise<void> {
+): Promise<SendNotificationOutcome> {
   const { ticketId, notificationType } = input;
 
-  try {
-    const ticket = await deps.ticketRepository.findById(ticketId);
-    if (!ticket) {
-      throw new Error(`Ticket not found: ${ticketId}`);
-    }
+  const ticket = await deps.ticketRepository.findById(ticketId);
+  if (!ticket) return skip(input, 'ticket_not_found');
+  if (!ticket.saleStartDate) return skip(input, 'no_sale_start_date');
 
-    const existingHistories = await deps.notificationRepository.findByTicketId(ticketId);
-
-    let history = existingHistories.find((history) =>
-      history.notificationType === notificationType
-    );
-
-    if (!history) {
-      history = new Notification({
-        id: crypto.randomUUID(),
-        ticketId,
-        notificationType,
-        scheduledAt: new Date(),
-        sentAt: null,
-        status: 'scheduled',
-        errorMessage: null,
-        cloudTaskId: null,
-        createdAt: new Date(),
-        updatedAt: null,
-      });
-      await deps.notificationRepository.save(history);
-    }
-
-    if (history.status === 'sent') {
-      return;
-    }
-
-    let retryCount = 0;
-    let lastError: Error | null = null;
-
-    while (retryCount < MAX_RETRIES) {
-      try {
-        const lineMessage = LINE_MESSAGE_TEMPLATES.ticketNotification(
-          formatMatchName(ticket),
-          formatJST(ticket.matchDate, 'M/d(eeeee) HH:mm'),
-          ticket.venue || '未定',
-          ticket.saleStartDate ? formatJST(ticket.saleStartDate, 'M/d(eeeee) HH:mm') : '未定',
-          notificationType,
-          ticket.ticketUrl ?? undefined,
-        );
-
-        await deps.lineClient.broadcast(lineMessage);
-
-        const updatedHistory = history.markAsSent();
-        await deps.notificationRepository.update(updatedHistory);
-        return;
-      } catch (error) {
-        lastError = error as Error;
-        retryCount++;
-
-        if (retryCount < MAX_RETRIES) {
-          const delayMs = Math.pow(2, retryCount - 1) * 1000;
-          await deps.sleep(delayMs);
-        }
-      }
-    }
-
-    await handleFailedNotification(
-      deps,
-      history,
-      lastError ?? new Error('Unknown notification error after retries'),
-    );
-  } catch (error) {
-    CloudLogger.error('Scheduled notification processing failed', {
-      category: LogCategory.NOTIFICATION,
-      context: {
-        ticketId,
-        stage: 'scheduled_notification',
-      },
-      error: toErrorInfo(error, ErrorCodes.NOTIFICATION_FAILED, false),
+  const now = deps.now();
+  if (!isWithinSendWindow(notificationType, ticket.saleStartDate, now)) {
+    return skip(input, 'outside_send_window', {
+      saleStartDate: ticket.saleStartDate.toISOString(),
+      now: now.toISOString(),
     });
-    throw error;
+  }
+
+  const key: NotificationKey = {
+    ticketId,
+    notificationType,
+    notificationTime: calculateNotificationTime(notificationType, ticket.saleStartDate),
+  };
+  const claimed = await deps.notificationRepository.claim(
+    key,
+    buildMessage(ticket, notificationType),
+  );
+  if (!claimed) {
+    const status = await deps.notificationRepository.findStatusByKey(key);
+    if (status === 'sent') return skip(input, 'already_sent');
+    return retry(input, 'claimed_by_another', { status });
+  }
+
+  const result = await deps.lineClient.broadcastWithRetryKey(claimed.message, claimed.id);
+
+  switch (result.kind) {
+    case 'accepted':
+    case 'already_accepted':
+      await recordSent(deps, input, claimed.id);
+      return { kind: 'sent', notificationId: claimed.id };
+    case 'rejected':
+      await deps.notificationRepository.markFailed(claimed.id, result.detail);
+      CloudLogger.error('LINE rejected the notification', {
+        category: LogCategory.NOTIFICATION,
+        context: { ticketId, notificationId: claimed.id, stage: 'line_rejected' },
+        metadata: { notificationType, lineStatus: result.status },
+        error: {
+          code: ErrorCodes.NOTIFICATION_FAILED,
+          details: result.detail,
+          recoverable: false,
+        },
+      });
+      return { kind: 'rejected', notificationId: claimed.id, status: result.status };
+    case 'retryable':
+      await deps.notificationRepository.markFailed(claimed.id, result.detail);
+      return retry(input, 'line_unavailable', {
+        notificationId: claimed.id,
+        detail: result.detail,
+      });
   }
 }
 
-async function handleFailedNotification(
+async function recordSent(
   deps: SendNotificationDeps,
-  history: Notification,
-  error: Error,
+  input: NotificationExecutionInput,
+  notificationId: string,
 ): Promise<void> {
-  const failedHistory = history.markAsFailed(error.message);
-  await deps.notificationRepository.update(failedHistory);
+  try {
+    await deps.notificationRepository.markSent(notificationId, deps.now());
+    CloudLogger.info('Notification sent', {
+      category: LogCategory.NOTIFICATION,
+      context: { ticketId: input.ticketId, notificationId, stage: 'sent' },
+      metadata: { notificationType: input.notificationType },
+    });
+  } catch (error) {
+    CloudLogger.error('Notification sent but failed to record it', {
+      category: LogCategory.NOTIFICATION,
+      context: { ticketId: input.ticketId, notificationId, stage: 'record_sent' },
+      metadata: { notificationType: input.notificationType },
+      error: toErrorInfo(error, ErrorCodes.NOTIFICATION_FAILED, false),
+    });
+  }
+}
 
-  CloudLogger.error('Notification failed after maximum retries', {
+function buildMessage(ticket: Ticket, notificationType: NotificationType): LineMessage {
+  return LINE_MESSAGE_TEMPLATES.ticketNotification(
+    formatMatchName(ticket),
+    formatJST(ticket.matchDate, 'M/d(eeeee) HH:mm'),
+    ticket.venue || '未定',
+    ticket.saleStartDate ? formatJST(ticket.saleStartDate, 'M/d(eeeee) HH:mm') : '未定',
+    notificationType,
+    ticket.ticketUrl ?? undefined,
+  );
+}
+
+function skip(
+  input: NotificationExecutionInput,
+  reason: SkipReason,
+  data?: Record<string, unknown>,
+): SendNotificationOutcome {
+  CloudLogger.info(`Notification skipped: ${reason}`, {
     category: LogCategory.NOTIFICATION,
-    context: {
-      ticketId: history.ticketId,
-      notificationId: history.id,
-      stage: 'retry_exhausted',
-    },
-    error: toErrorInfo(error, ErrorCodes.MAX_RETRIES_EXCEEDED, false),
-    metadata: {
-      notificationType: history.getNotificationTypeDisplayName(),
-      maxRetries: MAX_RETRIES,
-    },
+    context: { ticketId: input.ticketId, stage: 'skipped' },
+    metadata: { notificationType: input.notificationType, reason },
+    data,
   });
+  return { kind: 'skipped', reason };
+}
+
+function retry(
+  input: NotificationExecutionInput,
+  reason: RetryReason,
+  data?: Record<string, unknown>,
+): SendNotificationOutcome {
+  CloudLogger.warning(`Notification will be retried: ${reason}`, {
+    category: LogCategory.NOTIFICATION,
+    context: { ticketId: input.ticketId, stage: 'retry' },
+    metadata: { notificationType: input.notificationType, reason },
+    data,
+  });
+  return { kind: 'retry', reason };
 }

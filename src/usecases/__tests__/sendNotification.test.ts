@@ -1,23 +1,30 @@
-import { assert, assertEquals } from 'std/assert/mod.ts';
+import { assertEquals, assertRejects } from 'std/assert/mod.ts';
 import {
   type NotificationExecutionInput,
   sendNotification,
   type SendNotificationDeps,
 } from '../sendNotification.ts';
-import { Notification } from '@/domain/entities/Notification.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
+import type { NotificationStatus } from '@/domain/entities/Notification.ts';
 import { NOTIFICATION_TYPES } from '@/domain/config/NotificationConfig.ts';
-import type { LineMessage } from '@/infrastructure/clients/LineClient.ts';
+import type { BroadcastResult, LineMessage } from '@/infrastructure/clients/LineClient.ts';
+import type {
+  ClaimedNotification,
+  NotificationKey,
+} from '@/infrastructure/repositories/NotificationRepository.ts';
+
+const saleStartDate = new Date('2025-03-02T10:00:00+09:00');
+const hourBeforeTime = new Date('2025-03-02T09:00:00+09:00');
 
 const ticket = Ticket.fromExisting({
   id: 'test-ticket-123',
   matchName: 'テスト試合',
-  matchDate: new Date('2024-03-15T19:00:00+09:00'),
+  matchDate: new Date('2025-03-15T19:00:00+09:00'),
   homeTeam: 'ホームチーム',
   awayTeam: 'アウェイチーム',
   competition: null,
   venue: 'テスト会場',
-  saleStartDate: new Date('2024-03-01T10:00:00+09:00'),
+  saleStartDate,
   saleEndDate: null,
   ticketUrl: 'https://example.com/ticket',
   ticketTypes: ['一般'],
@@ -30,284 +37,226 @@ const ticket = Ticket.fromExisting({
 
 const input: NotificationExecutionInput = {
   ticketId: 'test-ticket-123',
-  notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
+  notificationType: NOTIFICATION_TYPES.HOUR_BEFORE,
 };
 
 type StubOptions = {
-  ticket?: Ticket | null | Error;
-  notifications?: Notification[];
-  broadcastError?: Error;
+  ticket?: Ticket | null;
+  now?: Date;
+  claimed?: ClaimedNotification | null;
+  statusByKey?: NotificationStatus | null;
+  broadcastResult?: BroadcastResult;
+  markSentError?: Error;
+  claimError?: Error;
 };
 
 function createDeps(options: StubOptions = {}) {
   const calls: string[] = [];
-  const saved: Notification[] = [];
-  const updated: Notification[] = [];
-  const broadcasts: LineMessage[] = [];
-  const sleeps: number[] = [];
+  const claims: { key: NotificationKey; message: LineMessage }[] = [];
+  const broadcasts: { message: LineMessage; retryKey: string }[] = [];
+  const failures: { id: string; errorMessage: string }[] = [];
 
   const deps: SendNotificationDeps = {
     ticketRepository: {
       findById: (id) => {
         calls.push(`findById:${id}`);
-        if (options.ticket instanceof Error) return Promise.reject(options.ticket);
         return Promise.resolve(options.ticket === undefined ? ticket : options.ticket);
       },
     },
     notificationRepository: {
-      findByTicketId: (ticketId) => {
-        calls.push(`findByTicketId:${ticketId}`);
-        return Promise.resolve(options.notifications ?? []);
+      claim: (key, message) => {
+        calls.push('claim');
+        claims.push({ key, message });
+        if (options.claimError) return Promise.reject(options.claimError);
+        return Promise.resolve(
+          options.claimed === undefined ? { id: 'notification-1', message } : options.claimed,
+        );
       },
-      save: (notification) => {
-        calls.push('save');
-        saved.push(notification);
-        return Promise.resolve();
+      findStatusByKey: () => {
+        calls.push('findStatusByKey');
+        return Promise.resolve(options.statusByKey ?? null);
       },
-      update: (notification) => {
-        calls.push(`update:${notification.status}`);
-        updated.push(notification);
+      markSent: (id) => {
+        calls.push(`markSent:${id}`);
+        return options.markSentError ? Promise.reject(options.markSentError) : Promise.resolve();
+      },
+      markFailed: (id, errorMessage) => {
+        calls.push(`markFailed:${id}`);
+        failures.push({ id, errorMessage });
         return Promise.resolve();
       },
     },
     lineClient: {
-      broadcast: (message) => {
-        calls.push('broadcast');
-        broadcasts.push(message);
-        return options.broadcastError ? Promise.reject(options.broadcastError) : Promise.resolve();
+      broadcastWithRetryKey: (message, retryKey) => {
+        calls.push(`broadcast:${retryKey}`);
+        broadcasts.push({ message, retryKey });
+        return Promise.resolve(options.broadcastResult ?? { kind: 'accepted' });
       },
     },
-    sleep: (ms) => {
-      sleeps.push(ms);
-      return Promise.resolve();
-    },
+    now: () => options.now ?? hourBeforeTime,
   };
 
-  return { deps, calls, saved, updated, broadcasts, sleeps };
+  return { deps, calls, claims, broadcasts, failures };
 }
 
-function createNotification(status: 'scheduled' | 'sent'): Notification {
-  return new Notification({
-    id: 'notification-1',
-    ticketId: 'test-ticket-123',
-    notificationType: NOTIFICATION_TYPES.DAY_BEFORE,
-    scheduledAt: new Date(),
-    sentAt: status === 'sent' ? new Date() : null,
-    status,
-    errorMessage: null,
-    cloudTaskId: null,
-    createdAt: new Date(),
-    updatedAt: null,
-  });
-}
+type LogEntry = { severity: string; message: string };
 
-async function captureLogs<T>(
-  fn: () => Promise<T>,
-): Promise<{ result: T; logs: Record<string, unknown>[] }> {
+async function captureLogs<T>(fn: () => Promise<T>): Promise<{ result: T; logs: LogEntry[] }> {
   const lines: string[] = [];
   const originalLog = console.log;
-  const envKeys = ['NODE_ENV', 'K_SERVICE', 'K_REVISION'];
-  const originalEnv = envKeys.map((key) => [key, Deno.env.get(key)] as const);
+  const originalNodeEnv = Deno.env.get('NODE_ENV');
   console.log = (line: string) => lines.push(line);
   Deno.env.set('NODE_ENV', 'production');
-  Deno.env.delete('K_SERVICE');
-  Deno.env.delete('K_REVISION');
   try {
     const result = await fn();
-    return { result, logs: lines.map((line) => JSON.parse(line)) };
+    const logs: LogEntry[] = lines.map((line) => JSON.parse(line));
+    return { result, logs };
   } finally {
     console.log = originalLog;
-    for (const [key, value] of originalEnv) {
-      if (value === undefined) Deno.env.delete(key);
-      else Deno.env.set(key, value);
-    }
+    if (originalNodeEnv === undefined) Deno.env.delete('NODE_ENV');
+    else Deno.env.set('NODE_ENV', originalNodeEnv);
   }
 }
 
-Deno.test('sendNotification - 送信手順', async (t) => {
-  await t.step('チケットがなければ error を返し、LINE には送らない', async () => {
+Deno.test('sendNotification', async (t) => {
+  await t.step('確保して送信し、sent を記録する', async () => {
+    const { deps, calls, claims } = createDeps();
+
+    const { result } = await captureLogs(() => sendNotification(deps, input));
+
+    assertEquals(result, { kind: 'sent', notificationId: 'notification-1' });
+    assertEquals(calls, [
+      'findById:test-ticket-123',
+      'claim',
+      'broadcast:notification-1',
+      'markSent:notification-1',
+    ]);
+    assertEquals(claims[0].key, {
+      ticketId: 'test-ticket-123',
+      notificationType: NOTIFICATION_TYPES.HOUR_BEFORE,
+      notificationTime: hourBeforeTime,
+    });
+  });
+
+  await t.step('sent の記録に失敗しても broadcast は 1 回で、sent を返す', async () => {
+    const { deps, calls } = createDeps({ markSentError: new Error('db down') });
+
+    const { result, logs } = await captureLogs(() => sendNotification(deps, input));
+
+    assertEquals(result, { kind: 'sent', notificationId: 'notification-1' });
+    assertEquals(calls.filter((call) => call.startsWith('broadcast')).length, 1);
+    assertEquals(logs.map((log) => log.severity), ['ERROR']);
+  });
+
+  await t.step('同じタスクが 2 回届いても broadcast は 1 回', async () => {
+    const first = createDeps();
+    const second = createDeps({ claimed: null, statusByKey: 'sent' });
+
+    const { result: firstResult } = await captureLogs(() => sendNotification(first.deps, input));
+    const { result: secondResult } = await captureLogs(() => sendNotification(second.deps, input));
+
+    assertEquals(firstResult.kind, 'sent');
+    assertEquals(secondResult, { kind: 'skipped', reason: 'already_sent' });
+    assertEquals(first.broadcasts.length + second.broadcasts.length, 1);
+  });
+
+  await t.step('他の処理が確保中なら送らずに retry を返す', async () => {
+    const { deps, broadcasts } = createDeps({ claimed: null, statusByKey: 'sending' });
+
+    const { result } = await captureLogs(() => sendNotification(deps, input));
+
+    assertEquals(result, { kind: 'retry', reason: 'claimed_by_another' });
+    assertEquals(broadcasts.length, 0);
+  });
+
+  await t.step('再確保時は保存済みの本文で送る', async () => {
+    const storedMessage: LineMessage = { type: 'text', text: '初回の本文' };
+    const { deps, broadcasts } = createDeps({
+      claimed: { id: 'notification-1', message: storedMessage },
+    });
+
+    await captureLogs(() => sendNotification(deps, input));
+
+    assertEquals(broadcasts, [{ message: storedMessage, retryKey: 'notification-1' }]);
+  });
+
+  await t.step('LINE の 409（受理済み）は sent を記録する', async () => {
+    const { deps, calls } = createDeps({ broadcastResult: { kind: 'already_accepted' } });
+
+    const { result } = await captureLogs(() => sendNotification(deps, input));
+
+    assertEquals(result, { kind: 'sent', notificationId: 'notification-1' });
+    assertEquals(calls.at(-1), 'markSent:notification-1');
+  });
+
+  await t.step('LINE の 500・タイムアウトは failed を記録して retry を返す', async () => {
+    const { deps, calls, failures } = createDeps({
+      broadcastResult: { kind: 'retryable', detail: '500 down' },
+    });
+
+    const { result } = await captureLogs(() => sendNotification(deps, input));
+
+    assertEquals(result, { kind: 'retry', reason: 'line_unavailable' });
+    assertEquals(calls.at(-1), 'markFailed:notification-1');
+    assertEquals(failures, [{ id: 'notification-1', errorMessage: '500 down' }]);
+  });
+
+  for (const status of [400, 429]) {
+    await t.step(`LINE の ${status} は failed を記録し、再試行せず ERROR を出す`, async () => {
+      const { deps, failures } = createDeps({
+        broadcastResult: { kind: 'rejected', status, detail: `${status} rejected` },
+      });
+
+      const { result, logs } = await captureLogs(() => sendNotification(deps, input));
+
+      assertEquals(result, { kind: 'rejected', notificationId: 'notification-1', status });
+      assertEquals(failures, [{ id: 'notification-1', errorMessage: `${status} rejected` }]);
+      assertEquals(logs.map((log) => log.severity), ['ERROR']);
+    });
+  }
+
+  await t.step('チケットがなければ送らずに skipped を返す', async () => {
     const { deps, calls } = createDeps({ ticket: null });
 
-    const result = await sendNotification(deps, input);
+    const { result } = await captureLogs(() => sendNotification(deps, input));
 
-    assertEquals(result.status, 'error');
-    assertEquals(result.errorMessage, 'Ticket not found: test-ticket-123');
+    assertEquals(result, { kind: 'skipped', reason: 'ticket_not_found' });
     assertEquals(calls, ['findById:test-ticket-123']);
   });
 
-  await t.step('通知記録がなければ作成してから送信し、sent に更新する', async () => {
-    const { deps, calls, saved, updated, broadcasts } = createDeps();
-
-    const result = await sendNotification(deps, input);
-
-    assertEquals(result.status, 'success');
-    assertEquals(calls, [
-      'findById:test-ticket-123',
-      'findByTicketId:test-ticket-123',
-      'save',
-      'broadcast',
-      'update:sent',
-    ]);
-    assertEquals(saved[0].ticketId, 'test-ticket-123');
-    assertEquals(saved[0].notificationType, NOTIFICATION_TYPES.DAY_BEFORE);
-    assertEquals(saved[0].status, 'scheduled');
-    assertEquals(updated[0].id, saved[0].id);
-    assertEquals(broadcasts.length, 1);
-    assertEquals(broadcasts[0].altText, '【チケット販売通知】ホームチーム vs アウェイチーム');
-  });
-
-  await t.step('scheduled の通知記録があれば作成せずに送信する', async () => {
-    const { deps, calls, updated } = createDeps({
-      notifications: [createNotification('scheduled')],
-    });
-
-    await sendNotification(deps, input);
-
-    assertEquals(calls, [
-      'findById:test-ticket-123',
-      'findByTicketId:test-ticket-123',
-      'broadcast',
-      'update:sent',
-    ]);
-    assertEquals(updated[0].id, 'notification-1');
-  });
-
-  await t.step('送信済みの通知記録があれば何も送らず success を返す', async () => {
+  await t.step('販売開始日がなければ送らずに skipped を返す', async () => {
     const { deps, calls } = createDeps({
-      notifications: [createNotification('sent')],
+      ticket: Ticket.fromExisting({ ...ticket.toPlainObject(), saleStartDate: null }),
     });
 
-    const result = await sendNotification(deps, input);
+    const { result } = await captureLogs(() => sendNotification(deps, input));
 
-    assertEquals(result.status, 'success');
-    assertEquals(calls, ['findById:test-ticket-123', 'findByTicketId:test-ticket-123']);
+    assertEquals(result, { kind: 'skipped', reason: 'no_sale_start_date' });
+    assertEquals(calls, ['findById:test-ticket-123']);
   });
 
-  await t.step('broadcast が 3 回失敗したら failed に更新し、success を返す', async () => {
-    const { deps, calls, updated, sleeps } = createDeps({
-      broadcastError: new Error('LINE down'),
-    });
+  await t.step('送信時刻と合わない（販売日の変更後の旧タスク）なら送らない', async () => {
+    const { deps, calls } = createDeps({ now: new Date('2025-03-01T09:00:00+09:00') });
 
-    const result = await sendNotification(deps, input);
+    const { result } = await captureLogs(() => sendNotification(deps, input));
 
-    assertEquals(result.status, 'success');
-    assertEquals(calls, [
-      'findById:test-ticket-123',
-      'findByTicketId:test-ticket-123',
-      'save',
-      'broadcast',
-      'broadcast',
-      'broadcast',
-      'update:failed',
-    ]);
-    assertEquals(updated[0].errorMessage, 'LINE down');
-    assertEquals(sleeps, [1000, 2000]);
+    assertEquals(result, { kind: 'skipped', reason: 'outside_send_window' });
+    assertEquals(calls, ['findById:test-ticket-123']);
   });
 
-  await t.step('2 回目の broadcast で成功すれば sent に更新する', async () => {
-    const { deps, calls, sleeps } = createDeps();
-    let attempts = 0;
-    deps.lineClient = {
-      broadcast: () => {
-        calls.push('broadcast');
-        attempts++;
-        return attempts === 1 ? Promise.reject(new Error('temporary')) : Promise.resolve();
-      },
-    };
+  await t.step('販売開始を過ぎていたら送らない', async () => {
+    const { deps, calls } = createDeps({ now: saleStartDate });
 
-    const result = await sendNotification(deps, input);
+    const { result } = await captureLogs(() => sendNotification(deps, input));
 
-    assertEquals(result.status, 'success');
-    assertEquals(calls.slice(-3), ['broadcast', 'broadcast', 'update:sent']);
-    assertEquals(sleeps, [1000]);
-  });
-});
-
-Deno.test('sendNotification - 結果', async (t) => {
-  await t.step('成功時は入力と実行時間を返す', async () => {
-    const { deps } = createDeps({ notifications: [createNotification('sent')] });
-
-    const result = await sendNotification(deps, input);
-
-    assertEquals(result.status, 'success');
-    assertEquals(result.ticketId, 'test-ticket-123');
-    assertEquals(result.notificationType, 'day_before');
-    assertEquals(result.errorMessage, undefined);
-    assert(typeof result.executionDurationMs === 'number');
-    assert(result.executionDurationMs >= 0);
+    assertEquals(result, { kind: 'skipped', reason: 'outside_send_window' });
+    assertEquals(calls, ['findById:test-ticket-123']);
   });
 
-  await t.step('DB の失敗は error を返す（例外は投げない）', async () => {
-    const { deps } = createDeps({ ticket: new Error('DB down') });
+  await t.step('DB の失敗は例外のまま投げる（controller が 5xx にする）', async () => {
+    const { deps, broadcasts } = createDeps({ claimError: new Error('db down') });
 
-    const result = await sendNotification(deps, input);
-
-    assertEquals(result.status, 'error');
-    assertEquals(result.ticketId, 'test-ticket-123');
-    assertEquals(result.notificationType, 'day_before');
-    assertEquals(result.errorMessage, 'DB down');
-  });
-});
-
-Deno.test('sendNotification - ログ', async (t) => {
-  await t.step('失敗時は ERROR を 2 件出す', async () => {
-    const { deps } = createDeps({ ticket: null });
-
-    const { logs } = await captureLogs(() => sendNotification(deps, input));
-
-    assertEquals(logs, [
-      {
-        severity: 'ERROR',
-        message: 'Scheduled notification processing failed',
-        jsonPayload: {
-          category: 'NOTIFICATION',
-          context: { ticketId: 'test-ticket-123', stage: 'scheduled_notification' },
-          error: {
-            code: 'NOT_003',
-            message: 'Ticket not found: test-ticket-123',
-            recoverable: false,
-          },
-        },
-      },
-      {
-        severity: 'ERROR',
-        message: 'Scheduled notification failed',
-        jsonPayload: {
-          category: 'NOTIFICATION',
-          context: { ticketId: 'test-ticket-123', stage: 'usecase_error' },
-          metadata: { notificationTypeKey: 'day_before' },
-          error: { message: 'Ticket not found: test-ticket-123', recoverable: true },
-        },
-      },
-    ]);
-  });
-
-  await t.step('broadcast が 3 回失敗したら ERROR を 1 件出す', async () => {
-    const { deps, saved } = createDeps({ broadcastError: new Error('LINE down') });
-
-    const { logs } = await captureLogs(() => sendNotification(deps, input));
-
-    assertEquals(logs, [{
-      severity: 'ERROR',
-      message: 'Notification failed after maximum retries',
-      jsonPayload: {
-        category: 'NOTIFICATION',
-        context: {
-          ticketId: 'test-ticket-123',
-          notificationId: saved[0].id,
-          stage: 'retry_exhausted',
-        },
-        error: { code: 'NOT_005', message: 'LINE down', recoverable: false },
-        metadata: { notificationType: '販売開始前日', maxRetries: 3 },
-      },
-    }]);
-  });
-
-  await t.step('成功時はログを出さない', async () => {
-    const { deps } = createDeps();
-
-    const { logs } = await captureLogs(() => sendNotification(deps, input));
-
-    assertEquals(logs, []);
+    await assertRejects(() => sendNotification(deps, input), Error, 'db down');
+    assertEquals(broadcasts.length, 0);
   });
 });
