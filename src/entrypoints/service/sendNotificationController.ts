@@ -83,7 +83,7 @@ export function handleSendNotification(
         ticketId: input.ticketId,
         notificationType: input.notificationType,
         reason: outcome.reason,
-      }, HttpStatusCodes.SERVICE_UNAVAILABLE);
+      }, HttpStatusCodes.INTERNAL_SERVER_ERROR);
     }
 
     return successResponse({

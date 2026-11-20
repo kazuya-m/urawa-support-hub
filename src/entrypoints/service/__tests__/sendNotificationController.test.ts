@@ -107,7 +107,7 @@ Deno.test('send-notification', async (t) => {
     assertEquals(calls, ['findById:t-1', 'claim', 'broadcast', 'markSent']);
   });
 
-  await t.step('LINE が 500 なら 503（Cloud Tasks に再試行させる）', async () => {
+  await t.step('LINE が 500 なら 500（Cloud Tasks に再試行させる）', async () => {
     const { deps, calls } = notificationDeps({
       broadcastResult: { kind: 'retryable', detail: '500 down' },
     });
@@ -116,18 +116,19 @@ Deno.test('send-notification', async (t) => {
     );
     const body = await response.json();
 
-    assertEquals(response.status, 503);
+    assertEquals(response.status, 500);
+    assertEquals(body.error, 'Notification will be retried');
     assertEquals(body.details.reason, 'line_unavailable');
     assertEquals(calls.at(-1), 'markFailed');
   });
 
-  await t.step('他の処理が確保中なら 503', async () => {
+  await t.step('他の処理が確保中なら 500', async () => {
     const { deps } = notificationDeps({ claimedByAnother: true });
     const { result: response } = await captureLogs(() =>
       handleSendNotification(post(validBody), deps)
     );
 
-    assertEquals(response.status, 503);
+    assertEquals(response.status, 500);
   });
 
   for (const status of [400, 429]) {
