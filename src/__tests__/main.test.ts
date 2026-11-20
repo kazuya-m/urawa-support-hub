@@ -8,10 +8,10 @@ import {
 } from '../main.ts';
 import { DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
-import type { CollectTicketsDeps } from '@/jobs/collectTickets.ts';
+import type { CollectTicketsDeps } from '@/usecases/collectTickets.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import type { SendSummaryDeps } from '@/jobs/sendSummary.ts';
-import type { SendNotificationDeps } from '@/jobs/sendNotification.ts';
+import type { SendSummaryDeps } from '@/usecases/sendSummary.ts';
+import type { SendNotificationDeps } from '@/usecases/sendNotification.ts';
 import type { Notification } from '@/domain/entities/Notification.ts';
 
 type LogEntry = {

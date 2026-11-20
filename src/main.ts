@@ -3,14 +3,18 @@ import {
   collectTickets,
   type CollectTicketsDeps,
   createCollectTicketsDeps,
-} from '@/jobs/collectTickets.ts';
+} from '@/usecases/collectTickets.ts';
 import {
   createSendNotificationDeps,
   type NotificationExecutionInput,
   sendNotification,
   type SendNotificationDeps,
-} from '@/jobs/sendNotification.ts';
-import { createSendSummaryDeps, sendSummary, type SendSummaryDeps } from '@/jobs/sendSummary.ts';
+} from '@/usecases/sendNotification.ts';
+import {
+  createSendSummaryDeps,
+  sendSummary,
+  type SendSummaryDeps,
+} from '@/usecases/sendSummary.ts';
 import { handleHealthCheck } from '@/middleware/health.ts';
 import { type HttpStatusCode, HttpStatusCodes } from '@/shared/constants/HttpStatusCodes.ts';
 import { AppError } from '@/shared/errors/index.ts';
