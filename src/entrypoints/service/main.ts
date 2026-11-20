@@ -1,0 +1,44 @@
+import { load } from '@std/dotenv';
+import { type AppConfig, getAppConfig } from '@/config/app-config.ts';
+import { getSupabaseAdminClient } from '@/config/supabase.ts';
+import { LineClient } from '@/infrastructure/clients/LineClient.ts';
+import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
+import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import { handleHealthCheck } from '@/middleware/health.ts';
+import type { SendNotificationDeps } from '@/usecases/sendNotification.ts';
+import { createCollectTicketsDeps } from '../job/collectTickets.ts';
+import { createSendSummaryDeps } from '../job/sendSummary.ts';
+import { handleCollectTickets } from './collectTicketsController.ts';
+import { handleSendNotification } from './sendNotificationController.ts';
+import { handleSendSummary } from './sendSummaryController.ts';
+import { handleRequest, routeKey, type Routes } from './router.ts';
+
+function createSendNotificationDeps(config: AppConfig): SendNotificationDeps {
+  const supabaseClient = getSupabaseAdminClient();
+  return {
+    ticketRepository: new TicketRepository(supabaseClient),
+    notificationRepository: new NotificationRepository(supabaseClient),
+    lineClient: new LineClient(config.line),
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  };
+}
+
+function createRoutes(config: AppConfig): Routes {
+  return {
+    [routeKey('POST', '/api/collect-tickets')]: () =>
+      handleCollectTickets(createCollectTicketsDeps(config)),
+    [routeKey('POST', '/api/send-notification')]: (req) =>
+      handleSendNotification(req, createSendNotificationDeps(config)),
+    [routeKey('POST', '/api/ticket-summary')]: () =>
+      handleSendSummary(createSendSummaryDeps(config)),
+    [routeKey('GET', '/health')]: () => handleHealthCheck(),
+  };
+}
+
+if (import.meta.main) {
+  await load({ export: true }).catch(() => ({}));
+  const routes = createRoutes(getAppConfig());
+  const port = parseInt(Deno.env.get('PORT') || '8080');
+
+  Deno.serve({ port }, (req) => handleRequest(req, routes));
+}

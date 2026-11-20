@@ -110,10 +110,11 @@ async function testDirectApiCall(): Promise<void> {
     const { handleCollectTickets } = await import(
       '@/entrypoints/service/collectTicketsController.ts'
     );
-    const { createCollectTicketsDeps } = await import('@/usecases/collectTickets.ts');
+    const { createCollectTicketsDeps } = await import('@/entrypoints/job/collectTickets.ts');
+    const { getAppConfig } = await import('@/config/app-config.ts');
 
     console.log('📞 Calling API handler directly...');
-    const response = await handleCollectTickets(await createCollectTicketsDeps());
+    const response = await handleCollectTickets(createCollectTicketsDeps(getAppConfig()));
     const result: ApiResponse = await response.json();
 
     console.log('\n📋 API Response:');

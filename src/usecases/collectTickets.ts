@@ -4,14 +4,10 @@ import {
   NotificationSchedulingService,
   type NotificationTiming,
 } from '@/domain/services/NotificationSchedulingService.ts';
-import { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
-import type { ISiteScrapingService } from '@/infrastructure/services/scraping/shared/interfaces/index.ts';
-import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
-import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
-import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
-import { getAppConfig } from '@/config/app-config.ts';
-import { getSupabaseAdminClient } from '@/config/supabase.ts';
+import type { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
+import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
+import type { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { AppError, DatabaseError } from '@/shared/errors/index.ts';
@@ -51,42 +47,6 @@ export interface CollectTicketsDeps {
 }
 
 const notificationSchedulingService = new NotificationSchedulingService();
-
-export async function createCollectTicketsDeps(): Promise<CollectTicketsDeps> {
-  const [
-    { PlaywrightClient },
-    { BrowserManager },
-    { JLeagueScrapingService },
-    { HiroshimaScrapingService },
-  ] = await Promise.all([
-    import('@/infrastructure/clients/PlaywrightClient.ts'),
-    import('@/infrastructure/services/scraping/shared/BrowserManager.ts'),
-    import('@/infrastructure/services/scraping/sources/jleague/JLeagueScrapingService.ts'),
-    import('@/infrastructure/services/scraping/sources/hiroshima/HiroshimaScrapingService.ts'),
-  ]);
-
-  const config = getAppConfig();
-  const supabaseClient = getSupabaseAdminClient();
-  const cloudTasksClient = new CloudTasksClient(config.cloudTasks);
-  const notificationRepository = new NotificationRepository(supabaseClient);
-
-  // #173: スクレイピングサービス間でブラウザを共有すると並行実行で競合するため、サイトごとに分ける
-  const scrapingServices: ISiteScrapingService[] = [
-    new JLeagueScrapingService(new BrowserManager(new PlaywrightClient())),
-    new HiroshimaScrapingService(new BrowserManager(new PlaywrightClient())),
-  ];
-
-  return {
-    ticketCollectionService: new TicketCollectionService(scrapingServices),
-    ticketRepository: new TicketRepository(supabaseClient),
-    notificationRepository,
-    notificationSchedulerService: new NotificationSchedulerService(
-      cloudTasksClient,
-      notificationRepository,
-      config.notificationUrl,
-    ),
-  };
-}
 
 export async function collectTickets(
   deps: CollectTicketsDeps,

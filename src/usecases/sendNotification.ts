@@ -1,10 +1,8 @@
 import { Notification } from '@/domain/entities/Notification.ts';
 import type { NotificationType } from '@/domain/config/NotificationConfig.ts';
-import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
-import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import { LineClient } from '@/infrastructure/clients/LineClient.ts';
-import { getAppConfig } from '@/config/app-config.ts';
-import { getSupabaseAdminClient } from '@/config/supabase.ts';
+import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
+import type { LineClient } from '@/infrastructure/clients/LineClient.ts';
 import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
 import { formatMatchName } from '@/shared/utils/match.ts';
 import { formatJST } from '@/shared/utils/datetime.ts';
@@ -34,17 +32,6 @@ export interface SendNotificationDeps {
 }
 
 const MAX_RETRIES = 3;
-
-export function createSendNotificationDeps(): SendNotificationDeps {
-  const config = getAppConfig();
-  const supabaseClient = getSupabaseAdminClient();
-  return {
-    ticketRepository: new TicketRepository(supabaseClient),
-    notificationRepository: new NotificationRepository(supabaseClient),
-    lineClient: new LineClient(config.line),
-    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-  };
-}
 
 export async function sendNotification(
   deps: SendNotificationDeps,
