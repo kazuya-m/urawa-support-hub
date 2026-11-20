@@ -18,7 +18,7 @@ export function createCollectTicketsDeps(config: AppConfig): CollectTicketsDeps 
   const cloudTasksClient = new CloudTasksClient(config.cloudTasks);
   const notificationRepository = new NotificationRepository(supabaseClient);
 
-  // #173: スクレイピングサービス間でブラウザを共有すると並行実行で競合するため、サイトごとに分ける
+  // スクレイピングサービス間でブラウザを共有すると並行実行で競合するため、サイトごとに分ける
   const scrapingServices = [
     new JLeagueScrapingService(new BrowserManager(new PlaywrightClient())),
     new HiroshimaScrapingService(new BrowserManager(new PlaywrightClient())),

@@ -67,12 +67,28 @@ Deno.test('runJob', async (t) => {
     assertEquals(logs[0].message, 'Job collect-tickets failed');
 
     const payload = logs[0].jsonPayload!;
+    assertEquals(Object.keys(payload), ['category', 'metadata', 'error']);
     assertEquals(payload.category, 'SYSTEM');
-    assertEquals(
-      (payload.metadata as Record<string, unknown>).executionId,
-      'collect-tickets-abc12',
-    );
+    const metadata = payload.metadata as Record<string, unknown>;
+    assertEquals(Object.keys(metadata), [
+      'jobName',
+      'executionId',
+      'taskAttempt',
+      'processingTimeMs',
+    ]);
+    assertEquals(metadata.jobName, 'collect-tickets');
+    assertEquals(metadata.executionId, 'collect-tickets-abc12');
+    assertEquals(metadata.taskAttempt, '0');
     assertEquals(payload.error, { message: 'LINE down', recoverable: false });
+  });
+
+  await t.step('Error 以外の値が投げられても 1 を返し、ERROR を記録する', async () => {
+    const { result, logs } = await captureLogs(() => runJob(run, () => Promise.reject('timeout')));
+
+    assertEquals(result, 1);
+    assertEquals(logs.length, 1);
+    assertEquals(logs[0].severity, 'ERROR');
+    assertEquals(logs[0].message, 'Job collect-tickets failed');
   });
 
   await t.step('execute が同期で投げても 1 を返す', async () => {

@@ -47,7 +47,7 @@ deno test src/ --allow-env --allow-net=127.0.0.1  # 単体テスト
 - 対象ファイルと同じ階層の `__tests__/<対象ファイル名>.test.ts` に置く
 - Mock クラスは作らず、テスト内のインラインスタブを使う。スタブはキャスト（`as unknown as T` など）せずに型を満たす
 - そのため、依存の型は使う側が必要なメソッドだけを宣言する（例: `Pick<TicketRepository, 'findById'>`）。インターフェースのファイルは作らない
-- 入口（`src/entrypoints/service/main.ts`、`src/entrypoints/job/` の runJob 以外）は import しない。依存の組み立てで Playwright を読み込み、`--allow-sys` が要るため
+- 入口（`src/entrypoints/service/main.ts`、`src/entrypoints/job/` の runJob 以外）は import しない。入口は依存の具象を生成し、Playwright など権限の要るモジュールを読み込むため
 - skip で通さない。`--allow-all` は使わない
 
 ## コメント

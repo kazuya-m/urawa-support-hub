@@ -6,12 +6,12 @@ import { NotificationRepository } from '@/infrastructure/repositories/Notificati
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { handleHealthCheck } from '@/middleware/health.ts';
 import type { SendNotificationDeps } from '@/usecases/sendNotification.ts';
-import { createCollectTicketsDeps } from '../job/collectTickets.ts';
-import { createSendSummaryDeps } from '../job/sendSummary.ts';
-import { handleCollectTickets } from './collectTicketsController.ts';
-import { handleSendNotification } from './sendNotificationController.ts';
-import { handleSendSummary } from './sendSummaryController.ts';
-import { handleRequest, routeKey, type Routes } from './router.ts';
+import { createCollectTicketsDeps } from '@/entrypoints/job/collectTickets.ts';
+import { createSendSummaryDeps } from '@/entrypoints/job/sendSummary.ts';
+import { handleCollectTickets } from '@/entrypoints/service/collectTicketsController.ts';
+import { handleSendNotification } from '@/entrypoints/service/sendNotificationController.ts';
+import { handleSendSummary } from '@/entrypoints/service/sendSummaryController.ts';
+import { handleRequest, routeKey, type Routes } from '@/entrypoints/service/router.ts';
 
 function createSendNotificationDeps(config: AppConfig): SendNotificationDeps {
   const supabaseClient = getSupabaseAdminClient();
