@@ -1,285 +1,97 @@
-import { assertEquals, assertExists, assertRejects } from 'std/assert/mod.ts';
-import { stub } from 'std/testing/mock.ts';
+import { assertEquals, assertMatch, assertRejects } from 'std/assert/mod.ts';
 import { NotificationSchedulerService } from '../NotificationSchedulerService.ts';
-import { Ticket } from '@/domain/entities/Ticket.ts';
 import { NOTIFICATION_TYPES } from '@/domain/config/NotificationConfig.ts';
-import { NotificationTiming } from '@/domain/services/NotificationSchedulingService.ts';
+import type { UpcomingNotification } from '@/domain/notification.ts';
 import type {
   CloudTasksClient,
   EnqueueTaskParams,
 } from '@/infrastructure/clients/CloudTasksClient.ts';
-import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import type { Notification } from '@/domain/entities/Notification.ts';
 
-/** 登録済みタスク（本番の CloudTasksClient には無い、確認用の形） */
-type Task = {
-  name: string;
-  scheduleTime: Date;
-  payload: unknown;
-  httpRequest: { url: string; httpMethod: string };
+function createCloudTasksStub() {
+  const queued = new Map<string, EnqueueTaskParams>();
+  const requests: EnqueueTaskParams[] = [];
+  const client: Pick<CloudTasksClient, 'enqueueTask'> = {
+    enqueueTask: (params) => {
+      requests.push(params);
+      if (queued.has(params.taskId)) return Promise.resolve('already_exists');
+      queued.set(params.taskId, params);
+      return Promise.resolve('created');
+    },
+  };
+  return { client, queued, requests };
+}
+
+const notification: UpcomingNotification = {
+  ticketId: '6f1c2a3b-1234-5abc-8def-0123456789ab',
+  notificationType: NOTIFICATION_TYPES.HOUR_BEFORE,
+  notificationTime: new Date('2025-03-02T09:00:00+09:00'),
 };
+const targetUrl = 'https://example.run.app/api/send-notification';
 
-/**
- * 登録したタスクを listTasks で確認できる CloudTasksClient のスタブ
- */
-function createCloudTasksClientStub(
-  options: { shouldError?: boolean; errorMessage?: string; taskId?: string } = {},
-) {
-  const {
-    shouldError = false,
-    errorMessage = 'Mock Cloud Tasks error',
-    taskId = 'mock-task-id',
-  } = options;
-  const scheduledTasks = new Map<string, EnqueueTaskParams>();
+Deno.test('NotificationSchedulerService.scheduleNotification', async (t) => {
+  await t.step('チケット ID・通知タイプ・送信時刻（エポック秒）からタスク名を作る', async () => {
+    const { client, requests } = createCloudTasksStub();
 
-  const stub = {
-    enqueueTask(params: EnqueueTaskParams): Promise<string> {
-      if (shouldError) return Promise.reject(new Error(errorMessage));
-      const actualTaskId = params.taskId || taskId;
-      scheduledTasks.set(actualTaskId, params);
-      return Promise.resolve(actualTaskId);
-    },
-    dequeueTask(taskId: string): Promise<void> {
-      if (shouldError) return Promise.reject(new Error(errorMessage));
-      scheduledTasks.delete(taskId);
-      return Promise.resolve();
-    },
-  } satisfies Partial<CloudTasksClient>;
+    const result = await new NotificationSchedulerService(client, targetUrl)
+      .scheduleNotification(notification);
 
-  const listTasks = (): Promise<Task[]> =>
-    Promise.resolve(
-      Array.from(scheduledTasks.entries()).map(([id, params]) => ({
-        name: id,
-        scheduleTime: params.scheduledTime,
-        payload: params.payload,
-        httpRequest: { url: params.targetUrl, httpMethod: params.httpMethod || 'POST' },
-      })),
+    assertEquals(result, 'created');
+    assertEquals(
+      requests[0].taskId,
+      '6f1c2a3b-1234-5abc-8def-0123456789ab-hour_before-1740873600',
     );
-
-  return Object.assign(stub as unknown as CloudTasksClient, { listTasks });
-}
-
-/**
- * 保存した通知をメモリに持つ NotificationRepository のスタブ
- */
-function createNotificationRepositoryStub(): NotificationRepository {
-  const notifications: Notification[] = [];
-  const stub = {
-    findById: (id: string) => Promise.resolve(notifications.find((n) => n.id === id) || null),
-    findByTicketId: (ticketId: string) =>
-      Promise.resolve(notifications.filter((n) => n.ticketId === ticketId)),
-    save: (notification: Notification) => {
-      notifications.push(notification);
-      return Promise.resolve();
-    },
-    update: (notification: Notification) => {
-      const index = notifications.findIndex((n) => n.id === notification.id);
-      if (index >= 0) notifications[index] = notification;
-      return Promise.resolve();
-    },
-  } satisfies Partial<NotificationRepository>;
-  return stub as unknown as NotificationRepository;
-}
-
-// Set required environment variables for initialization
-const TARGET_URL = 'https://test.example.com/api/notify';
-
-Deno.env.set('GOOGLE_CLOUD_PROJECT', 'test-project');
-Deno.env.set('SUPABASE_URL', 'http://test.supabase.co');
-Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-key');
-
-Deno.test('NotificationSchedulerService - Basic functionality test', () => {
-  const mockCloudTasksClient = createCloudTasksClientStub({ taskId: 'test-task-id' });
-  const mockNotificationRepository = createNotificationRepositoryStub();
-  const service = new NotificationSchedulerService(
-    mockCloudTasksClient,
-    mockNotificationRepository,
-    TARGET_URL,
-  );
-
-  assertExists(service);
-});
-
-Deno.test('NotificationSchedulerService - scheduleNotifications should call CloudTasksClient and NotificationRepository', async () => {
-  // Create mock instances
-  const mockCloudTasksClient = createCloudTasksClientStub({ taskId: 'test-task-id' });
-  const mockNotificationRepository = createNotificationRepositoryStub();
-
-  // Create service with injected dependencies
-  const service = new NotificationSchedulerService(
-    mockCloudTasksClient,
-    mockNotificationRepository,
-    TARGET_URL,
-  );
-
-  // Mock console methods to suppress output
-  const consoleLogStub = stub(console, 'log');
-
-  try {
-    // Create test ticket
-    const testTicket = await Ticket.createNew({
-      matchName: 'Test Match',
-      matchDate: new Date('2024-12-25'),
-      homeTeam: null,
-      awayTeam: null,
-      competition: null,
-      saleStartDate: new Date(Date.now() + 60 * 60 * 1000), // 1 hour later
-      saleEndDate: null,
-      venue: null,
-      ticketTypes: null,
-      ticketUrl: null,
-      scrapedAt: new Date(),
-      saleStatus: 'before_sale',
-      notificationScheduled: false,
-    });
-
-    // Create notification timing
-    const notificationTimings: NotificationTiming[] = [
-      {
-        type: NOTIFICATION_TYPES.DAY_BEFORE,
-        scheduledTime: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes later
-      },
-    ];
-
-    // Execute the method under test
-    await service.scheduleNotifications(testTicket, notificationTimings);
-
-    // Verify that tasks were scheduled
-    const scheduledTasks = await mockCloudTasksClient.listTasks();
-    assertEquals(scheduledTasks.length, 1);
-
-    const firstTask = scheduledTasks[0];
-    const payload = firstTask.payload as { ticketId: string; notificationType: string };
-    assertEquals(payload.ticketId, testTicket.id);
-    assertEquals(payload.notificationType, NOTIFICATION_TYPES.DAY_BEFORE);
-    assertEquals(firstTask.httpRequest.url, 'https://test.example.com/api/notify');
-
-    // 実装でのconsole.log呼び出しがないことを確認（エラー時のconsole.error/warnのみ許可）
-    assertEquals(consoleLogStub.calls.length, 0);
-  } finally {
-    consoleLogStub.restore();
-  }
-});
-
-Deno.test('NotificationSchedulerService - should handle CloudTasksClient errors', async () => {
-  // Create mock that throws error
-  const mockCloudTasksClient = createCloudTasksClientStub({
-    shouldError: true,
-    errorMessage: 'Cloud Tasks operation failed',
-  });
-  const mockNotificationRepository = createNotificationRepositoryStub();
-
-  // Create service with injected dependencies
-  const service = new NotificationSchedulerService(
-    mockCloudTasksClient,
-    mockNotificationRepository,
-    TARGET_URL,
-  );
-
-  // Suppress console output during test
-  const consoleLogStub = stub(console, 'log');
-  const consoleErrorStub = stub(console, 'error');
-  const consoleWarnStub = stub(console, 'warn');
-
-  try {
-    const testTicket = await Ticket.createNew({
-      matchName: 'Test Match',
-      matchDate: new Date('2024-12-25'),
-      homeTeam: null,
-      awayTeam: null,
-      competition: null,
-      saleStartDate: new Date(Date.now() + 60 * 60 * 1000),
-      saleEndDate: null,
-      venue: null,
-      ticketTypes: null,
-      ticketUrl: null,
-      scrapedAt: new Date(),
-      saleStatus: 'before_sale',
-      notificationScheduled: false,
-    });
-
-    const notificationTimings: NotificationTiming[] = [
-      {
-        type: NOTIFICATION_TYPES.DAY_BEFORE,
-        scheduledTime: new Date(Date.now() + 30 * 60 * 1000),
-      },
-    ];
-
-    // Test error handling
-    let caughtError: Error | null = null;
-    try {
-      await service.scheduleNotifications(testTicket, notificationTimings);
-    } catch (error) {
-      caughtError = error as Error;
-    }
-
-    // Verify error was handled and re-thrown
-    assertExists(caughtError);
-    assertEquals(caughtError.message.includes('1 out of 1 notifications failed to schedule'), true);
-    assertEquals(consoleErrorStub.calls.length, 0);
-  } finally {
-    consoleWarnStub.restore();
-    consoleErrorStub.restore();
-    consoleLogStub.restore();
-  }
-});
-
-Deno.test('NotificationSchedulerService - cancelNotification should call CloudTasksClient.dequeueTask', async () => {
-  // Create mock instance
-  const mockCloudTasksClient = createCloudTasksClientStub();
-  const mockNotificationRepository = createNotificationRepositoryStub();
-
-  // Create service with injected dependencies
-  const service = new NotificationSchedulerService(
-    mockCloudTasksClient,
-    mockNotificationRepository,
-    TARGET_URL,
-  );
-
-  // Suppress console output
-  const consoleLogStub = stub(console, 'log');
-
-  try {
-    await service.cancelNotification('test-task-id');
-
-    // 実装でのconsole.log呼び出しがないことを確認（エラー時のconsole.errorのみ許可）
-    assertEquals(consoleLogStub.calls.length, 0);
-  } finally {
-    consoleLogStub.restore();
-  }
-});
-
-Deno.test('NotificationSchedulerService - 呼び出し先の URL が空なら登録せずに投げる', async () => {
-  const mockCloudTasksClient = createCloudTasksClientStub();
-  const service = new NotificationSchedulerService(
-    mockCloudTasksClient,
-    createNotificationRepositoryStub(),
-    '',
-  );
-  const testTicket = await Ticket.createNew({
-    matchName: 'Test Match',
-    matchDate: new Date('2024-12-25'),
-    homeTeam: null,
-    awayTeam: null,
-    competition: null,
-    saleStartDate: new Date(Date.now() + 60 * 60 * 1000),
-    saleEndDate: null,
-    venue: null,
-    ticketTypes: null,
-    ticketUrl: null,
-    scrapedAt: new Date(),
-    saleStatus: 'before_sale',
-    notificationScheduled: false,
+    assertMatch(requests[0].taskId, /^[A-Za-z0-9_-]+$/);
+    assertEquals(requests[0].scheduledTime, notification.notificationTime);
+    assertEquals(requests[0].targetUrl, targetUrl);
   });
 
-  await assertRejects(
-    () =>
-      service.scheduleNotifications(testTicket, [{
-        type: NOTIFICATION_TYPES.DAY_BEFORE,
-        scheduledTime: new Date(Date.now() + 30 * 60 * 1000),
-      }]),
-    Error,
-    'CLOUD_RUN_NOTIFICATION_URL environment variable is required',
-  );
-  assertEquals((await mockCloudTasksClient.listTasks()).length, 0);
+  await t.step('payload に送信時刻を入れる', async () => {
+    const { client, requests } = createCloudTasksStub();
+
+    await new NotificationSchedulerService(client, targetUrl).scheduleNotification(notification);
+
+    assertEquals(requests[0].payload, {
+      ticketId: notification.ticketId,
+      notificationType: 'hour_before',
+      notificationTime: '2025-03-02T00:00:00.000Z',
+    });
+  });
+
+  await t.step('同じ通知を 2 日続けて登録しても 1 タスク', async () => {
+    const { client, queued } = createCloudTasksStub();
+    const service = new NotificationSchedulerService(client, targetUrl);
+
+    const first = await service.scheduleNotification(notification);
+    const second = await service.scheduleNotification({
+      ...notification,
+      notificationTime: new Date(notification.notificationTime),
+    });
+
+    assertEquals([first, second], ['created', 'already_exists']);
+    assertEquals(queued.size, 1);
+  });
+
+  await t.step('販売日が変わると別のタスク名になる', async () => {
+    const { client, queued } = createCloudTasksStub();
+    const service = new NotificationSchedulerService(client, targetUrl);
+
+    await service.scheduleNotification(notification);
+    await service.scheduleNotification({
+      ...notification,
+      notificationTime: new Date('2025-03-09T09:00:00+09:00'),
+    });
+
+    assertEquals(queued.size, 2);
+  });
+
+  await t.step('送信先の URL がなければ失敗する', async () => {
+    const { client, requests } = createCloudTasksStub();
+
+    await assertRejects(
+      () => new NotificationSchedulerService(client, '').scheduleNotification(notification),
+      Error,
+      'CLOUD_RUN_NOTIFICATION_URL',
+    );
+    assertEquals(requests.length, 0);
+  });
 });

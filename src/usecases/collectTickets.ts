@@ -1,12 +1,7 @@
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import { CancellationReason } from '@/domain/entities/Notification.ts';
-import {
-  NotificationSchedulingService,
-  type NotificationTiming,
-} from '@/domain/services/NotificationSchedulingService.ts';
+import { listUpcomingNotifications } from '@/domain/notification.ts';
 import type { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
 import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
-import type { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
 import type { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
@@ -34,19 +29,24 @@ export interface TicketCollectionResult {
     stack?: string;
   };
   sourceResults?: unknown;
+  scheduledNotifications: NotificationSchedulingSummary;
+}
+
+export interface NotificationSchedulingSummary {
+  created: number;
+  alreadyExists: number;
+  failed: number;
 }
 
 export interface CollectTicketsDeps {
   ticketCollectionService: Pick<TicketCollectionService, 'collectAllTickets'>;
-  ticketRepository: Pick<TicketRepository, 'findByIds' | 'upsertMany' | 'upsert'>;
-  notificationRepository: Pick<NotificationRepository, 'findByTicketId' | 'update'>;
-  notificationSchedulerService: Pick<
-    NotificationSchedulerService,
-    'scheduleNotifications' | 'cancelNotifications'
+  ticketRepository: Pick<
+    TicketRepository,
+    'findByIds' | 'upsertMany' | 'upsert' | 'findByStatusIn'
   >;
+  notificationSchedulerService: Pick<NotificationSchedulerService, 'scheduleNotification'>;
+  now: () => Date;
 }
-
-const notificationSchedulingService = new NotificationSchedulingService();
 
 export async function collectTickets(
   deps: CollectTicketsDeps,
@@ -55,91 +55,126 @@ export async function collectTickets(
   const sessionId = crypto.randomUUID();
 
   try {
-    const tickets = await deps.ticketCollectionService.collectAllTickets();
-
-    const upsertResults = await upsertCollectedTickets(deps, tickets);
-
-    try {
-      await scheduleTicketNotifications(deps, upsertResults);
-    } catch (error) {
-      CloudLogger.error('Failed to schedule notifications, but continuing ticket collection', {
-        category: LogCategory.NOTIFICATION,
-        error: toErrorInfo(error, undefined, true),
-        context: { sessionId },
-      });
-    }
-
-    const executionDuration = Date.now() - startTime;
-
-    const statistics = calculateStatistics(upsertResults);
-
-    const summaryMessage =
-      `Ticket collection completed: ${statistics.newTickets} new, ${statistics.updatedTickets} updated, ${statistics.unchangedTickets} unchanged, ${statistics.failedTickets} failed`;
-
-    CloudLogger.info(summaryMessage, {
-      category: LogCategory.TICKET_COLLECTION,
-      metrics: {
-        totalProcessed: tickets.length,
-        successCount: statistics.newTickets + statistics.updatedTickets +
-          statistics.unchangedTickets,
-        failureCount: statistics.failedTickets,
-        unknownPatterns: 0,
-        processingTimeMs: executionDuration,
-        successRate: tickets.length > 0
-          ? (tickets.length - statistics.failedTickets) / tickets.length
-          : 1.0,
-      },
-      context: {
-        sessionId,
-      },
-    });
-
-    return {
-      status: 'success',
-      ticketsFound: tickets.length,
-      newTickets: statistics.newTickets,
-      updatedTickets: statistics.updatedTickets,
-      unchangedTickets: statistics.unchangedTickets,
-      failedTickets: statistics.failedTickets,
-      executionDurationMs: executionDuration,
-    };
+    await scheduleUpcomingNotifications(deps, sessionId, 'before_collection');
   } catch (error) {
-    const executionDuration = Date.now() - startTime;
+    CloudLogger.warning('Failed to schedule notifications before collection', {
+      category: LogCategory.NOTIFICATION,
+      context: { sessionId, stage: 'before_collection' },
+      error: toErrorInfo(error, undefined, true),
+    });
+  }
 
-    if (error instanceof DatabaseError) {
-      const appError = new AppError(
-        `[TicketCollectionUseCase] Database operation failed: ${error.message}`,
-        ErrorCodes.TICKET_COLLECTION_FAILED,
-        error,
-        { sessionId, executionDurationMs: executionDuration },
-      );
+  let collected: { tickets: Ticket[]; upsertResults: TicketUpsertResult[] } | null = null;
+  let collectionError: unknown = null;
+  try {
+    const tickets = await deps.ticketCollectionService.collectAllTickets();
+    const upsertResults = await upsertCollectedTickets(deps, tickets);
+    collected = { tickets, upsertResults };
+  } catch (error) {
+    collectionError = error;
+  }
 
-      CloudLogger.error('Ticket collection service error', {
-        category: LogCategory.TICKET_COLLECTION,
-        error: {
-          details: appError.message,
-          recoverable: true,
-        },
-      });
-      throw appError;
-    }
+  let scheduledNotifications: NotificationSchedulingSummary;
+  try {
+    scheduledNotifications = await scheduleUpcomingNotifications(
+      deps,
+      sessionId,
+      'after_collection',
+    );
+  } catch (error) {
+    CloudLogger.error('Failed to schedule notifications', {
+      category: LogCategory.NOTIFICATION,
+      context: { sessionId, stage: 'after_collection' },
+      error: toErrorInfo(error, undefined, true),
+    });
+    throw toCollectionError(collectionError ?? error, sessionId, startTime);
+  }
 
+  if (!collected) {
+    throw toCollectionError(collectionError, sessionId, startTime);
+  }
+  if (scheduledNotifications.failed > 0) {
+    throw toCollectionError(
+      new Error(`${scheduledNotifications.failed} notifications failed to schedule`),
+      sessionId,
+      startTime,
+    );
+  }
+
+  const { tickets, upsertResults } = collected;
+  const executionDuration = Date.now() - startTime;
+
+  const statistics = calculateStatistics(upsertResults);
+
+  const summaryMessage =
+    `Ticket collection completed: ${statistics.newTickets} new, ${statistics.updatedTickets} updated, ${statistics.unchangedTickets} unchanged, ${statistics.failedTickets} failed`;
+
+  CloudLogger.info(summaryMessage, {
+    category: LogCategory.TICKET_COLLECTION,
+    metrics: {
+      totalProcessed: tickets.length,
+      successCount: statistics.newTickets + statistics.updatedTickets +
+        statistics.unchangedTickets,
+      failureCount: statistics.failedTickets,
+      unknownPatterns: 0,
+      processingTimeMs: executionDuration,
+      successRate: tickets.length > 0
+        ? (tickets.length - statistics.failedTickets) / tickets.length
+        : 1.0,
+    },
+    context: {
+      sessionId,
+    },
+  });
+
+  return {
+    status: 'success',
+    ticketsFound: tickets.length,
+    newTickets: statistics.newTickets,
+    updatedTickets: statistics.updatedTickets,
+    unchangedTickets: statistics.unchangedTickets,
+    failedTickets: statistics.failedTickets,
+    executionDurationMs: executionDuration,
+    scheduledNotifications,
+  };
+}
+
+function toCollectionError(error: unknown, sessionId: string, startTime: number): AppError {
+  const executionDuration = Date.now() - startTime;
+
+  if (error instanceof DatabaseError) {
     const appError = new AppError(
-      `[TicketCollectionUseCase] Ticket collection failed: ${getErrorMessage(error)}`,
-      ErrorCodes.USECASE_EXECUTION_FAILED,
-      error instanceof Error ? error : undefined,
+      `[TicketCollectionUseCase] Database operation failed: ${error.message}`,
+      ErrorCodes.TICKET_COLLECTION_FAILED,
+      error,
       { sessionId, executionDurationMs: executionDuration },
     );
 
-    CloudLogger.error('Ticket collection failed', {
+    CloudLogger.error('Ticket collection service error', {
       category: LogCategory.TICKET_COLLECTION,
       error: {
         details: appError.message,
-        recoverable: false,
+        recoverable: true,
       },
     });
-    throw appError;
+    return appError;
   }
+
+  const appError = new AppError(
+    `[TicketCollectionUseCase] Ticket collection failed: ${getErrorMessage(error)}`,
+    ErrorCodes.USECASE_EXECUTION_FAILED,
+    error instanceof Error ? error : undefined,
+    { sessionId, executionDurationMs: executionDuration },
+  );
+
+  CloudLogger.error('Ticket collection failed', {
+    category: LogCategory.TICKET_COLLECTION,
+    error: {
+      details: appError.message,
+      recoverable: false,
+    },
+  });
+  return appError;
 }
 
 async function upsertCollectedTickets(
@@ -239,78 +274,43 @@ async function upsertCollectedTickets(
   return upsertResults;
 }
 
-async function scheduleTicketNotifications(
+async function scheduleUpcomingNotifications(
   deps: CollectTicketsDeps,
-  upsertResults: TicketUpsertResult[],
-): Promise<void> {
-  const successfulResults = upsertResults.filter((result) => !result.error);
+  sessionId: string,
+  stage: 'before_collection' | 'after_collection',
+): Promise<NotificationSchedulingSummary> {
+  const tickets = await deps.ticketRepository.findByStatusIn(['before_sale']);
+  const upcoming = listUpcomingNotifications(tickets, deps.now());
+  const summary: NotificationSchedulingSummary = { created: 0, alreadyExists: 0, failed: 0 };
 
-  const ticketsRequiringScheduling = notificationSchedulingService
-    .filterTicketsRequiringScheduling(
-      successfulResults.map((result) => ({
-        ...result,
-        previousTicket: result.previousTicket || undefined,
-      })),
-    );
-
-  if (ticketsRequiringScheduling.length === 0) {
-    return;
-  }
-
-  for (const { ticket, previousTicket } of ticketsRequiringScheduling) {
-    if (previousTicket) {
-      try {
-        const notifications = await deps.notificationRepository.findByTicketId(ticket.id);
-        const scheduledTasks = notifications
-          .filter((notification) => notification.status === 'scheduled' && notification.cloudTaskId)
-          .map((notification) => notification.cloudTaskId!);
-
-        if (scheduledTasks.length > 0) {
-          await deps.notificationSchedulerService.cancelNotifications(scheduledTasks);
-
-          for (
-            const notification of notifications.filter((notification) =>
-              notification.status === 'scheduled'
-            )
-          ) {
-            const reason: CancellationReason = determineCancellationReason(
-              ticket,
-              previousTicket!,
-            );
-            const cancelledNotification = notification.markAsCancelled(reason);
-            await deps.notificationRepository.update(cancelledNotification);
-          }
-        }
-      } catch (error) {
-        CloudLogger.warning(`Failed to cancel existing notifications for ticket ${ticket.id}`, {
-          category: LogCategory.NOTIFICATION,
-          context: { ticketId: ticket.id },
-          error: toErrorInfo(error, undefined, true),
-        });
-      }
-    }
-
+  for (const notification of upcoming) {
     try {
-      const futureNotificationTimes = notificationSchedulingService
-        .calculateNotificationTimes(ticket.saleStartDate);
-
-      await deps.notificationSchedulerService.scheduleNotifications(
-        ticket,
-        futureNotificationTimes,
-      );
-
-      logNotificationScheduling(ticket, futureNotificationTimes);
-
-      const updatedTicket = ticket.markNotificationScheduled();
-      await deps.ticketRepository.upsert(updatedTicket);
+      const result = await deps.notificationSchedulerService.scheduleNotification(notification);
+      if (result === 'created') summary.created++;
+      else summary.alreadyExists++;
     } catch (error) {
-      CloudLogger.error(`Failed to schedule notifications for ticket ${ticket.id}`, {
+      summary.failed++;
+      CloudLogger.error('Failed to schedule notification', {
         category: LogCategory.NOTIFICATION,
-        context: { ticketId: ticket.id },
+        context: { ticketId: notification.ticketId, sessionId, stage },
+        metadata: {
+          notificationType: notification.notificationType,
+          notificationTime: notification.notificationTime.toISOString(),
+        },
         error: toErrorInfo(error, undefined, true),
       });
     }
   }
+
+  CloudLogger.info(
+    `Notifications scheduled (${stage}): ${summary.created} created, ${summary.alreadyExists} already existed, ${summary.failed} failed`,
+    {
+      category: LogCategory.NOTIFICATION,
+      context: { sessionId, stage },
+      data: { result: summary },
+    },
+  );
+  return summary;
 }
 
 function logTicketUpsertResult(result: TicketUpsertResult): void {
@@ -369,28 +369,6 @@ function logTicketUpsertResult(result: TicketUpsertResult): void {
   CloudLogger.info(`Ticket ${action}: ${ticket.matchName}`, logPayload);
 }
 
-function logNotificationScheduling(ticket: Ticket, scheduledTimes: NotificationTiming[]): void {
-  const notifications = scheduledTimes.map(({ type, scheduledTime }) => ({
-    type,
-    scheduledTime: scheduledTime.toISOString(),
-  }));
-
-  CloudLogger.info(
-    `Notifications scheduled for ${ticket.matchName} (${notifications.length} notifications)`,
-    {
-      category: LogCategory.NOTIFICATION,
-      context: {
-        ticketId: ticket.id,
-      },
-      data: {
-        result: {
-          matchName: ticket.matchName,
-        },
-      },
-    },
-  );
-}
-
 function calculateStatistics(upsertResults: TicketUpsertResult[]): {
   newTickets: number;
   updatedTickets: number;
@@ -408,19 +386,4 @@ function calculateStatistics(upsertResults: TicketUpsertResult[]): {
   const failedTickets = upsertResults.filter((result) => result.error).length;
 
   return { newTickets, updatedTickets, unchangedTickets, failedTickets };
-}
-
-function determineCancellationReason(
-  currentTicket: Ticket,
-  previousTicket: Ticket,
-): CancellationReason {
-  if (currentTicket.saleStartDate?.getTime() !== previousTicket.saleStartDate?.getTime()) {
-    return 'Cancelled due to sale date change';
-  }
-
-  if (currentTicket.saleStatus !== previousTicket.saleStatus) {
-    return 'Cancelled due to ticket update';
-  }
-
-  return 'Cancelled due to ticket update';
 }

@@ -5,8 +5,20 @@ import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 import type { CloudTasksConfig } from '@/config/app-config.ts';
 
+export type EnqueueResult = 'created' | 'already_exists';
+
+const ALREADY_EXISTS_GRPC_CODE = 6;
+const CONFLICT_HTTP_STATUS = 409;
+
+function isAlreadyExistsError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const code = 'code' in error ? error.code : undefined;
+  return code === ALREADY_EXISTS_GRPC_CODE || code === CONFLICT_HTTP_STATUS ||
+    error.message.includes('ALREADY_EXISTS');
+}
+
 export interface EnqueueTaskParams {
-  taskId?: string;
+  taskId: string;
   payload: unknown;
   scheduledTime: Date;
   targetUrl: string;
@@ -76,7 +88,7 @@ export class CloudTasksClient {
     }
   }
 
-  async enqueueTask(params: EnqueueTaskParams): Promise<string> {
+  async enqueueTask(params: EnqueueTaskParams): Promise<EnqueueResult> {
     const {
       taskId,
       payload,
@@ -91,9 +103,6 @@ export class CloudTasksClient {
       throw new Error(`Scheduled time must be in the future: ${scheduledTime.toISOString()}`);
     }
 
-    // タスクIDを生成（指定がなければUUIDを使用）
-    const actualTaskId = taskId || crypto.randomUUID();
-
     const queuePath = this.client.queuePath(
       this.config.projectId,
       this.config.location,
@@ -101,7 +110,7 @@ export class CloudTasksClient {
     );
 
     const task = {
-      name: `${queuePath}/tasks/${actualTaskId}`,
+      name: `${queuePath}/tasks/${taskId}`,
       scheduleTime: {
         seconds: Math.floor(scheduledTime.getTime() / 1000),
       },
@@ -144,8 +153,17 @@ export class CloudTasksClient {
         },
       });
 
-      return createdTaskId;
+      return 'created';
     } catch (error) {
+      if (isAlreadyExistsError(error)) {
+        CloudLogger.info('Task already exists', {
+          category: LogCategory.CLOUD_TASKS,
+          context: { taskId: taskId, stage: 'enqueue_already_exists' },
+          metadata: { queueName: this.config.queueName },
+        });
+        return 'already_exists';
+      }
+
       // エラーの詳細情報を構造化ログで出力
       const errorDetails: Record<string, unknown> = {};
       const errorMessage = getErrorMessage(error);
@@ -168,7 +186,7 @@ export class CloudTasksClient {
       CloudLogger.error('Failed to enqueue task', {
         category: LogCategory.CLOUD_TASKS,
         context: {
-          taskId: actualTaskId,
+          taskId: taskId,
           stage: 'enqueue_error',
         },
         metadata: {
@@ -183,48 +201,6 @@ export class CloudTasksClient {
 
       throw new Error(
         `Failed to enqueue task: ${errorMessage}`,
-      );
-    }
-  }
-
-  async dequeueTask(taskId: string): Promise<void> {
-    const taskName = this.client.taskPath(
-      this.config.projectId,
-      this.config.location,
-      this.config.queueName,
-      taskId,
-    );
-
-    if (this.config.enableDebugLogs) {
-      CloudLogger.debug('Dequeuing task', {
-        category: LogCategory.CLOUD_TASKS,
-        context: {
-          taskId,
-          stage: 'dequeue_start',
-        },
-        metadata: {
-          queueName: this.config.queueName,
-        },
-      });
-    }
-
-    try {
-      await this.client.deleteTask({ name: taskName });
-    } catch (error) {
-      CloudLogger.error('Failed to dequeue task', {
-        category: LogCategory.CLOUD_TASKS,
-        context: {
-          taskId,
-          stage: 'dequeue_error',
-        },
-        metadata: {
-          queueName: this.config.queueName,
-        },
-        error: toErrorInfo(error, ErrorCodes.CLOUD_TASKS_ERROR, true),
-      });
-
-      throw new Error(
-        `Failed to dequeue task: ${getErrorMessage(error)}`,
       );
     }
   }

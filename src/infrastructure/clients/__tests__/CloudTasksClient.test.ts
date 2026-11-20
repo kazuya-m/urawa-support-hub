@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects, assertThrows } from 'std/assert/mod.ts';
-import { returnsNext, stub } from 'std/testing/mock.ts';
+import { stub } from 'std/testing/mock.ts';
 import { CloudTasksClient, EnqueueTaskParams } from '../CloudTasksClient.ts';
 import type { CloudTasksConfig } from '@/config/app-config.ts';
 
@@ -114,37 +114,6 @@ Deno.test('CloudTasksClient - should connect to emulator when emulatorHost is se
 });
 
 // Enqueue Task Tests
-Deno.test('CloudTasksClient - should enqueue task successfully with valid parameters', async () => {
-  const { client, originalEnv } = setupTestEnvironment();
-
-  const validParams: EnqueueTaskParams = {
-    taskId: 'test-task-123',
-    payload: { test: 'data' },
-    scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24時間後
-    targetUrl: 'https://example.com/api/notify',
-  };
-
-  // CloudTasks APIをmock
-  const mockTaskId = validParams.taskId!;
-  const enqueueStub = stub(
-    client,
-    'enqueueTask',
-    returnsNext([Promise.resolve(mockTaskId)]),
-  );
-
-  try {
-    const taskId = await client.enqueueTask(validParams);
-
-    assertEquals(typeof taskId, 'string');
-    assertEquals(taskId, mockTaskId);
-    assertEquals(enqueueStub.calls.length, 1);
-    assertEquals(enqueueStub.calls[0].args[0], validParams);
-  } finally {
-    enqueueStub.restore();
-    tearDown(originalEnv);
-  }
-});
-
 Deno.test('CloudTasksClient - should reject past scheduled time', async () => {
   const { client, originalEnv } = setupTestEnvironment();
 
@@ -166,84 +135,6 @@ Deno.test('CloudTasksClient - should reject past scheduled time', async () => {
   }
 });
 
-Deno.test('CloudTasksClient - should generate UUID when no taskId provided', async () => {
-  const { client, originalEnv } = setupTestEnvironment();
-
-  const validParams: EnqueueTaskParams = {
-    payload: { test: 'data' },
-    scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    targetUrl: 'https://example.com/api/notify',
-  };
-
-  // UUIDを返すようmock
-  const enqueueStub = stub(
-    client,
-    'enqueueTask',
-    returnsNext([Promise.resolve('generated-uuid-123')]),
-  );
-
-  try {
-    const taskId = await client.enqueueTask(validParams);
-
-    assertEquals(typeof taskId, 'string');
-    assertEquals(taskId, 'generated-uuid-123');
-    assertEquals(enqueueStub.calls.length, 1);
-  } finally {
-    enqueueStub.restore();
-    tearDown(originalEnv);
-  }
-});
-
-Deno.test('CloudTasksClient - should handle custom HTTP method', async () => {
-  const { client, originalEnv } = setupTestEnvironment();
-
-  const validParams: EnqueueTaskParams = {
-    taskId: 'test-task-123',
-    payload: { test: 'data' },
-    scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    targetUrl: 'https://example.com/api/notify',
-    httpMethod: 'PUT',
-  };
-
-  const mockTaskId = validParams.taskId!;
-  const enqueueStub = stub(
-    client,
-    'enqueueTask',
-    returnsNext([Promise.resolve(mockTaskId)]),
-  );
-
-  try {
-    const taskId = await client.enqueueTask(validParams);
-    assertEquals(typeof taskId, 'string');
-    assertEquals(taskId, mockTaskId);
-    assertEquals(enqueueStub.calls.length, 1);
-  } finally {
-    enqueueStub.restore();
-    tearDown(originalEnv);
-  }
-});
-
-// Dequeue Task Tests
-Deno.test('CloudTasksClient - should dequeue task without throwing error', async () => {
-  const { client, originalEnv } = setupTestEnvironment();
-
-  // dequeueTask をmock化して例外が発生しないことを確認
-  const dequeueStub = stub(
-    client,
-    'dequeueTask',
-    returnsNext([Promise.resolve()]),
-  );
-
-  try {
-    await client.dequeueTask('test-task-id');
-    assertEquals(dequeueStub.calls.length, 1);
-    assertEquals(dequeueStub.calls[0].args[0], 'test-task-id');
-  } finally {
-    dequeueStub.restore();
-    tearDown(originalEnv);
-  }
-});
-
 Deno.test('CloudTasksClient - enqueueTask は config の serviceAccountEmail を OIDC トークンに使う', async () => {
   const client = new CloudTasksClient({
     projectId: 'test-project',
@@ -261,14 +152,15 @@ Deno.test('CloudTasksClient - enqueueTask は config の serviceAccountEmail を
   });
 
   try {
-    const taskId = await client.enqueueTask({
+    const result = await client.enqueueTask({
       taskId: 'task-1',
       payload: { ticketId: 't-1' },
       scheduledTime: new Date(Date.now() + 60 * 60 * 1000),
       targetUrl: 'https://example.run.app/api/send-notification',
     });
 
-    assertEquals(taskId, 'task-1');
+    assertEquals(result, 'created');
+    assertEquals(requests[0]?.task?.name, `${requests[0]?.parent}/tasks/task-1`);
     assertEquals(requests.length, 1);
     assertEquals(requests[0]?.task?.httpRequest?.oidcToken, {
       serviceAccountEmail: 'tasks@test-project.iam.gserviceaccount.com',
@@ -277,4 +169,50 @@ Deno.test('CloudTasksClient - enqueueTask は config の serviceAccountEmail を
   } finally {
     createTaskStub.restore();
   }
+});
+
+Deno.test('CloudTasksClient - 同名のタスクがあれば already_exists を返す', async (t) => {
+  const client = new CloudTasksClient({
+    projectId: 'test-project',
+    location: 'asia-northeast1',
+    queueName: 'notifications',
+    enableDebugLogs: false,
+    nodeEnv: 'test',
+  });
+  const params: EnqueueTaskParams = {
+    taskId: 'task-1',
+    payload: { ticketId: 't-1' },
+    scheduledTime: new Date(Date.now() + 60 * 60 * 1000),
+    targetUrl: 'https://example.run.app/api/send-notification',
+  };
+  const enqueueRejectedWith = async (error: Error) => {
+    const createTaskStub = stub(client['client'], 'createTask', () => Promise.reject(error));
+    try {
+      return await client.enqueueTask(params);
+    } finally {
+      createTaskStub.restore();
+    }
+  };
+
+  await t.step('gRPC コード 6（ALREADY_EXISTS）', async () => {
+    const error = Object.assign(new Error('6 ALREADY_EXISTS: Requested entity already exists'), {
+      code: 6,
+    });
+    assertEquals(await enqueueRejectedWith(error), 'already_exists');
+  });
+
+  await t.step('HTTP 409', async () => {
+    const error = Object.assign(new Error('Conflict'), { code: 409 });
+    assertEquals(await enqueueRejectedWith(error), 'already_exists');
+  });
+
+  await t.step('コードが ABORTED（10）でもメッセージが ALREADY_EXISTS', async () => {
+    const error = Object.assign(new Error('ALREADY_EXISTS: task exists'), { code: 10 });
+    assertEquals(await enqueueRejectedWith(error), 'already_exists');
+  });
+
+  await t.step('それ以外のエラーは投げる', async () => {
+    const error = Object.assign(new Error('Permission denied'), { code: 7 });
+    await assertRejects(() => enqueueRejectedWith(error), Error, 'Failed to enqueue task');
+  });
 });

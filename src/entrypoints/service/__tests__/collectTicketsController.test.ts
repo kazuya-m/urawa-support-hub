@@ -7,7 +7,6 @@ import { withErrorHandling } from '../http.ts';
 import { DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 import type { CollectTicketsDeps } from '@/usecases/collectTickets.ts';
 import { Ticket } from '@/domain/entities/Ticket.ts';
-import type { Notification } from '@/domain/entities/Notification.ts';
 
 type LogEntry = {
   severity: string;
@@ -42,15 +41,12 @@ const collectDeps = (
     findByIds: () => Promise.resolve(new Map<string, Ticket>()),
     upsertMany: (tickets) => Promise.resolve(tickets),
     upsert: (ticket) => Promise.resolve(ticket),
-  },
-  notificationRepository: {
-    findByTicketId: () => Promise.resolve<Notification[]>([]),
-    update: () => Promise.resolve(),
+    findByStatusIn: () => Promise.resolve([]),
   },
   notificationSchedulerService: {
-    scheduleNotifications: () => Promise.resolve(),
-    cancelNotifications: () => Promise.resolve(),
+    scheduleNotification: () => Promise.resolve('created'),
   },
+  now: () => new Date(),
 });
 
 Deno.test('collect-tickets: 成功時は 200 と件数', async () => {
@@ -70,7 +66,6 @@ Deno.test('collect-tickets: 成功時は 200 と件数', async () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     scrapedAt: new Date(),
-    notificationScheduled: false,
   });
   const { result: response } = await captureLogs(() =>
     handleCollectTickets(collectDeps({ collected: [ticket] }))
@@ -107,12 +102,13 @@ Deno.test('collect-tickets: 収集の失敗は AppError（USECASE_EXECUTION_FAIL
   );
   assertEquals(Object.keys(body.details).sort(), ['executionDurationMs', 'sessionId']);
 
-  assertEquals(logs.length, 2);
-  assertEquals(logs[0].severity, 'ERROR');
-  assertEquals(logs[0].message, 'Ticket collection failed');
-  assertEquals(logs[1].severity, 'ERROR');
-  assertEquals(logs[1].message, 'UseCase error in ticket collection');
-  assertEquals(logs[1].jsonPayload, {
+  assertEquals(logs.map((log) => [log.severity, log.message]), [
+    ['INFO', 'Notifications scheduled (before_collection): 0 created, 0 already existed, 0 failed'],
+    ['INFO', 'Notifications scheduled (after_collection): 0 created, 0 already existed, 0 failed'],
+    ['ERROR', 'Ticket collection failed'],
+    ['ERROR', 'UseCase error in ticket collection'],
+  ]);
+  assertEquals(logs[3].jsonPayload, {
     category: 'TICKET_COLLECTION',
     error: {
       details: '[TicketCollectionUseCase] Ticket collection failed: boom',
@@ -136,6 +132,8 @@ Deno.test('collect-tickets: DatabaseError は TICKET_COLLECTION_FAILED として
     '[TICKET_COLLECTION_FAILED] [TicketCollectionUseCase] Database operation failed: [TicketRepository.findByIds] down',
   );
   assertEquals(logs.map((log) => [log.severity, log.message]), [
+    ['INFO', 'Notifications scheduled (before_collection): 0 created, 0 already existed, 0 failed'],
+    ['INFO', 'Notifications scheduled (after_collection): 0 created, 0 already existed, 0 failed'],
     ['ERROR', 'Ticket collection service error'],
     ['ERROR', 'UseCase error in ticket collection'],
   ]);
