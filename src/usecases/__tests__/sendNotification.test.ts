@@ -50,6 +50,12 @@ type StubOptions = {
   claimError?: Error;
 };
 
+const claimedAt = '2025-03-02T00:00:00.000000+00:00';
+
+function claimedRow(message: LineMessage): ClaimedNotification {
+  return { id: 'notification-1', message, claimedAt };
+}
+
 function createDeps(options: StubOptions = {}) {
   const calls: string[] = [];
   const claims: { key: NotificationKey; message: LineMessage }[] = [];
@@ -69,18 +75,18 @@ function createDeps(options: StubOptions = {}) {
         claims.push({ key, message });
         if (options.claimError) return Promise.reject(options.claimError);
         return Promise.resolve(
-          options.claimed === undefined ? { id: 'notification-1', message } : options.claimed,
+          options.claimed === undefined ? claimedRow(message) : options.claimed,
         );
       },
       findStatusByKey: () => {
         calls.push('findStatusByKey');
         return Promise.resolve(options.statusByKey ?? null);
       },
-      markSent: (id) => {
+      markSent: ({ id }) => {
         calls.push(`markSent:${id}`);
         return options.markSentError ? Promise.reject(options.markSentError) : Promise.resolve();
       },
-      markFailed: (id, errorMessage) => {
+      markFailed: ({ id }, errorMessage) => {
         calls.push(`markFailed:${id}`);
         failures.push({ id, errorMessage });
         return Promise.resolve();
@@ -149,15 +155,41 @@ Deno.test('sendNotification', async (t) => {
   });
 
   await t.step('同じタスクが 2 回届いても broadcast は 1 回', async () => {
-    const first = createDeps();
-    const second = createDeps({ claimed: null, statusByKey: 'sent' });
+    let row: { message: LineMessage; status: NotificationStatus } | null = null;
+    const broadcasts: string[] = [];
+    const deps: SendNotificationDeps = {
+      ticketRepository: { findById: () => Promise.resolve(ticket) },
+      notificationRepository: {
+        claim: (_key, message) => {
+          if (row && row.status !== 'failed') return Promise.resolve(null);
+          row = { message: row?.message ?? message, status: 'sending' };
+          return Promise.resolve(claimedRow(row.message));
+        },
+        findStatusByKey: () => Promise.resolve(row?.status ?? null),
+        markSent: () => {
+          if (row) row.status = 'sent';
+          return Promise.resolve();
+        },
+        markFailed: () => {
+          if (row) row.status = 'failed';
+          return Promise.resolve();
+        },
+      },
+      lineClient: {
+        broadcastWithRetryKey: (_message, retryKey) => {
+          broadcasts.push(retryKey);
+          return Promise.resolve({ kind: 'accepted' });
+        },
+      },
+      now: () => hourBeforeTime,
+    };
 
-    const { result: firstResult } = await captureLogs(() => sendNotification(first.deps, input));
-    const { result: secondResult } = await captureLogs(() => sendNotification(second.deps, input));
+    const { result: first } = await captureLogs(() => sendNotification(deps, input));
+    const { result: second } = await captureLogs(() => sendNotification(deps, input));
 
-    assertEquals(firstResult.kind, 'sent');
-    assertEquals(secondResult, { kind: 'skipped', reason: 'already_sent' });
-    assertEquals(first.broadcasts.length + second.broadcasts.length, 1);
+    assertEquals(first.kind, 'sent');
+    assertEquals(second, { kind: 'skipped', reason: 'already_sent' });
+    assertEquals(broadcasts, ['notification-1']);
   });
 
   await t.step('他の処理が確保中なら送らずに retry を返す', async () => {
@@ -172,7 +204,7 @@ Deno.test('sendNotification', async (t) => {
   await t.step('再確保時は保存済みの本文で送る', async () => {
     const storedMessage: LineMessage = { type: 'text', text: '初回の本文' };
     const { deps, broadcasts } = createDeps({
-      claimed: { id: 'notification-1', message: storedMessage },
+      claimed: claimedRow(storedMessage),
     });
 
     await captureLogs(() => sendNotification(deps, input));

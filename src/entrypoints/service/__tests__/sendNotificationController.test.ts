@@ -67,7 +67,9 @@ Deno.test('send-notification', async (t) => {
       notificationRepository: {
         claim: (_key, message) => {
           calls.push('claim');
-          return Promise.resolve(options.claimedByAnother ? null : { id: 'n-1', message });
+          return Promise.resolve(
+            options.claimedByAnother ? null : { id: 'n-1', message, claimedAt: 'claimed-at' },
+          );
         },
         findStatusByKey: () => Promise.resolve(options.claimedByAnother ? 'sending' : null),
         markSent: () => {

@@ -1,4 +1,4 @@
-import { assertEquals, assertNotEquals } from 'std/assert/mod.ts';
+import { assertEquals, assertNotEquals, assertStringIncludes } from 'std/assert/mod.ts';
 import { createClient } from '@supabase/supabase-js';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import {
@@ -135,7 +135,7 @@ Deno.test('claim_notification: 期限切れの sending は再確保でき、本�
 Deno.test('claim_notification: failed は再確保できる', async () => {
   await withTicket('claim-failed', async (key) => {
     const first = await notificationRepo.claim(key, firstMessage);
-    await notificationRepo.markFailed(first!.id, '500 down');
+    await notificationRepo.markFailed(first!, '500 down');
     assertEquals(await notificationRepo.findStatusByKey(key), 'failed');
 
     const second = await notificationRepo.claim(key, secondMessage);
@@ -164,7 +164,7 @@ Deno.test('claim_notification: 旧予約処理の scheduled・cancelled 行は�
 Deno.test('claim_notification: sent は確保できない', async () => {
   await withTicket('claim-sent', async (key) => {
     const first = await notificationRepo.claim(key, firstMessage);
-    await notificationRepo.markSent(first!.id, new Date());
+    await notificationRepo.markSent(first!, new Date());
 
     assertEquals(await notificationRepo.claim(key, secondMessage), null);
     assertEquals(await notificationRepo.findStatusByKey(key), 'sent');
@@ -174,9 +174,9 @@ Deno.test('claim_notification: sent は確保できない', async () => {
 Deno.test('markSent・markFailed は sending 以外を上書きしない', async () => {
   await withTicket('claim-guard', async (key) => {
     const claimed = await notificationRepo.claim(key, firstMessage);
-    await notificationRepo.markSent(claimed!.id, new Date());
+    await notificationRepo.markSent(claimed!, new Date());
 
-    await notificationRepo.markFailed(claimed!.id, 'late failure');
+    await notificationRepo.markFailed(claimed!, 'late failure');
 
     const row = await findRow(claimed!.id);
     assertEquals(row.status, 'sent');
@@ -185,10 +185,29 @@ Deno.test('markSent・markFailed は sending 以外を上書きしない', async
   });
 });
 
+Deno.test('markSent・markFailed は再確保された後の古い確保では上書きしない', async () => {
+  await withTicket('claim-stale-owner', async (key) => {
+    const first = await notificationRepo.claim(key, firstMessage);
+    await setRow(first!.id, { claimed_at: new Date(Date.now() - 7 * 60 * 1000).toISOString() });
+    const staleFirst = { ...first!, claimedAt: (await findRow(first!.id)).claimed_at };
+    const second = await notificationRepo.claim(key, firstMessage);
+
+    await notificationRepo.markFailed(staleFirst, 'late failure');
+    assertEquals(await notificationRepo.findStatusByKey(key), 'sending');
+
+    await notificationRepo.markSent(second!, new Date());
+    assertEquals(await notificationRepo.findStatusByKey(key), 'sent');
+  });
+});
+
 Deno.test('markSent・markFailed は対象の行がなくてもエラーにしない', async () => {
-  const missingId = crypto.randomUUID();
-  await notificationRepo.markSent(missingId, new Date());
-  await notificationRepo.markFailed(missingId, 'no row');
+  const missing = {
+    id: crypto.randomUUID(),
+    message: firstMessage,
+    claimedAt: new Date().toISOString(),
+  };
+  await notificationRepo.markSent(missing, new Date());
+  await notificationRepo.markFailed(missing, 'no row');
 });
 
 Deno.test('claim_notification: anon キーからは呼べない', async () => {
@@ -206,7 +225,7 @@ Deno.test('claim_notification: anon キーからは呼べない', async () => {
       p_message: firstMessage,
     });
 
-    assertNotEquals(error, null);
+    assertStringIncludes(error?.message ?? '', 'permission denied for function claim_notification');
     assertEquals(await notificationRepo.findStatusByKey(key), null);
   });
 });

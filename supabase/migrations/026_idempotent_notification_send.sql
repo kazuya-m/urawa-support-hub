@@ -1,5 +1,3 @@
-LOCK TABLE public.notifications IN SHARE ROW EXCLUSIVE MODE;
-
 ALTER TABLE public.notifications
   DROP CONSTRAINT IF EXISTS notifications_status_check;
 
@@ -44,7 +42,7 @@ CREATE OR REPLACE FUNCTION public.claim_notification(
   p_notification_time TIMESTAMPTZ,
   p_message JSONB
 )
-RETURNS TABLE (id UUID, message JSONB)
+RETURNS TABLE (id UUID, message JSONB, claimed_at TIMESTAMPTZ)
 LANGUAGE sql
 SET search_path = ''
 AS $$
@@ -60,7 +58,7 @@ AS $$
         message = COALESCE(n.message, EXCLUDED.message)
     WHERE n.status IN ('scheduled', 'failed', 'cancelled')
        OR (n.status = 'sending' AND n.claimed_at < now() - INTERVAL '6 minutes')
-  RETURNING n.id, n.message;
+  RETURNING n.id, n.message, n.claimed_at;
 $$;
 
 REVOKE EXECUTE ON FUNCTION public.claim_notification(TEXT, TEXT, TIMESTAMPTZ, JSONB)

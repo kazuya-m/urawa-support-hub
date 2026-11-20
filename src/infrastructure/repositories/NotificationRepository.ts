@@ -14,6 +14,7 @@ export interface NotificationKey {
 export interface ClaimedNotification {
   id: string;
   message: LineMessage;
+  claimedAt: string;
 }
 
 const NOTIFICATION_KEY_COLUMNS = 'ticket_id,notification_type,notification_time';
@@ -77,8 +78,9 @@ export class NotificationRepository {
     });
 
     if (error) throwDatabaseError('NotificationRepository', 'claim notification', error);
-    const rows: { id: string; message: LineMessage }[] = data ?? [];
-    return rows[0] ?? null;
+    const rows: { id: string; message: LineMessage; claimed_at: string }[] = data ?? [];
+    const row = rows[0];
+    return row ? { id: row.id, message: row.message, claimedAt: row.claimed_at } : null;
   }
 
   async findStatusByKey(key: NotificationKey): Promise<NotificationStatus | null> {
@@ -94,7 +96,7 @@ export class NotificationRepository {
     return data?.status ?? null;
   }
 
-  async markSent(id: string, sentAt: Date): Promise<void> {
+  async markSent(claimed: ClaimedNotification, sentAt: Date): Promise<void> {
     const { error } = await this.client
       .from('notifications')
       .update({
@@ -103,13 +105,14 @@ export class NotificationRepository {
         error_message: null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
-      .eq('status', 'sending');
+      .eq('id', claimed.id)
+      .eq('status', 'sending')
+      .eq('claimed_at', claimed.claimedAt);
 
     if (error) throwDatabaseError('NotificationRepository', 'update notification as sent', error);
   }
 
-  async markFailed(id: string, errorMessage: string): Promise<void> {
+  async markFailed(claimed: ClaimedNotification, errorMessage: string): Promise<void> {
     const { error } = await this.client
       .from('notifications')
       .update({
@@ -117,8 +120,9 @@ export class NotificationRepository {
         error_message: errorMessage,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
-      .eq('status', 'sending');
+      .eq('id', claimed.id)
+      .eq('status', 'sending')
+      .eq('claimed_at', claimed.claimedAt);
 
     if (error) {
       throwDatabaseError('NotificationRepository', 'update notification as failed', error);

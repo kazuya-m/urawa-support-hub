@@ -3,6 +3,7 @@ import type { Ticket } from '@/domain/entities/Ticket.ts';
 import { calculateNotificationTime, isWithinSendWindow } from '@/domain/notification.ts';
 import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import type {
+  ClaimedNotification,
   NotificationKey,
   NotificationRepository,
 } from '@/infrastructure/repositories/NotificationRepository.ts';
@@ -69,7 +70,7 @@ export async function sendNotification(
   };
   const claimed = await deps.notificationRepository.claim(
     key,
-    buildMessage(ticket, notificationType),
+    buildMessage(ticket, ticket.saleStartDate, notificationType),
   );
   if (!claimed) {
     const status = await deps.notificationRepository.findStatusByKey(key);
@@ -82,10 +83,10 @@ export async function sendNotification(
   switch (result.kind) {
     case 'accepted':
     case 'already_accepted':
-      await recordSent(deps, input, claimed.id);
+      await recordSent(deps, input, claimed);
       return { kind: 'sent', notificationId: claimed.id };
     case 'rejected':
-      await deps.notificationRepository.markFailed(claimed.id, result.detail);
+      await deps.notificationRepository.markFailed(claimed, result.detail);
       CloudLogger.error('LINE rejected the notification', {
         category: LogCategory.NOTIFICATION,
         context: { ticketId, notificationId: claimed.id, stage: 'line_rejected' },
@@ -98,7 +99,7 @@ export async function sendNotification(
       });
       return { kind: 'rejected', notificationId: claimed.id, status: result.status };
     case 'retryable':
-      await deps.notificationRepository.markFailed(claimed.id, result.detail);
+      await deps.notificationRepository.markFailed(claimed, result.detail);
       return retry(input, 'line_unavailable', {
         notificationId: claimed.id,
         detail: result.detail,
@@ -109,10 +110,11 @@ export async function sendNotification(
 async function recordSent(
   deps: SendNotificationDeps,
   input: NotificationExecutionInput,
-  notificationId: string,
+  claimed: ClaimedNotification,
 ): Promise<void> {
+  const notificationId = claimed.id;
   try {
-    await deps.notificationRepository.markSent(notificationId, deps.now());
+    await deps.notificationRepository.markSent(claimed, deps.now());
     CloudLogger.info('Notification sent', {
       category: LogCategory.NOTIFICATION,
       context: { ticketId: input.ticketId, notificationId, stage: 'sent' },
@@ -128,12 +130,16 @@ async function recordSent(
   }
 }
 
-function buildMessage(ticket: Ticket, notificationType: NotificationType): LineMessage {
+function buildMessage(
+  ticket: Ticket,
+  saleStartDate: Date,
+  notificationType: NotificationType,
+): LineMessage {
   return LINE_MESSAGE_TEMPLATES.ticketNotification(
     formatMatchName(ticket),
     formatJST(ticket.matchDate, 'M/d(eeeee) HH:mm'),
     ticket.venue || '未定',
-    ticket.saleStartDate ? formatJST(ticket.saleStartDate, 'M/d(eeeee) HH:mm') : '未定',
+    formatJST(saleStartDate, 'M/d(eeeee) HH:mm'),
     notificationType,
     ticket.ticketUrl ?? undefined,
   );
