@@ -50,7 +50,6 @@ async function checkTicketsInDB(): Promise<void> {
           `    🚫 Sale End: ${ticket.saleEndDate ? formatJST(ticket.saleEndDate) : 'Not set'}`,
         );
         console.log(`    📈 Status: ${ticket.saleStatus}`);
-        console.log(`    🔔 Notification Scheduled: ${ticket.notificationScheduled}`);
         console.log(`    🕒 Created: ${formatJST(ticket.createdAt)}`);
         console.log(`    🔄 Updated: ${formatJST(ticket.updatedAt)}`);
         console.log(`    🕷️  Scraped: ${formatJST(ticket.scrapedAt)}`);
@@ -76,10 +75,6 @@ async function checkTicketsInDB(): Promise<void> {
       Object.entries(statusCounts).forEach(([status, count]) => {
         console.log(`    ${status}: ${count}`);
       });
-
-      // 通知予定の確認
-      const scheduledCount = allTickets.filter((t) => t.notificationScheduled).length;
-      console.log(`  Notifications scheduled: ${scheduledCount}`);
     } else {
       console.log('❌ No tickets found in database');
       console.log('\n🔧 Possible reasons:');

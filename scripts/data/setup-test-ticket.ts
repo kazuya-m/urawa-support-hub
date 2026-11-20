@@ -60,7 +60,6 @@ async function createTestTicket(): Promise<string> {
     ticketTypes: null,
     ticketUrl: 'https://www.jleague-ticket.jp/',
     saleStatus: 'on_sale',
-    notificationScheduled: false,
     scrapedAt: new Date(),
   });
 
@@ -95,7 +94,6 @@ async function createNotificationTestTickets(): Promise<string[]> {
       ticketTypes: null,
       ticketUrl: 'https://www.jleague-ticket.jp/test-1',
       saleStatus: 'before_sale',
-      notificationScheduled: false,
       scrapedAt: new Date(),
     }),
 
@@ -112,7 +110,6 @@ async function createNotificationTestTickets(): Promise<string[]> {
       ticketTypes: null,
       ticketUrl: 'https://www.jleague-ticket.jp/test-2',
       saleStatus: 'on_sale',
-      notificationScheduled: false,
       scrapedAt: new Date(),
     }),
 
@@ -129,7 +126,6 @@ async function createNotificationTestTickets(): Promise<string[]> {
       ticketTypes: null,
       ticketUrl: 'https://www.jleague-ticket.jp/test-3',
       saleStatus: 'on_sale',
-      notificationScheduled: false,
       scrapedAt: new Date(),
     }),
   ];

@@ -83,7 +83,6 @@ async function testScraping() {
         ticketTypes: ticket.ticketTypes,
         ticketUrl: ticket.ticketUrl,
         saleStatus: ticket.saleStatus,
-        notificationScheduled: ticket.notificationScheduled,
         createdAt: ticket.createdAt.toISOString(),
         updatedAt: ticket.updatedAt.toISOString(),
         scrapedAt: ticket.scrapedAt.toISOString(),

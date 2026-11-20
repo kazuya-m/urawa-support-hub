@@ -32,7 +32,6 @@ Deno.test(
       updatedAt: new Date('2025-01-01T00:00:00Z'),
       scrapedAt: new Date(),
       saleStatus: 'before_sale' as const,
-      notificationScheduled: false,
     };
 
     // テスト前にクリーンアップ
@@ -111,7 +110,6 @@ Deno.test(
       updatedAt: new Date('2025-01-01T00:00:00Z'),
       scrapedAt: new Date(),
       saleStatus: 'before_sale' as const,
-      notificationScheduled: false,
     };
 
     try {
@@ -167,7 +165,6 @@ Deno.test('Ticket UPSERT - UNIQUE constraint test', {}, async () => {
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale' as const,
-    notificationScheduled: false,
   };
 
   try {

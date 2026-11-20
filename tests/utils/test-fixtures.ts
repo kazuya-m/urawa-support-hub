@@ -34,7 +34,6 @@ export const TEST_TICKETS = {
     updatedAt: new Date('2025-01-01T00:00:00Z'),
     scrapedAt: new Date(),
     saleStatus: 'before_sale' as const,
-    notificationScheduled: false,
   },
   idempotent001: {
     id: 'test-idempotent-001',
@@ -52,7 +51,6 @@ export const TEST_TICKETS = {
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale' as const,
-    notificationScheduled: false,
   },
   unique001: {
     id: 'unique-test-001',
@@ -70,7 +68,6 @@ export const TEST_TICKETS = {
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale' as const,
-    notificationScheduled: false,
   },
   unique002: {
     id: 'unique-test-002',
@@ -88,7 +85,6 @@ export const TEST_TICKETS = {
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale' as const,
-    notificationScheduled: false,
   },
 };
 
@@ -147,7 +143,6 @@ export async function createDynamicTestTicket(options: TestTicketOptions = {}): 
     ticketUrl: `https://example.com/tickets/test${suffix ? '-' + suffix : ''}`,
     scrapedAt: new Date(),
     saleStatus: 'before_sale' as const,
-    notificationScheduled: false,
   });
 }
 

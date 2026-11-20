@@ -19,7 +19,6 @@ export class TicketConverter {
       updatedAt: data.updated_at ? new Date(data.updated_at) : null,
       scrapedAt: new Date(data.scraped_at),
       saleStatus: data.sale_status,
-      notificationScheduled: data.notification_scheduled,
     });
   }
 
@@ -39,7 +38,6 @@ export class TicketConverter {
       ticket_url: plainObject.ticketUrl,
       scraped_at: plainObject.scrapedAt.toISOString(),
       sale_status: plainObject.saleStatus,
-      notification_scheduled: plainObject.notificationScheduled,
     };
   }
 }

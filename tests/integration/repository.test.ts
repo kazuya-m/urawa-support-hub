@@ -1,7 +1,7 @@
 import { assertEquals, assertNotEquals } from 'std/assert/mod.ts';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
-import { Notification, Ticket } from '@/domain/entities/index.ts';
+import { Ticket } from '@/domain/entities/index.ts';
 import {
   cleanupTestData,
   cleanupTestDataById,
@@ -27,15 +27,6 @@ async function cleanupTicket(ticketId: string) {
   } catch (error) {
     // テストクリーンアップでのエラーは無視（ログ出力なし）
     // console.warn を削除: ` Failed to cleanup ticket ${ticketId}: ${getErrorMessage(error)}`;
-  }
-}
-
-async function cleanupNotification(notificationId: string) {
-  try {
-    await cleanupTestData(supabase, 'notifications', `id = '${notificationId}'`);
-  } catch (error) {
-    // テストクリーンアップでのエラーは無視（ログ出力なし）
-    // console.warn を削除: ` Failed to cleanup notification ${notificationId}: ${getErrorMessage(error)}`;
   }
 }
 
@@ -82,96 +73,49 @@ Deno.test('TicketRepository - delete', async () => {
   assertEquals(result, null);
 });
 
-Deno.test('NotificationRepository - save and findById', async () => {
+async function claimTestNotification(ticketId: string) {
+  const claimed = await notificationRepo.claim(
+    {
+      ticketId,
+      notificationType: 'day_before',
+      notificationTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    },
+    { type: 'text', text: 'テスト' },
+  );
+  if (!claimed) throw new Error('claim failed');
+  return claimed;
+}
+
+Deno.test('NotificationRepository - findById', async () => {
   const testTicket = await createTestTicketForIntegration('notification-save');
-  const testNotification = new Notification({
-    id: crypto.randomUUID(),
-    ticketId: testTicket.id,
-    notificationType: 'day_before' as const,
-    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    sentAt: null,
-    status: 'scheduled' as const,
-    errorMessage: null,
-    cloudTaskId: null,
-    createdAt: new Date(),
-    updatedAt: null,
-  });
 
   try {
     await ticketRepo.upsert(testTicket);
-    await notificationRepo.save(testNotification);
+    const claimed = await claimTestNotification(testTicket.id);
 
-    const result = await notificationRepo.findById(testNotification.id);
+    const result = await notificationRepo.findById(claimed.id);
 
-    assertEquals(result?.id, testNotification.id);
-    assertEquals(result?.ticketId, testNotification.ticketId);
-    assertEquals(result?.status, 'scheduled');
+    assertEquals(result?.id, claimed.id);
+    assertEquals(result?.ticketId, testTicket.id);
+    assertEquals(result?.status, 'sending');
   } finally {
-    await cleanupNotification(testNotification.id);
     await cleanupTicket(testTicket.id);
   }
 });
 
 Deno.test('NotificationRepository - findByTicketId', async () => {
   const testTicket = await createTestTicketForIntegration('notification-findByTicket');
-  const testNotification = new Notification({
-    id: crypto.randomUUID(),
-    ticketId: testTicket.id,
-    notificationType: 'day_before' as const,
-    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    sentAt: null,
-    status: 'scheduled' as const,
-    errorMessage: null,
-    cloudTaskId: null,
-    createdAt: new Date(),
-    updatedAt: null,
-  });
 
   try {
     await ticketRepo.upsert(testTicket);
-    await notificationRepo.save(testNotification);
+    const claimed = await claimTestNotification(testTicket.id);
 
     const results = await notificationRepo.findByTicketId(testTicket.id);
-    const found = results.find((notification) => notification.id === testNotification.id);
+    const found = results.find((notification) => notification.id === claimed.id);
 
     assertNotEquals(found, undefined);
     assertEquals(found?.ticketId, testTicket.id);
   } finally {
-    await cleanupNotification(testNotification.id);
-    await cleanupTicket(testTicket.id);
-  }
-});
-
-Deno.test('NotificationRepository - update', async () => {
-  const testTicket = await createTestTicketForIntegration('notification-update');
-  const testNotification = new Notification({
-    id: crypto.randomUUID(),
-    ticketId: testTicket.id,
-    notificationType: 'day_before' as const,
-    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    sentAt: null,
-    status: 'scheduled' as const,
-    errorMessage: null,
-    cloudTaskId: null,
-    createdAt: new Date(),
-    updatedAt: null,
-  });
-
-  try {
-    await ticketRepo.upsert(testTicket);
-    await notificationRepo.save(testNotification);
-
-    const notification = await notificationRepo.findById(testNotification.id);
-    if (notification) {
-      const sentNotification = notification.markAsSent();
-      await notificationRepo.update(sentNotification);
-
-      const updated = await notificationRepo.findById(testNotification.id);
-      assertEquals(updated?.status, 'sent');
-      assertNotEquals(updated?.sentAt, null);
-    }
-  } finally {
-    await cleanupNotification(testNotification.id);
     await cleanupTicket(testTicket.id);
   }
 });

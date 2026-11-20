@@ -18,7 +18,6 @@ Deno.test('Ticket hasSameBusinessData method', async (t) => {
     updatedAt: new Date('2025-01-01T00:00:00Z'),
     scrapedAt: new Date('2025-01-01T12:00:00Z'),
     saleStatus: 'before_sale' as const,
-    notificationScheduled: false,
   };
 
   await t.step('null との比較では false を返す', () => {
@@ -126,14 +125,5 @@ Deno.test('Ticket hasSameBusinessData method', async (t) => {
       saleStatus: 'on_sale' as const,
     });
     assertEquals(ticket1.hasSameBusinessData(ticket2), false);
-  });
-
-  await t.step('notificationScheduled の違いは無視される', () => {
-    const ticket1 = Ticket.fromExisting(baseProps);
-    const ticket2 = Ticket.fromExisting({
-      ...baseProps,
-      notificationScheduled: true,
-    });
-    assertEquals(ticket1.hasSameBusinessData(ticket2), true);
   });
 });

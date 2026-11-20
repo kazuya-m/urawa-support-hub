@@ -40,7 +40,6 @@ Deno.test('ticket-summary', async (t) => {
     saleStatus: 'on_sale',
     ticketTypes: [],
     ticketUrl: null,
-    notificationScheduled: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     scrapedAt: new Date(),

@@ -56,7 +56,6 @@ export class JLeagueDataParser implements IDataParser<JLeagueRawTicketData> {
       ticketUrl: rawData.ticketUrl || null,
       scrapedAt: rawData.scrapedAt,
       saleStatus: saleInfo?.saleStatus ?? null,
-      notificationScheduled: false,
     });
   }
 
