@@ -18,31 +18,14 @@ import {
 } from '@/domain/config/NotificationConfig.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
 
-// ---------------------------------------------------------------------------
-// 共通エラーハンドラ
-// ---------------------------------------------------------------------------
-
-/**
- * ルートごとのエラー応答とログの設定
- */
 export interface ErrorHandlingOptions {
-  /** ログのメッセージ */
   logMessage: string;
-  /** ログのカテゴリ */
   category: LogCategory;
-  /** 想定外のエラーのログの severity（AppError は常に error） */
   severity?: 'error' | 'critical';
-  /** ログに付けるコンテキスト */
   context?: LogContext;
-  /** 想定外のエラーのときの応答（エラーメッセージ → [error, details]） */
   unexpectedResponse: (errorMessage: string) => [string, unknown];
 }
 
-/**
- * ハンドラの例外をログに出し、500 の JSON 応答に変換する
- * - AppError: [code] message と context を返す
- * - それ以外: options.unexpectedResponse で応答を組み立てる
- */
 export async function withErrorHandling(
   handle: () => Promise<Response>,
   options: ErrorHandlingOptions,
@@ -72,15 +55,6 @@ export async function withErrorHandling(
   }
 }
 
-/**
- * ルートごとのエラー応答とログの設定（withErrorHandling に渡す）
- * 各ルートで本番に到達するエラーの経路の応答・ログを、集約前の Controller と同じに保つ
- * - collect-tickets: job の AppError
- * - send-notification: リクエスト検証中の想定外エラー（severity は critical）
- * - ticket-summary: job の想定外エラー
- * メッセージと stage の旧クラス名は、ログの絞り込み条件を変えないために残している
- */
-
 export const TICKET_COLLECTION_ERROR_OPTIONS: ErrorHandlingOptions = {
   logMessage: 'UseCase error in ticket collection',
   category: LogCategory.TICKET_COLLECTION,
@@ -104,20 +78,12 @@ export const TICKET_SUMMARY_ERROR_OPTIONS: ErrorHandlingOptions = {
   ],
 };
 
-// ---------------------------------------------------------------------------
-// 入力検証
-// ---------------------------------------------------------------------------
-
 export interface ValidationResult<T> {
   isValid: boolean;
   data?: T;
   error?: string;
 }
 
-/**
- * /api/send-notification の body を検証する
- * notificationType に細工したオブジェクト（{ toString: 1 } など）が来ると例外を投げる
- */
 export function validateNotificationRequest(
   body: unknown,
 ): ValidationResult<NotificationExecutionInput> {
@@ -154,24 +120,12 @@ export function validateNotificationRequest(
   };
 }
 
-// ---------------------------------------------------------------------------
-// ルーティング
-// ---------------------------------------------------------------------------
-
-/**
- * ルートごとの処理の生成（テストではスタブに差し替える）
- * 生成は withErrorHandling の外で行う（生成時の例外は Deno.serve の既定の 500 になる）
- */
 export interface RouteFactories {
   collectTickets: () => Promise<Pick<TicketCollectionController, 'handleCollectTickets'>>;
   sendNotification: () => SendNotificationDeps;
   ticketSummary: () => SendSummaryDeps;
 }
 
-/**
- * di.ts は Playwright を読み込み、読み込み時に sys の権限を要する（通知系の job は読み込まない）
- * テストが main.ts を import できるよう、動的 import で初回のリクエスト時に読み込む
- */
 const defaultRouteFactories: RouteFactories = {
   collectTickets: async () => (await import('@/config/di.ts')).createTicketCollectionController(),
   sendNotification: createSendNotificationDeps,
@@ -195,7 +149,6 @@ export async function handleRequest(
   if (url.pathname === '/api/send-notification' && req.method === 'POST') {
     const deps = factories.sendNotification();
     return await withErrorHandling(async () => {
-      // 読み取りと検証も withErrorHandling の中で行う（検証中の例外は CRITICAL で記録する）
       const body = await req.json().catch(() => null);
       const validation = validateNotificationRequest(body);
 
@@ -260,12 +213,6 @@ export function main(): void {
 }
 
 if (import.meta.main) {
-  // ローカル実行用に .env を環境変数へ読み込む（本番には .env がないので失敗を無視する）
-  // テストが main.ts を import しても読み込まないよう、エントリポイントとして実行したときだけ行う
-  try {
-    await load({ export: true });
-  } catch {
-    // Ignore .env loading errors in production
-  }
+  await load({ export: true }).catch(() => ({}));
   main();
 }

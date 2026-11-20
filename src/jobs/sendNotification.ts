@@ -1,10 +1,3 @@
-/**
- * 予約済み通知の送信（/api/send-notification。Cloud Tasks から呼ばれる）
- * チケットを DB から取得し、通知記録を確保してから LINE に broadcast し、記録を sent にする
- *
- * 送信手順（通知記録の扱い・プロセス内のリトライ）は #247 で作り直すため、移行前の処理をそのまま移している
- */
-
 import { Notification } from '@/domain/entities/Notification.ts';
 import type { NotificationType } from '@/domain/config/NotificationConfig.ts';
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
@@ -37,15 +30,11 @@ export interface SendNotificationDeps {
   ticketRepository: Pick<TicketRepository, 'findById'>;
   notificationRepository: Pick<NotificationRepository, 'findByTicketId' | 'save' | 'update'>;
   lineClient: Pick<LineClient, 'broadcast'>;
-  /** リトライ間の待ち（テストでは待たずに記録する） */
   sleep: (ms: number) => Promise<void>;
 }
 
 const MAX_RETRIES = 3;
 
-/**
- * 本番の依存を作る（Supabase と LINE だけ）
- */
 export function createSendNotificationDeps(): SendNotificationDeps {
   const config = getAppConfig();
   const supabaseClient = getSupabaseAdminClient();
@@ -57,11 +46,6 @@ export function createSendNotificationDeps(): SendNotificationDeps {
   };
 }
 
-/**
- * 通知を送り、結果を返す（例外は投げない）
- * - チケットなし・DB の失敗: ERROR ログを 2 件出し、status: 'error' を返す
- * - LINE が MAX_RETRIES 回失敗: 記録を failed にして ERROR ログを出し、status: 'success' を返す（#237 で直す）
- */
 export async function sendNotification(
   deps: SendNotificationDeps,
   input: NotificationExecutionInput,
@@ -85,7 +69,6 @@ export async function sendNotification(
         stage: 'usecase_error',
       },
       metadata: {
-        // deliverScheduledNotification の metadata.notificationType は表示名なので、別のキーにする
         notificationTypeKey: input.notificationType,
       },
       error: toErrorInfo(error, undefined, true),
@@ -108,13 +91,11 @@ async function deliverScheduledNotification(
   const { ticketId, notificationType } = input;
 
   try {
-    // 1. チケットを取得する
     const ticket = await deps.ticketRepository.findById(ticketId);
     if (!ticket) {
       throw new Error(`Ticket not found: ${ticketId}`);
     }
 
-    // 2. 通知記録を取得し、なければ作る
     const existingHistories = await deps.notificationRepository.findByTicketId(ticketId);
 
     let history = existingHistories.find((history) =>
@@ -137,12 +118,10 @@ async function deliverScheduledNotification(
       await deps.notificationRepository.save(history);
     }
 
-    // 3. 送信済みなら何もしない
     if (history.status === 'sent') {
       return;
     }
 
-    // 4. broadcast して sent にする（失敗したら指数バックオフで再試行する）
     let retryCount = 0;
     let lastError: Error | null = null;
 
@@ -173,7 +152,6 @@ async function deliverScheduledNotification(
       }
     }
 
-    // 5. すべて失敗したら failed を記録する（例外は投げない）
     await handleFailedNotification(
       deps,
       history,

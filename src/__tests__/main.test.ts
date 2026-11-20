@@ -21,10 +21,6 @@ type LogEntry = {
   jsonPayload?: Record<string, unknown>;
 };
 
-/**
- * 処理中の CloudLogger の出力（console.log の JSON）を捕まえる
- * 本番と同じく stack を出さないよう、実行中だけ NODE_ENV=production にする
- */
 async function captureLogs<T>(fn: () => Promise<T>): Promise<{ result: T; logs: LogEntry[] }> {
   const lines: string[] = [];
   const originalLog = console.log;
@@ -44,9 +40,6 @@ async function captureLogs<T>(fn: () => Promise<T>): Promise<{ result: T; logs: 
 const post = (path: string, body?: string) =>
   new Request(`http://localhost:8080${path}`, { method: 'POST', body });
 
-/**
- * 呼ばれたら失敗する RouteFactories（ルーティングだけを確かめるとき用）
- */
 const unusedFactories: RouteFactories = {
   collectTickets: () => {
     throw new Error('collectTickets should not be created');
@@ -59,9 +52,6 @@ const unusedFactories: RouteFactories = {
   },
 };
 
-/**
- * 指定したルートだけ差し替えた RouteFactories
- */
 const factoriesWith = (overrides: Partial<RouteFactories>): RouteFactories => ({
   ...unusedFactories,
   ...overrides,
@@ -294,7 +284,6 @@ Deno.test('ticket-summary', async (t) => {
         'Ticket summary notification failed: Ticket summary notification failed: LINE down',
     });
 
-    // job の 2 件の後に、共通エラーハンドラの 1 件
     assertEquals(logs.map((log) => [log.severity, log.message]), [
       ['ERROR', 'Ticket summary notification failed'],
       ['ERROR', 'Ticket summary notification failed'],
@@ -360,9 +349,6 @@ Deno.test('send-notification', async (t) => {
     scrapedAt: new Date(),
   });
 
-  /**
-   * 呼び出しを記録する SendNotificationDeps のスタブ
-   */
   const notificationDeps = (
     options: { ticket?: Ticket | null; broadcastError?: Error } = {},
   ) => {

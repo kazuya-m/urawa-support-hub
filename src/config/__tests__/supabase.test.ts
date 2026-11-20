@@ -3,9 +3,6 @@ import { getSupabaseAdminClient, resetSupabaseAdminClientForTest } from '../supa
 
 const ENV_KEYS = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'NODE_ENV'];
 
-/**
- * 環境変数と console.warn を差し替え、共有クライアントを捨ててから実行する
- */
 function withEnv(fn: (warnings: unknown[][]) => void): void {
   const original = ENV_KEYS.map((key) => [key, Deno.env.get(key)] as const);
   const originalWarn = console.warn;

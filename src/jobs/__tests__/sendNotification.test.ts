@@ -34,18 +34,11 @@ const input: NotificationExecutionInput = {
 };
 
 type StubOptions = {
-  /** findById が返すチケット。Error を渡すと reject する */
   ticket?: Ticket | null | Error;
-  /** findByTicketId が返す既存の通知 */
   notifications?: Notification[];
-  /** broadcast を失敗させるエラー */
   broadcastError?: Error;
 };
 
-/**
- * sendNotification の依存をインラインスタブで用意し、呼び出し順を記録する
- * 本番コードはリトライで例外を吸収するため、経路上のメソッドは型どおり全部書く
- */
 function createDeps(options: StubOptions = {}) {
   const calls: string[] = [];
   const saved: Notification[] = [];
@@ -108,10 +101,6 @@ function createNotification(status: 'scheduled' | 'sent'): Notification {
   });
 }
 
-/**
- * 処理中の CloudLogger の出力（console.log の JSON）を捕まえる
- * stack を出さないよう production にし、Cloud Run のラベルが付かないよう K_SERVICE を消す
- */
 async function captureLogs<T>(
   fn: () => Promise<T>,
 ): Promise<{ result: T; logs: Record<string, unknown>[] }> {
@@ -212,7 +201,6 @@ Deno.test('sendNotification - 送信手順', async (t) => {
       'update:failed',
     ]);
     assertEquals(updated[0].errorMessage, 'LINE down');
-    // 1 秒・2 秒の指数バックオフで待つ（3 回目の失敗の後は待たない）
     assertEquals(sleeps, [1000, 2000]);
   });
 

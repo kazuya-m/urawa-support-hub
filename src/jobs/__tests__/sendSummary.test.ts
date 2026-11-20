@@ -5,18 +5,13 @@ import type { LineMessage } from '@/infrastructure/clients/LineClient.ts';
 
 const NOW = new Date('2025-10-01T00:00:00Z');
 
-/** broadcast したメッセージに試合名が含まれるか */
 const mentions = (message: LineMessage, matchName: string) =>
   JSON.stringify(message).includes(matchName);
 const DAY = 24 * 60 * 60 * 1000;
 
-/**
- * テスト用のチケットを作る（指定しない項目は固定値）
- */
 function createTestTicket(
   overrides: { id: string; matchName: string; matchDate: Date },
 ): Ticket {
-  // homeTeam・awayTeam があるとメッセージは「ホーム vs アウェイ」になるので、試合名を出すために null にする
   return Ticket.fromExisting({
     homeTeam: null,
     awayTeam: null,
@@ -36,15 +31,10 @@ function createTestTicket(
 }
 
 type StubOptions = {
-  /** findByStatusIn が返すチケット。Error を渡すと reject する */
   tickets?: Ticket[] | Error;
-  /** broadcast を失敗させるエラー */
   broadcastError?: Error;
 };
 
-/**
- * sendSummary の依存をインラインスタブで用意し、呼び出しを記録する
- */
 function createDeps(options: StubOptions = {}) {
   const findByStatusInCalls: string[][] = [];
   const broadcasts: LineMessage[] = [];
@@ -69,10 +59,6 @@ function createDeps(options: StubOptions = {}) {
   return { deps, findByStatusInCalls, broadcasts };
 }
 
-/**
- * 処理中の CloudLogger の出力（console.log の JSON）を捕まえる
- * stack を出さないよう production にし、Cloud Run のラベルが付かないよう K_SERVICE を消す
- */
 async function captureLogs(fn: () => Promise<unknown>): Promise<Record<string, unknown>[]> {
   const lines: string[] = [];
   const originalLog = console.log;
