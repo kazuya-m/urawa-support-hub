@@ -17,12 +17,18 @@ export interface SupabaseConfig {
   serviceRoleKey?: string;
 }
 
+export interface CloudRunJobConfig {
+  executionId?: string;
+  taskAttempt?: string;
+}
+
 export interface AppConfig {
   nodeEnv?: string;
   cloudTasks: CloudTasksConfig;
   line: LineClientConfig;
   supabase: SupabaseConfig;
   notificationUrl: string;
+  cloudRunJob: CloudRunJobConfig;
 }
 
 export const getAppConfig = (): AppConfig => ({
@@ -45,4 +51,8 @@ export const getAppConfig = (): AppConfig => ({
     serviceRoleKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
   },
   notificationUrl: Deno.env.get('CLOUD_RUN_NOTIFICATION_URL') || '',
+  cloudRunJob: {
+    executionId: Deno.env.get('CLOUD_RUN_EXECUTION'),
+    taskAttempt: Deno.env.get('CLOUD_RUN_TASK_ATTEMPT'),
+  },
 });
