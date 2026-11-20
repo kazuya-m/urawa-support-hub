@@ -1,8 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-/**
- * 管理者用Supabaseクライアント（緊急時のみ）
- */
 export function createSupabaseAdminClient(): SupabaseClient {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -23,4 +20,15 @@ export function createSupabaseAdminClient(): SupabaseClient {
       persistSession: false,
     },
   });
+}
+
+let sharedAdminClient: SupabaseClient | null = null;
+
+export function getSupabaseAdminClient(): SupabaseClient {
+  sharedAdminClient ??= createSupabaseAdminClient();
+  return sharedAdminClient;
+}
+
+export function resetSupabaseAdminClientForTest(): void {
+  sharedAdminClient = null;
 }

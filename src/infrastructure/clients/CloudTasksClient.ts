@@ -3,6 +3,7 @@ import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
 import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 import { getErrorMessage, toErrorInfo } from '@/shared/utils/errorUtils.ts';
+import type { CloudTasksConfig } from '@/config/app-config.ts';
 
 export interface EnqueueTaskParams {
   taskId?: string;
@@ -11,14 +12,6 @@ export interface EnqueueTaskParams {
   targetUrl: string;
   httpMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
-}
-
-export interface CloudTasksConfig {
-  projectId: string;
-  location: string;
-  queueName: string;
-  enableDebugLogs: boolean;
-  nodeEnv: string;
 }
 
 /**

@@ -1,6 +1,7 @@
 import { assertEquals, assertRejects, assertThrows } from 'std/assert/mod.ts';
 import { returnsNext, stub } from 'std/testing/mock.ts';
-import { CloudTasksClient, CloudTasksConfig, EnqueueTaskParams } from '../CloudTasksClient.ts';
+import { CloudTasksClient, EnqueueTaskParams } from '../CloudTasksClient.ts';
+import type { CloudTasksConfig } from '@/config/app-config.ts';
 
 // テスト用の共通セットアップ
 function setupTestEnvironment(): { client: CloudTasksClient; originalEnv: Record<string, string> } {

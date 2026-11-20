@@ -1,6 +1,4 @@
-export interface LineClientConfig {
-  channelAccessToken: string;
-}
+import type { LineClientConfig } from '@/config/app-config.ts';
 
 export interface LineMessage {
   type: string;

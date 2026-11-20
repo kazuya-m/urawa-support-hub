@@ -3,8 +3,17 @@
  * 環境変数から設定値を取得し、実行時に評価
  */
 
-import { CloudTasksConfig } from '@/infrastructure/clients/CloudTasksClient.ts';
-import { LineClientConfig } from '@/infrastructure/clients/LineClient.ts';
+export interface CloudTasksConfig {
+  projectId: string;
+  location: string;
+  queueName: string;
+  enableDebugLogs: boolean;
+  nodeEnv: string;
+}
+
+export interface LineClientConfig {
+  channelAccessToken: string;
+}
 
 export interface AppConfig {
   cloudTasks: CloudTasksConfig;

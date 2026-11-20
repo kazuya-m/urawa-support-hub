@@ -3,37 +3,23 @@
  * 一般的なファクトリー関数パターンで実装
  */
 
-import { load } from '@std/dotenv';
-
-try {
-  await load({ export: true });
-} catch {
-  // Ignore .env loading errors in production
-}
-
 import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository.ts';
 import { TicketCollectionService } from '@/infrastructure/services/scraping/TicketCollectionService.ts';
 import { NotificationSchedulerService } from '@/infrastructure/services/notification/NotificationSchedulerService.ts';
-import { NotificationService } from '@/infrastructure/services/notification/NotificationService.ts';
 import { CloudTasksClient } from '@/infrastructure/clients/CloudTasksClient.ts';
-import { LineClient } from '@/infrastructure/clients/LineClient.ts';
 import { JLeagueScrapingService } from '@/infrastructure/services/scraping/sources/jleague/JLeagueScrapingService.ts';
 import { HiroshimaScrapingService } from '@/infrastructure/services/scraping/sources/hiroshima/HiroshimaScrapingService.ts';
 import { PlaywrightClient } from '@/infrastructure/clients/PlaywrightClient.ts';
 import { BrowserManager } from '@/infrastructure/services/scraping/shared/BrowserManager.ts';
-import { createSupabaseAdminClient } from '@/config/supabase.ts';
+import { getSupabaseAdminClient } from '@/config/supabase.ts';
 import { getAppConfig } from '@/config/app-config.ts';
 
 import { NotificationSchedulingService } from '@/domain/services/NotificationSchedulingService.ts';
 
 import { TicketCollectionUseCase } from '@/application/usecases/TicketCollectionUseCase.ts';
-import { NotificationUseCase } from '@/application/usecases/NotificationUseCase.ts';
-import { SendTicketSummaryUseCase } from '@/application/usecases/SendTicketSummaryUseCase.ts';
 
-import { NotificationController } from '@/adapters/controllers/NotificationController.ts';
 import { TicketCollectionController } from '@/adapters/controllers/TicketCollectionController.ts';
-import { TicketSummaryController } from '@/adapters/controllers/TicketSummaryController.ts';
 
 /**
  * 依存関係を作成するファクトリー関数
@@ -42,9 +28,8 @@ import { TicketSummaryController } from '@/adapters/controllers/TicketSummaryCon
 export const createDependencies = () => {
   const config = getAppConfig();
 
-  const supabaseClient = createSupabaseAdminClient();
+  const supabaseClient = getSupabaseAdminClient();
   const cloudTasksClient = new CloudTasksClient(config.cloudTasks);
-  const lineClient = new LineClient(config.line);
 
   const ticketRepository = new TicketRepository(supabaseClient);
   const notificationRepository = new NotificationRepository(supabaseClient);
@@ -67,21 +52,14 @@ export const createDependencies = () => {
     cloudTasksClient,
     notificationRepository,
   );
-  const notificationService = new NotificationService(
-    notificationRepository,
-    ticketRepository,
-    lineClient,
-  );
 
   return {
     supabaseClient,
     cloudTasksClient,
-    lineClient,
     ticketRepository,
     notificationRepository,
     ticketCollectionService,
     notificationSchedulerService,
-    notificationService,
     notificationSchedulingService,
   };
 };
@@ -97,38 +75,9 @@ export const createTicketCollectionUseCase = (): TicketCollectionUseCase => {
   );
 };
 
-export const createNotificationUseCase = (): NotificationUseCase => {
-  const deps = createDependencies();
-  return new NotificationUseCase(
-    deps.notificationService,
-  );
-};
-
-export const createTicketSummaryUseCase = (): SendTicketSummaryUseCase => {
-  const deps = createDependencies();
-  return new SendTicketSummaryUseCase(
-    deps.ticketRepository,
-    deps.notificationService,
-  );
-};
-
-export const createNotificationController = (): NotificationController => {
-  const notificationUseCase = createNotificationUseCase();
-  return new NotificationController(
-    notificationUseCase,
-  );
-};
-
 export const createTicketCollectionController = (): TicketCollectionController => {
   const ticketCollectionUseCase = createTicketCollectionUseCase();
   return new TicketCollectionController(
     ticketCollectionUseCase,
-  );
-};
-
-export const createTicketSummaryController = (): TicketSummaryController => {
-  const ticketSummaryUseCase = createTicketSummaryUseCase();
-  return new TicketSummaryController(
-    ticketSummaryUseCase,
   );
 };
