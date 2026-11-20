@@ -141,3 +141,11 @@ Deno.test('isValidNotificationType - 不正なタイプ', () => {
   assertEquals(isValidNotificationType(''), false);
   assertEquals(isValidNotificationType('day_after'), false);
 });
+
+Deno.test('isValidNotificationType - Object.prototype のプロパティ名と文字列以外', () => {
+  assertEquals(isValidNotificationType('toString'), false);
+  assertEquals(isValidNotificationType('constructor'), false);
+  assertEquals(isValidNotificationType('__proto__'), false);
+  assertEquals(isValidNotificationType(1), false);
+  assertEquals(isValidNotificationType(null), false);
+});

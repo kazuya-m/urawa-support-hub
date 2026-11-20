@@ -73,8 +73,8 @@ export function shouldSendNotificationAtTime(
   return timeDiff <= config.toleranceMs;
 }
 
-export function isValidNotificationType(value: string): value is NotificationType {
-  return value in NOTIFICATION_TIMING_CONFIG;
+export function isValidNotificationType(value: unknown): value is NotificationType {
+  return typeof value === 'string' && Object.hasOwn(NOTIFICATION_TIMING_CONFIG, value);
 }
 
 export function getDisplayName(type: NotificationType): string {
