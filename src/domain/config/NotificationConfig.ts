@@ -56,23 +56,6 @@ export const NOTIFICATION_TIMING_CONFIG = {
 
 export const NOTIFICATION_TYPE_VALUES = Object.values(NOTIFICATION_TYPES);
 
-/**
- * 設定駆動の通知判定
- * ビジネスルール: 指定時刻の許容範囲内で通知を送信するかを判定
- */
-export function shouldSendNotificationAtTime(
-  type: NotificationType,
-  saleStartDate: Date,
-  currentTime: Date,
-): boolean {
-  const config = NOTIFICATION_TIMING_CONFIG[type];
-  if (!config) return false;
-
-  const scheduledTime = config.calculateScheduledTime(saleStartDate);
-  const timeDiff = Math.abs(currentTime.getTime() - scheduledTime.getTime());
-  return timeDiff <= config.toleranceMs;
-}
-
 export function isValidNotificationType(value: unknown): value is NotificationType {
   return typeof value === 'string' && Object.hasOwn(NOTIFICATION_TIMING_CONFIG, value);
 }
