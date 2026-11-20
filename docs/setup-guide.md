@@ -283,6 +283,14 @@ gcloud scheduler jobs create http daily-ticket-collection \
   --oidc-token-audience="${CLOUD_RUN_URL}"
 ```
 
+#### 通知タイミングの設定を変えたとき
+
+`NOTIFICATION_TIMING_CONFIG`（`src/domain/config/NotificationConfig.ts`）を変えると、登録済みのタスクは送信時刻が合わずに送られません。デプロイの後に収集を手動で実行し、新しい時刻のタスクを登録します（翌朝の収集を待つと、その間の通知が失われることがあります）。
+
+```bash
+gcloud scheduler jobs run daily-ticket-collection --location=GC_REGION
+```
+
 #### 確認
 
 ```bash
@@ -304,7 +312,8 @@ Docker Compose から接続する場合は、`SUPABASE_URL` が `host.docker.int
 
 **通知タスクが作成されない**
 
-- `CLOUD_RUN_NOTIFICATION_URL` が未設定だとチケット収集時にエラーになる
+- 収集処理は 48 時間以内に送る通知だけを登録する。それより先の通知は、範囲に入った日の収集で登録される
+- `CLOUD_RUN_NOTIFICATION_URL` が未設定だと、通知の登録が失敗して収集が 500 になる
 - 本番では `notifications` キューが `CLOUD_TASKS_LOCATION`（または `GCP_REGION`、既定 `asia-northeast1`）に存在するか確認する
 - Cloud Run のサービスアカウントが `CLOUD_TASKS_SERVICE_ACCOUNT` として振る舞える（`iam.serviceAccounts.actAs`）か確認する
 
