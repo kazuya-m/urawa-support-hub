@@ -13,6 +13,8 @@ const ENV_KEYS = [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
   'CLOUD_RUN_NOTIFICATION_URL',
+  'CLOUD_RUN_EXECUTION',
+  'CLOUD_RUN_TASK_ATTEMPT',
 ];
 
 function withEnv(values: Record<string, string>, fn: () => void): void {
@@ -46,6 +48,7 @@ Deno.test('getAppConfig', async (t) => {
         line: { channelAccessToken: '' },
         supabase: { url: undefined, serviceRoleKey: undefined },
         notificationUrl: '',
+        cloudRunJob: { executionId: undefined, taskAttempt: undefined },
       });
     });
   });
@@ -63,6 +66,8 @@ Deno.test('getAppConfig', async (t) => {
       SUPABASE_URL: 'https://example.supabase.co',
       SUPABASE_SERVICE_ROLE_KEY: 'service-key',
       CLOUD_RUN_NOTIFICATION_URL: 'https://example.run.app/api/send-notification',
+      CLOUD_RUN_EXECUTION: 'collect-tickets-abc12',
+      CLOUD_RUN_TASK_ATTEMPT: '1',
     }, () => {
       assertEquals(getAppConfig(), {
         nodeEnv: 'production',
@@ -78,6 +83,7 @@ Deno.test('getAppConfig', async (t) => {
         line: { channelAccessToken: 'line-token' },
         supabase: { url: 'https://example.supabase.co', serviceRoleKey: 'service-key' },
         notificationUrl: 'https://example.run.app/api/send-notification',
+        cloudRunJob: { executionId: 'collect-tickets-abc12', taskAttempt: '1' },
       });
     });
   });

@@ -33,7 +33,7 @@ jobs:
         run: deno lint
 
       - name: Type check
-        run: deno check **/*.ts
+        run: deno check src/ tests/
 
       - name: Run tests
         run: deno test --allow-env --allow-net=127.0.0.1

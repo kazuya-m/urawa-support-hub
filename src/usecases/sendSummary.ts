@@ -1,8 +1,6 @@
 import type { Ticket } from '@/domain/entities/Ticket.ts';
-import { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
-import { LineClient } from '@/infrastructure/clients/LineClient.ts';
-import { getAppConfig } from '@/config/app-config.ts';
-import { getSupabaseAdminClient } from '@/config/supabase.ts';
+import type { TicketRepository } from '@/infrastructure/repositories/TicketRepository.ts';
+import type { LineClient } from '@/infrastructure/clients/LineClient.ts';
 import { LINE_MESSAGE_TEMPLATES } from '@/config/notification.ts';
 import { CloudLogger } from '@/shared/logging/CloudLogger.ts';
 import { LogCategory } from '@/shared/logging/types.ts';
@@ -12,14 +10,6 @@ import { ErrorCodes } from '@/shared/errors/ErrorCodes.ts';
 export interface SendSummaryDeps {
   ticketRepository: Pick<TicketRepository, 'findByStatusIn'>;
   lineClient: Pick<LineClient, 'broadcast'>;
-}
-
-export function createSendSummaryDeps(): SendSummaryDeps {
-  const config = getAppConfig();
-  return {
-    ticketRepository: new TicketRepository(getSupabaseAdminClient()),
-    lineClient: new LineClient(config.line),
-  };
 }
 
 export async function sendSummary(deps: SendSummaryDeps, now: Date = new Date()): Promise<void> {

@@ -19,12 +19,12 @@ urawa-support-hub の環境変数と機密情報の管理方法です。変数�
 
 ## 保存場所
 
-| 環境                       | 保存場所                                                 | 機密情報の渡し方                                                                |
-| -------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| ローカル（直接起動）       | `.env`（`src/config/di.ts` が `@std/dotenv` で読み込む） | ファイルに記載                                                                  |
-| ローカル（Docker Compose） | `.env.local`（`docker-compose.yml` の `env_file`）       | ファイルに記載                                                                  |
-| CI（GitHub Actions）       | GitHub Secrets                                           | ワークフローの `env` で渡す（[GitHub Secrets設定](../github-secrets-setup.md)） |
-| 本番（Cloud Run）          | Google Secret Manager + Cloud Run の環境変数             | `deploy.yml` の `--update-secrets` で Secret Manager から注入                   |
+| 環境                       | 保存場所                                                       | 機密情報の渡し方                                                                |
+| -------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| ローカル（直接起動）       | `.env`（`src/entrypoints/` の入口が `@std/dotenv` で読み込む） | ファイルに記載                                                                  |
+| ローカル（Docker Compose） | `.env.local`（`docker-compose.yml` の `env_file`）             | ファイルに記載                                                                  |
+| CI（GitHub Actions）       | GitHub Secrets                                                 | ワークフローの `env` で渡す（[GitHub Secrets設定](../github-secrets-setup.md)） |
+| 本番（Cloud Run）          | Google Secret Manager + Cloud Run の環境変数                   | `deploy.yml` の `--update-secrets` で Secret Manager から注入                   |
 
 `.gitignore` は `.env` と `.env.*` を除外し、`.env.example` だけをコミット対象にしています。
 

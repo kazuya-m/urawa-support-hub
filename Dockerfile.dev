@@ -33,8 +33,8 @@ WORKDIR /app
 
 # 依存関係のキャッシュ（開発環境でも高速化のため）
 COPY deno.json deno.lock* ./
-COPY src/main.ts ./src/main.ts
-RUN deno cache src/main.ts
+COPY src/ ./src/
+RUN deno cache src/entrypoints/service/main.ts src/entrypoints/job/collectTickets.ts src/entrypoints/job/sendSummary.ts
 
 # 全ファイルをコピー（.dockerignoreを無視）
 # 開発環境なのでテストファイルも含む
@@ -56,4 +56,4 @@ CMD ["deno", "run", \
      "--allow-write", \
      "--allow-run", \
      "--allow-sys", \
-     "src/main.ts"]
+     "src/entrypoints/service/main.ts"]

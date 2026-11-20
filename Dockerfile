@@ -28,7 +28,7 @@ WORKDIR /app
 
 COPY deno.json deno.lock* ./
 COPY src/ ./src/
-RUN deno cache src/main.ts
+RUN deno cache src/entrypoints/service/main.ts src/entrypoints/job/collectTickets.ts src/entrypoints/job/sendSummary.ts
 
 COPY . .
 
@@ -49,4 +49,4 @@ CMD ["deno", "run", \
      "--allow-write", \
      "--allow-run", \
      "--allow-sys", \
-     "src/main.ts"]
+     "src/entrypoints/service/main.ts"]
