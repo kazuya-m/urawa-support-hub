@@ -1,13 +1,3 @@
-/**
- * チケット収集（/api/collect-tickets。Cloud Scheduler から毎朝呼ばれる）
- * 1. 各サイトからチケットを収集する
- * 2. DB の既存チケットと比べ、変更のあるものだけを一括 upsert する（差分判定とマージは domain の Ticket）
- * 3. 通知のスケジュールが必要なチケットを Cloud Tasks に登録する
- *
- * 3 の通知スケジュール・キャンセルは #248 で作り直すため、移行前の処理をそのまま移している
- * ログ・エラーのメッセージにある TicketCollectionUseCase は移行前のクラス名で、絞り込み条件を変えないために残している
- */
-
 import { Ticket } from '@/domain/entities/Ticket.ts';
 import { CancellationReason } from '@/domain/entities/Notification.ts';
 import {
@@ -62,12 +52,6 @@ export interface CollectTicketsDeps {
 
 const notificationSchedulingService = new NotificationSchedulingService();
 
-/**
- * 本番の依存を作る
- * - スクレイピングのモジュールは Playwright を読み込み、読み込み時に sys の権限を要する
- *   このファイルを import するテストのために、動的 import で読み込む
- * - #173 の競合を避けるため、ブラウザはサイトごとに分ける
- */
 export async function createCollectTicketsDeps(): Promise<CollectTicketsDeps> {
   const [
     { PlaywrightClient },
@@ -86,6 +70,7 @@ export async function createCollectTicketsDeps(): Promise<CollectTicketsDeps> {
   const cloudTasksClient = new CloudTasksClient(config.cloudTasks);
   const notificationRepository = new NotificationRepository(supabaseClient);
 
+  // #173: スクレイピングサービス間でブラウザを共有すると並行実行で競合するため、サイトごとに分ける
   const scrapingServices: ISiteScrapingService[] = [
     new JLeagueScrapingService(new BrowserManager(new PlaywrightClient())),
     new HiroshimaScrapingService(new BrowserManager(new PlaywrightClient())),
@@ -114,7 +99,6 @@ export async function collectTickets(
 
     const upsertResults = await upsertCollectedTickets(deps, tickets);
 
-    // 通知スケジューリングのエラーをキャッチして処理を継続
     try {
       await scheduleTicketNotifications(deps, upsertResults);
     } catch (error) {
@@ -123,7 +107,6 @@ export async function collectTickets(
         error: toErrorInfo(error, undefined, true),
         context: { sessionId },
       });
-      // エラーがあっても処理を継続
     }
 
     const executionDuration = Date.now() - startTime;
@@ -163,7 +146,6 @@ export async function collectTickets(
   } catch (error) {
     const executionDuration = Date.now() - startTime;
 
-    // AppError として再ラップ
     if (error instanceof DatabaseError) {
       const appError = new AppError(
         `[TicketCollectionUseCase] Database operation failed: ${error.message}`,
@@ -172,7 +154,6 @@ export async function collectTickets(
         { sessionId, executionDurationMs: executionDuration },
       );
 
-      // 構造化ログ出力
       CloudLogger.error('Ticket collection service error', {
         category: LogCategory.TICKET_COLLECTION,
         error: {
@@ -183,7 +164,6 @@ export async function collectTickets(
       throw appError;
     }
 
-    // その他のエラー
     const appError = new AppError(
       `[TicketCollectionUseCase] Ticket collection failed: ${getErrorMessage(error)}`,
       ErrorCodes.USECASE_EXECUTION_FAILED,
@@ -191,7 +171,6 @@ export async function collectTickets(
       { sessionId, executionDurationMs: executionDuration },
     );
 
-    // 構造化ログ出力
     CloudLogger.error('Ticket collection failed', {
       category: LogCategory.TICKET_COLLECTION,
       error: {
@@ -211,11 +190,9 @@ async function upsertCollectedTickets(
     return [];
   }
 
-  // 1. 既存データを一括取得
   const ticketIds = tickets.map((ticket) => ticket.id);
   const existingTicketsMap = await deps.ticketRepository.findByIds(ticketIds);
 
-  // 2. 変更のあるチケットとないチケットを分離
   const ticketsToUpsert: Ticket[] = [];
   const unchangedResults: TicketUpsertResult[] = [];
   const ticketMetadataMap = new Map<string, { original: Ticket; existing: Ticket | null }>();
@@ -224,14 +201,12 @@ async function upsertCollectedTickets(
     const existingTicket = existingTicketsMap.get(ticket.id) || null;
 
     if (existingTicket && ticket.hasSameBusinessData(existingTicket)) {
-      // 変更なし
       unchangedResults.push({
         ticket,
         previousTicket: existingTicket,
         hasChanges: false,
       });
     } else {
-      // 変更あり：既存チケットがある場合はマージ
       const ticketToUpsert = existingTicket ? existingTicket.mergeWith(ticket) : ticket;
       ticketsToUpsert.push(ticketToUpsert);
       ticketMetadataMap.set(ticketToUpsert.id, {
@@ -241,14 +216,12 @@ async function upsertCollectedTickets(
     }
   }
 
-  // 3. 変更のあるチケットを一括upsert
   const upsertResults: TicketUpsertResult[] = [...unchangedResults];
 
   if (ticketsToUpsert.length > 0) {
     try {
       const upsertedTickets = await deps.ticketRepository.upsertMany(ticketsToUpsert);
 
-      // 成功した結果を記録
       for (const upsertedTicket of upsertedTickets) {
         const metadata = ticketMetadataMap.get(upsertedTicket.id);
         if (metadata) {
@@ -262,7 +235,6 @@ async function upsertCollectedTickets(
         }
       }
     } catch (error) {
-      // 一括upsert失敗時は個別処理にフォールバック
       CloudLogger.warning('Bulk upsert failed, falling back to individual upserts', {
         category: LogCategory.TICKET_COLLECTION,
         error: toErrorInfo(error, undefined, true),
@@ -300,7 +272,6 @@ async function upsertCollectedTickets(
     }
   }
 
-  // 変更なしのチケットもログ出力
   for (const unchangedResult of unchangedResults) {
     logTicketUpsertResult(unchangedResult);
   }
@@ -406,7 +377,6 @@ function logTicketUpsertResult(result: TicketUpsertResult): void {
       stage: 'upsert',
     },
     data: {
-      // 更新後のチケット情報
       updated: {
         id: ticket.id,
         matchName: ticket.matchName,
@@ -417,7 +387,6 @@ function logTicketUpsertResult(result: TicketUpsertResult): void {
         ticketTypes: ticket.ticketTypes,
         ticketUrl: ticket.ticketUrl ?? undefined,
       },
-      // 更新前のチケット情報（存在する場合）
       ...(previousTicket && {
         existing: {
           id: previousTicket.id,

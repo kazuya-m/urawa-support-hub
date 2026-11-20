@@ -14,7 +14,6 @@ export class NotificationSchedulerService {
   constructor(
     private readonly cloudTasksClient: CloudTasksClient,
     private readonly notificationRepository: NotificationRepository,
-    /** 通知の呼び出し先（CLOUD_RUN_NOTIFICATION_URL）。空なら scheduleNotifications で投げる */
     private readonly targetUrl: string,
   ) {}
 

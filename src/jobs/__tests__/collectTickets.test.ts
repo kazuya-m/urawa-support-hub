@@ -6,18 +6,11 @@ import type { NotificationTiming } from '@/domain/services/NotificationSchedulin
 import { AppError, DatabaseError, ErrorCodes } from '@/shared/errors/index.ts';
 
 type StubOptions = {
-  /** 収集結果。Error を渡すと collectAllTickets が reject する */
   collected?: Ticket[] | Error;
-  /** findByIds が返す既存チケット（キーは検索 ID）。Error を渡すと reject する */
   existing?: Map<string, Ticket> | Error;
-  /** upsertMany を失敗させる */
   upsertManyError?: Error;
 };
 
-/**
- * collectTickets の依存をインラインスタブで用意し、呼び出しを記録する
- * 本番コードはスケジューリングや upsert の例外を握りつぶすため、経路上のメソッドは型どおり全部書く
- */
 function createDeps(options: StubOptions = {}) {
   const calls = {
     findByIds: [] as string[][],
@@ -109,14 +102,12 @@ Deno.test('collectTickets', async (t) => {
     assertEquals(calls.findByIds, [['test-ticket-1']]);
     assertEquals(calls.upsertMany.length, 1);
     assertEquals(calls.upsertMany[0].map((ticket) => ticket.id), ['test-ticket-1']);
-    // 試合日が過去のチケットは通知スケジュールの対象外
     assertEquals(calls.scheduleNotifications.length, 0);
   });
 
   await t.step(
     'should preserve notificationScheduled state when updating existing tickets',
     async () => {
-      // 既存チケット（通知スケジュール済み）
       const existingTicket = Ticket.fromExisting({
         id: 'test-ticket-preserve-notification',
         matchName: 'Test Match',
@@ -133,44 +124,40 @@ Deno.test('collectTickets', async (t) => {
         createdAt: new Date(),
         updatedAt: new Date(),
         scrapedAt: new Date(),
-        notificationScheduled: true, // 既に通知スケジュール済み
+        notificationScheduled: true,
       });
 
-      // 新しくスクレイピングされたチケット（通知未スケジュール）
       const scrapedTicket = await Ticket.createNew({
         matchName: 'Test Match',
         matchDate: new Date('2024-12-01'),
         homeTeam: 'Home Team',
         awayTeam: 'Away Team',
         competition: 'J1 League',
-        venue: 'Test Stadium Updated', // venueが更新されている
+        venue: 'Test Stadium Updated',
         ticketTypes: ['General'],
         ticketUrl: 'https://test.example.com/tickets/1',
         saleStartDate: new Date('2024-11-15'),
         saleEndDate: new Date('2024-12-01'),
         saleStatus: 'before_sale',
         scrapedAt: new Date(),
-        notificationScheduled: false, // スクレイピング時は未スケジュール
+        notificationScheduled: false,
       });
 
-      // 既存チケットが存在することを設定（findByIds は scrapedTicket.id に existingTicket を返す）
       const { deps, calls } = createDeps({
         collected: [scrapedTicket],
         existing: new Map([[scrapedTicket.id, existingTicket]]),
       });
       const result = await collectTickets(deps);
 
-      // 実行成功確認
       assertEquals(result.status, 'success');
       assertEquals(result.updatedTickets, 1);
 
-      // notificationScheduled状態が保持されていることを確認（mergeWithによる）
       assertEquals(calls.upsertMany.length, 1);
       const upsertedTickets = calls.upsertMany[0];
       assertEquals(upsertedTickets.length, 1);
       assertEquals(upsertedTickets[0]!.notificationScheduled, true);
-      assertEquals(upsertedTickets[0]!.venue, 'Test Stadium Updated'); // ビジネスデータは更新されている
-      assertEquals(upsertedTickets[0]!.id, existingTicket.id); // IDも保持されている
+      assertEquals(upsertedTickets[0]!.venue, 'Test Stadium Updated');
+      assertEquals(upsertedTickets[0]!.id, existingTicket.id);
       assertEquals(calls.upsert.length, 0);
     },
   );
@@ -207,10 +194,8 @@ Deno.test('collectTickets', async (t) => {
         calls.scheduleNotifications[0].times.map((timing) => timing.type).sort(),
         ['day_before', 'hour_before', 'minutes_before'],
       );
-      // 新規チケットなので既存通知のキャンセルは行わない
       assertEquals(calls.findByTicketId.length, 0);
       assertEquals(calls.cancelNotifications.length, 0);
-      // スケジュール後に notificationScheduled=true で個別 upsert する
       assertEquals(calls.upsert.length, 1);
       assertEquals(calls.upsert[0].id, ticket.id);
       assertEquals(calls.upsert[0].notificationScheduled, true);
@@ -252,7 +237,6 @@ Deno.test('collectTickets', async (t) => {
   await t.step('should handle collection service errors gracefully', async () => {
     const { deps } = createDeps({ collected: new Error('Mock collection error') });
 
-    // エラー時は例外が投げられることを検証
     await assertRejects(
       () => collectTickets(deps),
       Error,
@@ -346,7 +330,6 @@ Deno.test('collectTickets - 集計とエラーの握りつぶし', async (t) => 
 
     assertEquals(result.status, 'success');
     assertEquals(result.newTickets, 1);
-    // スケジュールに失敗したので notificationScheduled=true の保存はしない
     assertEquals(calls.upsert.length, 0);
   });
 
@@ -386,16 +369,11 @@ Deno.test('collectTickets - 集計とエラーの握りつぶし', async (t) => 
       assertEquals(result.status, 'success');
       assertEquals(result.newTickets, 0);
       assertEquals(result.failedTickets, 1);
-      // 失敗したチケットは通知のスケジュール対象にしない
       assertEquals(calls.scheduleNotifications.length, 0);
     },
   );
 });
 
-/**
- * 処理中の CloudLogger の出力（console.log の JSON）を捕まえる
- * stack を出さないよう production にし、Cloud Run のラベルが付かないよう K_SERVICE を消す
- */
 async function captureLogs(fn: () => Promise<unknown>): Promise<Record<string, unknown>[]> {
   const lines: string[] = [];
   const originalLog = console.log;

@@ -15,9 +15,6 @@ const ENV_KEYS = [
   'CLOUD_RUN_NOTIFICATION_URL',
 ];
 
-/**
- * 対象の環境変数をすべて消し、指定した値だけを設定して実行する
- */
 function withEnv(values: Record<string, string>, fn: () => void): void {
   const original = ENV_KEYS.map((key) => [key, Deno.env.get(key)] as const);
   for (const key of ENV_KEYS) Deno.env.delete(key);

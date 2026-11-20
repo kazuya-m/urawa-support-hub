@@ -56,9 +56,6 @@ const factoriesWith = (overrides: Partial<RouteFactories>): RouteFactories => ({
   ...overrides,
 });
 
-/**
- * collectTickets の依存のスタブ（収集結果か収集のエラーを指定する）
- */
 const collectDeps = (
   options: { collected?: Ticket[]; error?: Error } = {},
 ): CollectTicketsDeps => ({
@@ -141,7 +138,6 @@ Deno.test('collect-tickets: 収集の失敗は AppError（USECASE_EXECUTION_FAIL
   );
   assertEquals(Object.keys(body.details).sort(), ['executionDurationMs', 'sessionId']);
 
-  // job の 1 件の後に、共通エラーハンドラの 1 件
   assertEquals(logs.length, 2);
   assertEquals(logs[0].severity, 'ERROR');
   assertEquals(logs[0].message, 'Ticket collection failed');

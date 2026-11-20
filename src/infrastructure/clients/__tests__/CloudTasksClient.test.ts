@@ -254,7 +254,6 @@ Deno.test('CloudTasksClient - enqueueTask は config の serviceAccountEmail を
     serviceAccountEmail: 'tasks@test-project.iam.gserviceaccount.com',
   });
 
-  // Google のクライアントの createTask だけを差し替え、送られるタスクを記録する
   const requests: Parameters<typeof client['client']['createTask']>[0][] = [];
   const createTaskStub = stub(client['client'], 'createTask', (request) => {
     requests.push(request);
