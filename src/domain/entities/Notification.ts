@@ -4,7 +4,7 @@ import {
   NotificationType,
 } from '@/domain/config/NotificationConfig.ts';
 
-export type NotificationStatus = 'scheduled' | 'sent' | 'failed' | 'cancelled';
+export type NotificationStatus = 'scheduled' | 'sending' | 'sent' | 'failed' | 'cancelled';
 
 export type CancellationReason =
   | 'Cancelled due to ticket update'

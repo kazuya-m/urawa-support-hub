@@ -32,6 +32,8 @@ export interface NotificationRow {
   created_at: string;
   updated_at: string;
   cloud_task_id: string | null;
+  claimed_at: string | null;
+  message: Record<string, unknown> | null;
 }
 
 export interface TicketInsert {

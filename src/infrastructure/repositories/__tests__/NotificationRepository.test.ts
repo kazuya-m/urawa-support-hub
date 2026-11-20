@@ -17,6 +17,8 @@ Deno.test('SupabaseNotificationRepository - findById with error handling', async
     cloud_task_id: null,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
+    claimed_at: null,
+    message: null,
   };
 
   const mockClient = createMockSupabaseClient([mockNotificationRow]);
