@@ -14,7 +14,7 @@
 
 ### 移行中であることの注記
 
-- コードは #204 の最終形（`src/jobs/`・`src/domain/`・`src/infra/`）へ移行中で、`src/jobs/` は移行済み。旧構成の `src/infrastructure/`・`src/middleware/` などが残っている（リポジトリ直下の `infrastructure/` は Cloud Scheduler の設定で、移行の対象ではない）
+- コードは #204 の最終形（`src/entrypoints/`・`src/usecases/`・`src/domain/`・`src/infra/`）へ移行中で、`src/entrypoints/`・`src/usecases/` は移行済み。旧構成の `src/infrastructure/`・`src/middleware/` などが残っている（リポジトリ直下の `infrastructure/` は Cloud Scheduler の設定で、移行の対象ではない）
 - **新しく書くコードは下記の 3 ルールに従う**。既存コードのルール違反に合わせない
 - ディレクトリの移動は、各サブ Issue が担当範囲でのみ行う
 - それ以外の作業では既存ファイルを現在の場所で変更し、新しいディレクトリ（`src/infra/` など）は作らない
@@ -22,9 +22,11 @@
 
 ## アーキテクチャの 3 ルール
 
-1. `domain/` は `infra/`・`jobs/`・外部ライブラリ（Supabase、Playwright など）を import しない。ログ出力と現在時刻の取得もしない（時刻は引数で受け取る）
+1. `domain/` は `infra/`・`usecases/`・`entrypoints/`・外部ライブラリ（Supabase、Playwright など）を import しない。ログ出力と現在時刻の取得もしない（時刻は引数で受け取る）
 2. `infra/` は外部とのやり取りだけを行い、業務判断を持たない
-3. `jobs/` が両者をつなぎ、手順を上から順に書く
+3. `usecases/` が両者をつなぎ、手順を上から順に書く。`infra/` は型だけを参照し、具象の生成は `entrypoints/` の入口で行う
+
+- 状態を持つ `infra/` の部品は class、状態を持たない処理（`domain/` の判断、usecase、controller、runJob）は関数で書く
 
 ## 必須コマンド
 
@@ -45,6 +47,7 @@ deno test src/ --allow-env --allow-net=127.0.0.1  # 単体テスト
 - 対象ファイルと同じ階層の `__tests__/<対象ファイル名>.test.ts` に置く
 - Mock クラスは作らず、テスト内のインラインスタブを使う。スタブはキャスト（`as unknown as T` など）せずに型を満たす
 - そのため、依存の型は使う側が必要なメソッドだけを宣言する（例: `Pick<TicketRepository, 'findById'>`）。インターフェースのファイルは作らない
+- 入口（`src/entrypoints/service/main.ts`、`src/entrypoints/job/` の runJob 以外）は import しない。依存の組み立てで Playwright を読み込み、`--allow-sys` が要るため
 - skip で通さない。`--allow-all` は使わない
 
 ## コメント
