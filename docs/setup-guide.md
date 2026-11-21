@@ -156,8 +156,8 @@ gcloud artifacts repositories create urawa-support-hub \
 
 # Cloud Tasks キュー（名前はコードに固定）
 gcloud tasks queues create notifications --location=GC_REGION \
-  --min-backoff=30s --max-backoff=300s --max-doublings=4 \
-  --max-attempts=-1 --max-retry-duration=43200s \
+  --min-backoff=20s --max-backoff=300s --max-doublings=4 \
+  --max-attempts=6 --max-retry-duration=600s \
   --max-concurrent-dispatches=1
 
 # Secret Manager（deploy.yml の --update-secrets が参照する名前）
@@ -182,21 +182,21 @@ Cloud Tasks のキューは、タスクの実行先（`/api/send-notification`�
 
 キューの再試行設定と理由:
 
-| 設定                          | 値                  | 理由                                                                                                                                                                                                                      |
-| ----------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--min-backoff`               | `30s`               | Cloud Run は `--max-instances 1 --concurrency 1` なので、収集（最大 300 秒）や月次サマリーと重なると 429 になる。既定の 0.1 秒では数秒で試行を使い切る                                                                    |
-| `--max-backoff`               | `300s`              | 30・60・120・240・300 秒…の間隔で、約 7.5 分で収集の実行時間を越えられる                                                                                                                                                  |
-| `--max-doublings`             | `4`                 | 30 秒から 4 回の倍化で上限の 300 秒に達する                                                                                                                                                                               |
-| `--max-retry-duration`        | `43200s`（12 時間） | LINE の Retry-Key の管理期間（最初のリクエストから 24 時間）より短くし、再試行で重複送信しないようにする。販売開始を過ぎた再試行は 200 で終わるので、販売開始が通知時刻から 12 時間以内なら、この上限より先に打ち切られる |
-| `--max-attempts`              | `-1`（無制限）      | Cloud Tasks は経過時間と試行回数の両方が上限に達するまで再試行するので、試行回数では打ち切らず、経過時間だけで打ち切る                                                                                                    |
-| `--max-concurrent-dispatches` | `1`                 | Cloud Run は同時に 1 リクエストしか処理しないので、同時刻のタスクを同時に送ると 429 になる。1 件ずつ配信する                                                                                                              |
+| 設定                          | 値              | 理由                                                                                                                                                   |
+| ----------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--min-backoff`               | `20s`           | Cloud Run は `--max-instances 1 --concurrency 1` なので、収集（最大 300 秒）や月次サマリーと重なると 429 になる。既定の 0.1 秒では数秒で試行を使い切る |
+| `--max-backoff`               | `300s`          | 再試行は最初の試行から 20・60・140・300・600 秒後。最後の再試行が 10 分で、収集の実行時間（最大 300 秒）を越えられる                                   |
+| `--max-doublings`             | `4`             | 20 秒から倍化し、4 回目（320 秒）で上限の 300 秒に達する                                                                                               |
+| `--max-retry-duration`        | `600s`（10 分） | 通知ごとの再試行の締め切り。前日通知でも 20:10 で止まり、日付をまたいで届かない。LINE の Retry-Key の管理期間（24 時間）にも収まる                     |
+| `--max-attempts`              | `6`             | 初回と再試行 5 回。Cloud Tasks は経過時間と試行回数の両方が上限に達したときに止めるので、5 回目の再試行（600 秒後）で両方が同時に上限になる値にした    |
+| `--max-concurrent-dispatches` | `1`             | Cloud Run は同時に 1 リクエストしか処理しないので、同時刻のタスクを同時に送ると 429 になる。1 件ずつ配信する                                           |
 
 既存のキューに適用する場合:
 
 ```bash
 gcloud tasks queues update notifications --location=GC_REGION \
-  --min-backoff=30s --max-backoff=300s --max-doublings=4 \
-  --max-attempts=-1 --max-retry-duration=43200s \
+  --min-backoff=20s --max-backoff=300s --max-doublings=4 \
+  --max-attempts=6 --max-retry-duration=600s \
   --max-concurrent-dispatches=1
 gcloud tasks queues describe notifications --location=GC_REGION
 ```
