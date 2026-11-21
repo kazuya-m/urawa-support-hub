@@ -19,7 +19,7 @@ function createSendNotificationDeps(config: AppConfig): SendNotificationDeps {
     ticketRepository: new TicketRepository(supabaseClient),
     notificationRepository: new NotificationRepository(supabaseClient),
     lineClient: new LineClient(config.line),
-    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    now: () => new Date(),
   };
 }
 

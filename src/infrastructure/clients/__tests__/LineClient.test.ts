@@ -106,4 +106,77 @@ Deno.test('LineClient', async (t) => {
       fetchStub.restore();
     }
   });
+  await t.step('broadcastWithRetryKey: X-Line-Retry-Key を付けて送る', async () => {
+    const fetchStub = stub(
+      globalThis,
+      'fetch',
+      () => Promise.resolve(new Response('{}', { status: 200 })),
+    );
+
+    try {
+      const client = new LineClient(mockConfig);
+      const message: LineMessage = { type: 'text', text: 'Test message' };
+
+      const result = await client.broadcastWithRetryKey(message, 'retry-key-1');
+
+      assertEquals(result, { kind: 'accepted' });
+      const requestInit = fetchStub.calls[0].args[1] as RequestInit;
+      assertEquals(requestInit.headers, {
+        'Authorization': 'Bearer test-channel-access-token',
+        'Content-Type': 'application/json',
+        'X-Line-Retry-Key': 'retry-key-1',
+      });
+      assertEquals(JSON.parse(requestInit.body as string), { messages: [message] });
+    } finally {
+      fetchStub.restore();
+    }
+  });
+
+  const classify = async (response: () => Promise<Response>) => {
+    const fetchStub = stub(globalThis, 'fetch', response);
+    try {
+      return await new LineClient(mockConfig).broadcastWithRetryKey(
+        { type: 'text', text: 'Test message' },
+        'retry-key-1',
+      );
+    } finally {
+      fetchStub.restore();
+    }
+  };
+
+  await t.step('broadcastWithRetryKey: 409 は受理済み', async () => {
+    assertEquals(
+      await classify(() => Promise.resolve(new Response('conflict', { status: 409 }))),
+      { kind: 'already_accepted' },
+    );
+  });
+
+  await t.step('broadcastWithRetryKey: 400・429 は再試行しない失敗', async () => {
+    assertEquals(
+      await classify(() => Promise.resolve(new Response('bad', { status: 400 }))),
+      { kind: 'rejected', status: 400, detail: '400 bad' },
+    );
+    assertEquals(
+      await classify(() => Promise.resolve(new Response('limit', { status: 429 }))),
+      { kind: 'rejected', status: 429, detail: '429 limit' },
+    );
+  });
+
+  await t.step('broadcastWithRetryKey: 500 と通信エラーは再試行対象', async () => {
+    assertEquals(
+      await classify(() => Promise.resolve(new Response('down', { status: 500 }))),
+      { kind: 'retryable', detail: '500 down' },
+    );
+    assertEquals(
+      await classify(() => Promise.reject(new TypeError('connection reset'))),
+      { kind: 'retryable', detail: 'connection reset' },
+    );
+  });
+
+  await t.step('broadcastWithRetryKey: タイムアウトは再試行対象', async () => {
+    assertEquals(
+      await classify(() => Promise.reject(new DOMException('Signal timed out.', 'TimeoutError'))),
+      { kind: 'retryable', detail: 'Signal timed out.' },
+    );
+  });
 });

@@ -38,11 +38,15 @@ export interface TestSupabaseClient {
         value: unknown,
       ) => Promise<{ error: { message: string; code?: string } | null }>;
     };
-    upsert: (data: unknown) => {
-      select: () => {
-        single: () => Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
+    upsert: (data: unknown, options?: unknown) =>
+      & Promise<{ error: { message: string; code?: string } | null }>
+      & {
+        select: () => {
+          single: () => Promise<
+            { data: unknown; error: { message: string; code?: string } | null }
+          >;
+        };
       };
-    };
     delete: () => {
       eq: (
         column: string,
@@ -144,11 +148,12 @@ export function createMockSupabaseClient(
       update: () => ({
         eq: () => Promise.resolve({ error: mockError }),
       }),
-      upsert: () => ({
-        select: () => ({
-          single: () => mockQuery.single(),
+      upsert: () =>
+        Object.assign(Promise.resolve({ error: mockError }), {
+          select: () => ({
+            single: () => mockQuery.single(),
+          }),
         }),
-      }),
       delete: () => mockDeleteChain,
     }),
   };

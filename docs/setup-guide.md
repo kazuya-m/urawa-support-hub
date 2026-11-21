@@ -155,7 +155,10 @@ gcloud artifacts repositories create urawa-support-hub \
   --location=GC_REGION
 
 # Cloud Tasks キュー（名前はコードに固定）
-gcloud tasks queues create notifications --location=GC_REGION --max-attempts=3
+gcloud tasks queues create notifications --location=GC_REGION \
+  --min-backoff=20s --max-backoff=300s --max-doublings=4 \
+  --max-attempts=6 --max-retry-duration=600s \
+  --max-concurrent-dispatches=1
 
 # Secret Manager（deploy.yml の --update-secrets が参照する名前）
 # 値はコマンドラインに書かず、表示されない入力で渡す（シェルの履歴に残さないため）。実行後に値を貼り付けて Enter
@@ -163,12 +166,40 @@ read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create SUPABASE_SERVICE_
 read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create LINE_CHANNEL_ACCESS_TOKEN --data-file=- && unset VALUE
 ```
 
-Cloud Tasks のキューは、タスクの実行先（`/api/send-notification`）がエラー（5xx）を返すとリトライします。
+Cloud Tasks のキューは、タスクの実行先（`/api/send-notification`）が 2xx 以外を返すとリトライします。送信処理は再試行してよい失敗だけを 500 にします（503・429 はキュー全体の配信を絞る合図として扱われるため使わない）。
 
-- LINE への送信は 1 回の実行内で最大 3 回試行し、すべて失敗すると通知を `failed` として記録して 200 を返します。この場合はリトライされません
-- DB の読み書きの失敗など、処理中に例外が出た場合は 5xx を返し、キューのリトライ対象になります。LINE への送信が成功した後に `sent` への更新が失敗した場合も含まれるため、リトライのたびに同じ通知が再送されることがあります
+| 状況                                                         | 応答 | 通知記録                                   |
+| ------------------------------------------------------------ | ---- | ------------------------------------------ |
+| 送信した（LINE が 200、または Retry-Key 受理済みの 409）     | 200  | `sent`                                     |
+| 送信済み・チケットなし・送信時刻と合わない・販売開始を過ぎた | 200  | 変更しない                                 |
+| LINE が 409 以外の 4xx（400、月間上限の 429 など）           | 200  | `failed`（再試行しない）                   |
+| LINE が 5xx・タイムアウト                                    | 500  | `failed`（再試行で再確保）                 |
+| 他の実行が送信中（`sending`）                                | 500  | 変更しない                                 |
+| DB の読み書きの失敗                                          | 500  | 変更しない                                 |
+| payload が不正（`ticketId` がない、未知の通知タイプ）        | 400  | 変更しない（キューの上限まで再試行される） |
 
-`--max-attempts` を指定しないとキューの既定値（100 回）が使われるので、上限を指定して作成します。
+同じ通知（チケット・通知タイプ・送信時刻）は DB の一意キーで 1 行に確保してから送り、LINE には `X-Line-Retry-Key`（確保した行の id）を付けます。再試行や重複したタスクで同じ通知が届いても、LINE への送信は重複しません。
+
+キューの再試行設定と理由:
+
+| 設定                          | 値              | 理由                                                                                                                                                   |
+| ----------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--min-backoff`               | `20s`           | Cloud Run は `--max-instances 1 --concurrency 1` なので、収集（最大 300 秒）や月次サマリーと重なると 429 になる。既定の 0.1 秒では数秒で試行を使い切る |
+| `--max-backoff`               | `300s`          | 再試行は最初の試行から 20・60・140・300・600 秒後。最後の再試行が 10 分で、収集の実行時間（最大 300 秒）を越えられる                                   |
+| `--max-doublings`             | `4`             | 20 秒から倍化し、4 回目（320 秒）で上限の 300 秒に達する                                                                                               |
+| `--max-retry-duration`        | `600s`（10 分） | 通知ごとの再試行の締め切り。前日通知でも 20:10 で止まり、日付をまたいで届かない。LINE の Retry-Key の管理期間（24 時間）にも収まる                     |
+| `--max-attempts`              | `6`             | 初回と再試行 5 回。Cloud Tasks は経過時間と試行回数の両方が上限に達したときに止めるので、5 回目の再試行（600 秒後）で両方が同時に上限になる値にした    |
+| `--max-concurrent-dispatches` | `1`             | Cloud Run は同時に 1 リクエストしか処理しないので、同時刻のタスクを同時に送ると 429 になる。1 件ずつ配信する                                           |
+
+既存のキューに適用する場合:
+
+```bash
+gcloud tasks queues update notifications --location=GC_REGION \
+  --min-backoff=20s --max-backoff=300s --max-doublings=4 \
+  --max-attempts=6 --max-retry-duration=600s \
+  --max-concurrent-dispatches=1
+gcloud tasks queues describe notifications --location=GC_REGION
+```
 
 Secret Manager に登録する値と、Cloud Run に設定する `SUPABASE_URL` の取得元:
 
