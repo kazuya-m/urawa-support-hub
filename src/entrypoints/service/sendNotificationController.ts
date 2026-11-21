@@ -38,7 +38,7 @@ function validateNotificationRequest(
   }
 
   const requestBody = body as Record<string, unknown>;
-  const { ticketId, notificationType } = requestBody;
+  const { ticketId, notificationType, notificationTime } = requestBody;
 
   if (!ticketId || typeof ticketId !== 'string') {
     return {
@@ -54,12 +54,21 @@ function validateNotificationRequest(
     };
   }
 
+  if (notificationTime === undefined) {
+    return { isValid: true, data: { ticketId, notificationType } };
+  }
+
+  const parsedTime = typeof notificationTime === 'string' ? new Date(notificationTime) : null;
+  if (!parsedTime || Number.isNaN(parsedTime.getTime())) {
+    return {
+      isValid: false,
+      error: `Invalid notificationTime: ${JSON.stringify(notificationTime)}`,
+    };
+  }
+
   return {
     isValid: true,
-    data: {
-      ticketId,
-      notificationType,
-    },
+    data: { ticketId, notificationType, notificationTime: parsedTime },
   };
 }
 

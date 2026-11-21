@@ -17,8 +17,6 @@ export interface ClaimedNotification {
   claimedAt: string;
 }
 
-const NOTIFICATION_KEY_COLUMNS = 'ticket_id,notification_type,notification_time';
-
 export class NotificationRepository {
   constructor(
     private readonly client: SupabaseClient,
@@ -47,26 +45,6 @@ export class NotificationRepository {
 
     if (error) throwDatabaseError('NotificationRepository', 'fetch notifications by ticket', error);
     return (data || []).map(NotificationConverter.toDomainEntity);
-  }
-
-  async save(notification: Notification): Promise<void> {
-    const { error } = await this.client
-      .from('notifications')
-      .upsert(NotificationConverter.toDatabaseRow(notification), {
-        onConflict: NOTIFICATION_KEY_COLUMNS,
-        ignoreDuplicates: true,
-      });
-
-    if (error) throwDatabaseError('NotificationRepository', 'save notification', error);
-  }
-
-  async update(notification: Notification): Promise<void> {
-    const { error } = await this.client
-      .from('notifications')
-      .update(NotificationConverter.toDatabaseRow(notification))
-      .eq('id', notification.id);
-
-    if (error) throwDatabaseError('NotificationRepository', 'update notification', error);
   }
 
   async claim(key: NotificationKey, message: LineMessage): Promise<ClaimedNotification | null> {

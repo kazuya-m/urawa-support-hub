@@ -168,15 +168,15 @@ read -rs VALUE && printf '%s' "$VALUE" | gcloud secrets create LINE_CHANNEL_ACCE
 
 Cloud Tasks のキューは、タスクの実行先（`/api/send-notification`）が 2xx 以外を返すとリトライします。送信処理は再試行してよい失敗だけを 500 にします（503・429 はキュー全体の配信を絞る合図として扱われるため使わない）。
 
-| 状況                                                         | 応答 | 通知記録                                   |
-| ------------------------------------------------------------ | ---- | ------------------------------------------ |
-| 送信した（LINE が 200、または Retry-Key 受理済みの 409）     | 200  | `sent`                                     |
-| 送信済み・チケットなし・送信時刻と合わない・販売開始を過ぎた | 200  | 変更しない                                 |
-| LINE が 409 以外の 4xx（400、月間上限の 429 など）           | 200  | `failed`（再試行しない）                   |
-| LINE が 5xx・タイムアウト                                    | 500  | `failed`（再試行で再確保）                 |
-| 他の実行が送信中（`sending`）                                | 500  | 変更しない                                 |
-| DB の読み書きの失敗                                          | 500  | 変更しない                                 |
-| payload が不正（`ticketId` がない、未知の通知タイプ）        | 400  | 変更しない（キューの上限まで再試行される） |
+| 状況                                                                                 | 応答 | 通知記録                                   |
+| ------------------------------------------------------------------------------------ | ---- | ------------------------------------------ |
+| 送信した（LINE が 200、または Retry-Key 受理済みの 409）                             | 200  | `sent`                                     |
+| 送信済み・チケットなし・送信時刻と合わない・販売開始を過ぎた                         | 200  | 変更しない                                 |
+| LINE が 409 以外の 4xx（400、月間上限の 429 など）                                   | 200  | `failed`（再試行しない）                   |
+| LINE が 5xx・タイムアウト                                                            | 500  | `failed`（再試行で再確保）                 |
+| 他の実行が送信中（`sending`）                                                        | 500  | 変更しない                                 |
+| DB の読み書きの失敗                                                                  | 500  | 変更しない                                 |
+| payload が不正（`ticketId` がない、未知の通知タイプ、日時でない `notificationTime`） | 400  | 変更しない（キューの上限まで再試行される） |
 
 同じ通知（チケット・通知タイプ・送信時刻）は DB の一意キーで 1 行に確保してから送り、LINE には `X-Line-Retry-Key`（確保した行の id）を付けます。再試行や重複したタスクで同じ通知が届いても、LINE への送信は重複しません。
 
@@ -283,6 +283,14 @@ gcloud scheduler jobs create http daily-ticket-collection \
   --oidc-token-audience="${CLOUD_RUN_URL}"
 ```
 
+#### 通知タイミングの設定を変えたとき
+
+`NOTIFICATION_TIMING_CONFIG`（`src/domain/config/NotificationConfig.ts`）を変えると、登録済みのタスクは送信時刻が合わずに送られません。デプロイの後に収集を手動で実行し、新しい時刻のタスクを登録します（翌朝の収集を待つと、その間の通知が失われることがあります）。
+
+```bash
+gcloud scheduler jobs run daily-ticket-collection --location=GC_REGION
+```
+
 #### 確認
 
 ```bash
@@ -304,7 +312,8 @@ Docker Compose から接続する場合は、`SUPABASE_URL` が `host.docker.int
 
 **通知タスクが作成されない**
 
-- `CLOUD_RUN_NOTIFICATION_URL` が未設定だとチケット収集時にエラーになる
+- 収集処理は 48 時間以内に送る通知だけを登録する。それより先の通知は、範囲に入った日の収集で登録される
+- `CLOUD_RUN_NOTIFICATION_URL` が未設定だと、通知の登録が失敗して収集が 500 になる（48 時間以内に送る通知がない日は登録しないので、200 のまま気づかない）
 - 本番では `notifications` キューが `CLOUD_TASKS_LOCATION`（または `GCP_REGION`、既定 `asia-northeast1`）に存在するか確認する
 - Cloud Run のサービスアカウントが `CLOUD_TASKS_SERVICE_ACCOUNT` として振る舞える（`iam.serviceAccounts.actAs`）か確認する
 

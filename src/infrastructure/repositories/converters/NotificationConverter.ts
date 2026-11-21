@@ -1,5 +1,5 @@
 import { Notification } from '@/domain/entities/index.ts';
-import { NotificationInsert, NotificationRow } from '@/infrastructure/types/database.ts';
+import type { NotificationRow } from '@/infrastructure/types/database.ts';
 
 export class NotificationConverter {
   static toDomainEntity(data: NotificationRow): Notification {
@@ -11,23 +11,8 @@ export class NotificationConverter {
       sentAt: data.sent_at ? new Date(data.sent_at) : null,
       status: data.status,
       errorMessage: data.error_message ?? null,
-      cloudTaskId: data.cloud_task_id ?? null,
       createdAt: new Date(data.created_at),
       updatedAt: data.updated_at ? new Date(data.updated_at) : null,
     });
-  }
-
-  static toDatabaseRow(notification: Notification): NotificationInsert {
-    const plainObject = notification.toPlainObject();
-    return {
-      id: plainObject.id,
-      ticket_id: plainObject.ticketId,
-      notification_type: plainObject.notificationType,
-      notification_time: plainObject.scheduledAt.toISOString(),
-      sent_at: plainObject.sentAt?.toISOString() ?? null,
-      status: plainObject.status,
-      error_message: plainObject.errorMessage ?? null,
-      cloud_task_id: plainObject.cloudTaskId ?? null,
-    };
   }
 }

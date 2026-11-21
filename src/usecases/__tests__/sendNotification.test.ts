@@ -32,7 +32,6 @@ const ticket = Ticket.fromExisting({
   updatedAt: new Date(),
   scrapedAt: new Date(),
   saleStatus: 'before_sale',
-  notificationScheduled: false,
 });
 
 const input: NotificationExecutionInput = {
@@ -273,6 +272,31 @@ Deno.test('sendNotification', async (t) => {
     const { result } = await captureLogs(() => sendNotification(deps, input));
 
     assertEquals(result, { kind: 'skipped', reason: 'outside_send_window' });
+    assertEquals(calls, ['findById:test-ticket-123']);
+  });
+
+  await t.step('payload の送信時刻が再計算と一致すれば送る', async () => {
+    const { deps, claims } = createDeps();
+
+    const { result } = await captureLogs(() =>
+      sendNotification(deps, { ...input, notificationTime: hourBeforeTime })
+    );
+
+    assertEquals(result.kind, 'sent');
+    assertEquals(claims[0].key.notificationTime, hourBeforeTime);
+  });
+
+  await t.step('payload の送信時刻が再計算と違えば（販売日の変更前のタスク）送らない', async () => {
+    const { deps, calls } = createDeps();
+
+    const { result } = await captureLogs(() =>
+      sendNotification(deps, {
+        ...input,
+        notificationTime: new Date('2025-02-23T09:00:00+09:00'),
+      })
+    );
+
+    assertEquals(result, { kind: 'skipped', reason: 'notification_time_mismatch' });
     assertEquals(calls, ['findById:test-ticket-123']);
   });
 

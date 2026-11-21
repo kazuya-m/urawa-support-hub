@@ -18,7 +18,6 @@ interface TicketProps {
   updatedAt: Date | null;
   scrapedAt: Date;
   saleStatus: SaleStatus | null;
-  notificationScheduled: boolean;
 }
 
 export class Ticket {
@@ -123,10 +122,6 @@ export class Ticket {
     return this.props.saleStatus;
   }
 
-  get notificationScheduled(): boolean {
-    return this.props.notificationScheduled;
-  }
-
   get createdAt(): Date | null {
     return this.props.createdAt;
   }
@@ -139,16 +134,6 @@ export class Ticket {
     return this.props.scrapedAt;
   }
 
-  isValidForNotification(): boolean {
-    const now = new Date();
-    if (this.props.matchDate <= now) return false;
-    if (!this.props.saleStartDate) return false;
-    if (now.getTime() > this.props.saleStartDate.getTime() + 24 * 60 * 60 * 1000) return false;
-    return !!this.props.matchName &&
-      !!this.props.matchDate &&
-      !!this.props.saleStartDate;
-  }
-
   hasSameBusinessData(other: Ticket | null): boolean {
     if (!other) return false;
 
@@ -157,7 +142,6 @@ export class Ticket {
       createdAt: _createdAt,
       updatedAt: _updatedAt,
       scrapedAt: _scrapedAt,
-      notificationScheduled: _notificationScheduled,
       ...thisBusinessData
     } = this.props;
     const {
@@ -165,49 +149,10 @@ export class Ticket {
       createdAt: _otherCreatedAt,
       updatedAt: _otherUpdatedAt,
       scrapedAt: _otherScrapedAt,
-      notificationScheduled: _otherNotificationScheduled,
       ...otherBusinessData
     } = other.props;
 
     return fastDeepEqual(thisBusinessData, otherBusinessData);
-  }
-
-  /**
-   * 通知をスケジューリングすべきかの判定（要件準拠）
-   * 有効期限内で発売前のチケット
-   */
-  shouldScheduleNotification(): boolean {
-    return this.isValidForNotification() &&
-      this.saleStatus === 'before_sale' &&
-      !this.notificationScheduled;
-  }
-
-  /**
-   * 既存チケットと比較して通知の再スケジュールが必要かを判定
-   * saleStartDateが変更された場合にtrueを返す
-   */
-  needsNotificationReschedule(existing: Ticket): boolean {
-    return (
-      this.saleStartDate?.getTime() !== existing.saleStartDate?.getTime() ||
-      !this.areTicketTypesEqual(existing.ticketTypes) ||
-      this.ticketUrl !== existing.ticketUrl
-    );
-  }
-
-  /**
-   * 既存チケットで通知再スケジュールが必要かを判定
-   */
-  shouldRescheduleNotification(previousTicket: Ticket | null): boolean {
-    if (!previousTicket) return false;
-
-    return this.needsNotificationReschedule(previousTicket) && this.shouldScheduleNotification();
-  }
-
-  markNotificationScheduled(): Ticket {
-    return Ticket.fromExisting({
-      ...this.props,
-      notificationScheduled: true,
-    });
   }
 
   mergeWith(newTicket: Ticket): Ticket {
@@ -226,7 +171,6 @@ export class Ticket {
       ...newTicket.toPlainObject(),
       id: this.props.id,
       createdAt: this.props.createdAt,
-      notificationScheduled: this.props.notificationScheduled,
       saleStartDate,
     });
   }
@@ -241,14 +185,5 @@ export class Ticket {
 
   toPlainObject(): TicketProps {
     return { ...this.props };
-  }
-
-  private areTicketTypesEqual(otherTypes: string[]): boolean {
-    if (this.ticketTypes.length !== otherTypes.length) return false;
-
-    const sortedCurrent = [...this.ticketTypes].sort();
-    const sortedOther = [...otherTypes].sort();
-
-    return sortedCurrent.every((type, index) => type === sortedOther[index]);
   }
 }

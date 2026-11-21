@@ -5,7 +5,6 @@ import {
   type NotificationKey,
   NotificationRepository,
 } from '@/infrastructure/repositories/NotificationRepository.ts';
-import { Notification } from '@/domain/entities/index.ts';
 import type { LineMessage } from '@/infrastructure/clients/LineClient.ts';
 import { cleanupTestDataById, createTestSupabaseClient } from '@/tests/utils/test-supabase.ts';
 import { createDynamicTestTicket } from '@/tests/utils/test-fixtures.ts';
@@ -46,19 +45,19 @@ async function setRow(id: string, values: Record<string, unknown>) {
   if (error) throw new Error(error.message);
 }
 
-function scheduledNotification(key: NotificationKey): Notification {
-  return new Notification({
-    id: crypto.randomUUID(),
-    ticketId: key.ticketId,
-    notificationType: key.notificationType,
-    scheduledAt: key.notificationTime,
-    sentAt: null,
-    status: 'scheduled',
-    errorMessage: null,
-    cloudTaskId: null,
-    createdAt: new Date(),
-    updatedAt: null,
-  });
+async function insertScheduledRow(key: NotificationKey): Promise<string> {
+  const { data, error } = await supabase
+    .from('notifications')
+    .insert({
+      ticket_id: key.ticketId,
+      notification_type: key.notificationType,
+      notification_time: key.notificationTime.toISOString(),
+      status: 'scheduled',
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
 }
 
 Deno.test('notifications の一意制約: 同じキーの 2 行目は INSERT できない', async () => {
@@ -74,17 +73,6 @@ Deno.test('notifications の一意制約: 同じキーの 2 行目は INSERT で
 
     assertEquals(first.error, null);
     assertEquals(second.error?.code, '23505');
-  });
-});
-
-Deno.test('NotificationRepository.save: 同じキーの行があれば何もしない', async () => {
-  await withTicket('claim-save', async (key) => {
-    const first = scheduledNotification(key);
-    await notificationRepo.save(first);
-    await notificationRepo.save(scheduledNotification(key));
-
-    const rows = await notificationRepo.findByTicketId(key.ticketId);
-    assertEquals(rows.map((row) => row.id), [first.id]);
   });
 });
 
@@ -150,13 +138,12 @@ Deno.test('claim_notification: failed は再確保できる', async () => {
 
 Deno.test('claim_notification: 旧予約処理の scheduled・cancelled 行は再確保でき、本文を保存する', async () => {
   await withTicket('claim-scheduled', async (key) => {
-    const scheduled = scheduledNotification(key);
-    await notificationRepo.save(scheduled);
-    await setRow(scheduled.id, { status: 'cancelled', error_message: 'Cancelled' });
+    const scheduledId = await insertScheduledRow(key);
+    await setRow(scheduledId, { status: 'cancelled', error_message: 'Cancelled' });
 
     const claimed = await notificationRepo.claim(key, firstMessage);
 
-    assertEquals(claimed?.id, scheduled.id);
+    assertEquals(claimed?.id, scheduledId);
     assertEquals(claimed?.message, firstMessage);
   });
 });

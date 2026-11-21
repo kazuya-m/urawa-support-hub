@@ -17,7 +17,6 @@ function createTicket(matchName: string): Promise<Ticket> {
     ticketUrl: null,
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
-    notificationScheduled: false,
   });
 }
 

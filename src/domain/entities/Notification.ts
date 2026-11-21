@@ -6,13 +6,6 @@ import {
 
 export type NotificationStatus = 'scheduled' | 'sending' | 'sent' | 'failed' | 'cancelled';
 
-export type CancellationReason =
-  | 'Cancelled due to ticket update'
-  | 'Cancelled due to sale date change'
-  | 'Cancelled due to ticket deletion'
-  | 'Cancelled due to manual intervention'
-  | 'Cancelled due to system maintenance';
-
 interface NotificationProps {
   id: string;
   ticketId: string;
@@ -21,7 +14,6 @@ interface NotificationProps {
   sentAt: Date | null;
   status: NotificationStatus;
   errorMessage: string | null;
-  cloudTaskId: string | null;
   createdAt: Date;
   updatedAt: Date | null;
 }
@@ -76,9 +68,6 @@ export class Notification {
   get updatedAt(): Date | null {
     return this.props.updatedAt;
   }
-  get cloudTaskId(): string | null {
-    return this.props.cloudTaskId;
-  }
 
   markAsSent(sentTime: Date = new Date()): Notification {
     return new Notification({
@@ -95,14 +84,6 @@ export class Notification {
       status: 'failed',
       sentAt: failedTime,
       errorMessage,
-    });
-  }
-
-  markAsCancelled(reason: CancellationReason): Notification {
-    return new Notification({
-      ...this.props,
-      status: 'cancelled',
-      errorMessage: reason,
     });
   }
 

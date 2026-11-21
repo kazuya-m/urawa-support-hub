@@ -24,7 +24,6 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
       ticketUrl: 'https://example.com/tickets',
       scrapedAt: new Date('2024-08-10T12:00:00Z'),
       saleStatus: 'before_sale',
-      notificationScheduled: false,
     });
 
     // データベースに保存
@@ -49,7 +48,6 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
       updatedAt: existingTicket!.updatedAt,
       scrapedAt: new Date('2024-08-20T12:00:00Z'),
       saleStatus: 'on_sale' as const,
-      notificationScheduled: existingTicket!.notificationScheduled,
     });
 
     const saveResult2 = await ticketRepository.upsert(onSaleTicket);
@@ -73,7 +71,6 @@ Deno.test('Sale Status Management Integration - Complete State Transition Flow',
       updatedAt: existingTicket2!.updatedAt,
       scrapedAt: new Date('2024-09-13T12:00:00Z'),
       saleStatus: 'ended' as const,
-      notificationScheduled: existingTicket2!.notificationScheduled,
     });
 
     const saveResult3 = await ticketRepository.upsert(endedTicket);
@@ -113,37 +110,10 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
       ticketUrl: 'https://example.com/tickets',
       scrapedAt: new Date('2024-08-10T12:00:00Z'),
       saleStatus: 'before_sale',
-      notificationScheduled: false,
     });
 
     const result1 = await ticketRepository.upsert(beforeSaleTicket);
     assertEquals(result1.saleStatus, 'before_sale');
-    assertEquals(result1.notificationScheduled, false);
-
-    // 通知スケジュール済みに更新（同じIDで更新）
-    const existingForSchedule = await ticketRepository.findById(result1.id);
-    const scheduledTicket = Ticket.fromExisting({
-      id: existingForSchedule!.id,
-      matchName: existingForSchedule!.matchName,
-      matchDate: existingForSchedule!.matchDate,
-      homeTeam: existingForSchedule!.homeTeam,
-      awayTeam: existingForSchedule!.awayTeam,
-      competition: existingForSchedule!.competition,
-      saleStartDate: existingForSchedule!.saleStartDate,
-      saleEndDate: existingForSchedule!.saleEndDate,
-      venue: existingForSchedule!.venue,
-      ticketTypes: existingForSchedule!.ticketTypes,
-      ticketUrl: existingForSchedule!.ticketUrl,
-      createdAt: existingForSchedule!.createdAt,
-      updatedAt: existingForSchedule!.updatedAt,
-      scrapedAt: existingForSchedule!.scrapedAt,
-      saleStatus: existingForSchedule!.saleStatus,
-      notificationScheduled: true,
-    });
-
-    const result2 = await ticketRepository.upsert(scheduledTicket);
-    // notification_scheduled = true が保存されて返ってくることを確認
-    assertEquals(result2.notificationScheduled, true);
 
     // 販売中に変更 - 通知不要（同じIDで更新）
     const existingForOnSale = await ticketRepository.findById(result1.id);
@@ -163,12 +133,10 @@ Deno.test('Sale Status Management - Notification Control Logic', async () => {
       updatedAt: existingForOnSale!.updatedAt,
       scrapedAt: new Date('2024-08-20T12:00:00Z'),
       saleStatus: 'on_sale' as const,
-      notificationScheduled: true,
     });
 
     const result3 = await ticketRepository.upsert(onSaleTicket);
     assertEquals(result3.saleStatus, 'on_sale');
-    assertEquals(result3.notificationScheduled, true);
   } finally {
     await cleanupTestData(client, 'tickets', `match_name LIKE '%${testId}%'`);
   }
@@ -197,7 +165,6 @@ Deno.test('Sale Status Management - ScrapedAt Timestamp Tracking', async () => {
       ticketUrl: 'https://example.com/tickets',
       scrapedAt: firstScrapedAt,
       saleStatus: 'before_sale',
-      notificationScheduled: false,
     });
 
     const firstResult = await ticketRepository.upsert(ticket1);
@@ -220,7 +187,6 @@ Deno.test('Sale Status Management - ScrapedAt Timestamp Tracking', async () => {
       updatedAt: existingForScrapedAt!.updatedAt,
       scrapedAt: secondScrapedAt,
       saleStatus: existingForScrapedAt!.saleStatus,
-      notificationScheduled: existingForScrapedAt!.notificationScheduled,
     });
 
     const result = await ticketRepository.upsert(ticket2);

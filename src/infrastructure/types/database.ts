@@ -18,7 +18,6 @@ export interface TicketRow {
   updated_at: string;
   scraped_at: string;
   sale_status: SaleStatus | null;
-  notification_scheduled: boolean;
 }
 
 export interface NotificationRow {
@@ -50,16 +49,4 @@ export interface TicketInsert {
   ticket_url?: string | null;
   scraped_at: string;
   sale_status?: SaleStatus | null;
-  notification_scheduled?: boolean;
-}
-
-export interface NotificationInsert {
-  id: string;
-  ticket_id: string;
-  notification_type: NotificationType;
-  notification_time: string;
-  sent_at?: string | null;
-  status: NotificationStatus;
-  error_message?: string | null;
-  cloud_task_id?: string | null;
 }

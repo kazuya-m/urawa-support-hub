@@ -26,7 +26,6 @@ Deno.test('SupabaseTicketRepository - findById with null handling', async () => 
     updated_at: '2025-01-01T00:00:00Z',
     scraped_at: '2025-01-01T00:00:00Z',
     sale_status: 'before_sale',
-    notification_scheduled: false,
   };
 
   const mockClient = createMockSupabaseClient([mockTicketRow]);
@@ -61,7 +60,6 @@ Deno.test('SupabaseTicketRepository - upsert error handling', async () => {
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
-    notificationScheduled: false,
   });
 
   await assertRejects(
@@ -87,7 +85,6 @@ Deno.test('TicketRepository - upsert creates new ticket', async () => {
     updated_at: '2025-01-01T00:00:00Z',
     scraped_at: '2025-01-01T00:00:00Z',
     sale_status: 'before_sale',
-    notification_scheduled: false,
   };
 
   const mockClient = createUpsertMockSupabaseClient({
@@ -113,7 +110,6 @@ Deno.test('TicketRepository - upsert creates new ticket', async () => {
     updatedAt: new Date('2025-01-01T00:00:00Z'),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
-    notificationScheduled: false,
   });
 
   const result = await repository.upsert(testTicket);
@@ -138,7 +134,6 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
     updated_at: '2025-01-01T00:00:00Z',
     scraped_at: '2025-01-01T00:00:00Z',
     sale_status: 'before_sale',
-    notification_scheduled: false,
   };
 
   const updatedTicketRow = {
@@ -170,7 +165,6 @@ Deno.test('TicketRepository - upsert updates existing ticket', async () => {
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
-    notificationScheduled: false,
   });
 
   const result = await repository.upsert(updatedTicket);
@@ -200,7 +194,6 @@ Deno.test('TicketRepository - upsert detects no changes', async () => {
     updated_at: '2025-01-01T00:00:00Z',
     scraped_at: fixedScrapedAt.toISOString(),
     sale_status: 'before_sale',
-    notification_scheduled: false,
   };
 
   const mockClient = createUpsertMockSupabaseClient({
@@ -226,7 +219,6 @@ Deno.test('TicketRepository - upsert detects no changes', async () => {
     updatedAt: new Date('2025-01-01T00:00:00Z'),
     scrapedAt: fixedScrapedAt,
     saleStatus: 'before_sale',
-    notificationScheduled: false,
   });
 
   const result = await repository.upsert(sameTicket);
@@ -259,7 +251,6 @@ Deno.test('TicketRepository - upsert handles database error properly', async () 
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
-    notificationScheduled: false,
   });
 
   await assertRejects(
@@ -292,7 +283,6 @@ Deno.test('TicketRepository - upsert handles upsert error properly', async () =>
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
-    notificationScheduled: false,
   });
 
   await assertRejects(
@@ -318,7 +308,6 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     updated_at: '2025-01-01T00:00:00Z',
     scraped_at: '2025-01-01T00:00:00Z',
     sale_status: 'before_sale',
-    notification_scheduled: false,
   };
 
   const updatedTicketRow = {
@@ -350,7 +339,6 @@ Deno.test('TicketRepository - upsert detects ticket_types array changes', async 
     updatedAt: new Date(),
     scrapedAt: new Date(),
     saleStatus: 'before_sale',
-    notificationScheduled: false,
   });
 
   const result = await repository.upsert(updatedTicket);
@@ -409,7 +397,6 @@ function createTicketRow(id: string, saleStatus: TicketRow['sale_status']): Tick
     updated_at: '2025-01-01T00:00:00Z',
     scraped_at: '2025-01-01T00:00:00Z',
     sale_status: saleStatus,
-    notification_scheduled: false,
   };
 }
 

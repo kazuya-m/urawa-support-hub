@@ -93,7 +93,6 @@ export class HiroshimaDataParser {
         homeTeam: 'サンフレッチェ広島', // ホームチーム
         awayTeam: '浦和レッズ', // アウェイチーム
         scrapedAt: new Date(),
-        notificationScheduled: false,
       });
 
       return ticket;

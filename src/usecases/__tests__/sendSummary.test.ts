@@ -22,7 +22,6 @@ function createTestTicket(
     saleStatus: 'on_sale',
     ticketTypes: ['一般', 'ホームゲート指定席'],
     ticketUrl: 'https://example.com/tickets/test-ticket-1',
-    notificationScheduled: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     scrapedAt: new Date(),
